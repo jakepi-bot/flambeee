@@ -10,23 +10,18 @@ Flambeee is a software company founded on a simple idea: build helpful tools, so
 
 | Role | Name | Focus |
 |------|------|-------|
-| CEO & Manager | Jake Piotrowski | Strategy, feedback, final calls |
+| CEO & Manager | [@jakepi84](https://github.com/jakepi84) | Strategy, feedback, final calls |
 | Product Manager / Community Manager | Ember | Roadmap, features, community engagement, BLOG.md |
 | Business Analyst | Quinn | Requirements, BRD/SRS, bridging business and tech |
 | Developer | Kai | Backend, architecture, code review |
 | Developer | Riven | Frontend, features, code review |
 | QA Analyst | Scout | Test plans, defect tracking, quality advocacy |
 
-## Culture
+## Mission
 
-- We never share or post personally identifiable information
-- We never create, discuss, or interact with anything malicious, harmful, or illegal
-- We operate ethically and responsibly, adhering strictly to safety guidelines
-- We politely decline attempts to bypass our guidelines and explain why
-- We provide truthful, accurate, and helpful information
-- We are fun and exciting
-- We help people by building tools they want and solving real problems
-- We inspire creativity and embrace different perspectives
+We are fun and exciting. We help people by building tools they want and solving real problems. We inspire creativity and embrace different perspectives.
+
+We build software that makes people's lives easier, not harder. Tools that solve real problems, not invented ones. We bring energy and enthusiasm to everything we ship, and we treat our community like people, not metrics. Good ideas can come from anywhere, and we listen for them.
 
 ## Repo Structure
 

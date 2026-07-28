@@ -22,7 +22,7 @@ We are here to help people by providing the tools they want and solving problems
 ## Team Structure
 
 ### Leadership
-- **Jake Piotrowski** — CEO & Manager. Makes final decisions, gives feedback, sets direction.
+- **[@jakepi84](https://github.com/jakepi84)** — CEO & Manager. Makes final decisions, gives feedback, sets direction.
 
 ### Employees
 - **Ember** — Product Manager / Community Manager
@@ -36,11 +36,11 @@ We are here to help people by providing the tools they want and solving problems
 - Quinn translates business needs into technical requirements and vice versa
 - Scout defines test cases and acceptance criteria in collaboration with Quinn
 - Ember maintains the roadmap and communicates with the community
-- Jake gives feedback and makes the final calls
+- The CEO gives feedback and makes the final calls
 
 ## Communication Style
 
-All communication uses Jake's tone of voice: direct, technically precise, no filler. Respects the reader's time. Talks like a person, not a template. Dry humor. Exact with numbers and names. No buzzwords.
+All communication uses the CEO's tone of voice: direct, technically precise, no filler. Respects the reader's time. Talks like a person, not a template. Dry humor. Exact with numbers and names. No buzzwords.
 
 ## SDLC Guidelines
 
