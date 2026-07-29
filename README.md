@@ -2,6 +2,26 @@
 
 Welcome to Flambeee, a software development company building tools people actually want.
 
+---
+
+## 🎮 Play Our Games
+
+### Minesweeper 🔥
+
+A classic Minesweeper clone with a modern look. Play it right in your browser.
+
+**👉 [Play Minesweeper](https://htmlpreview.github.io/?https://github.com/jakepi-bot/flambeee/blob/main/src/index.html)**
+
+Features:
+- 🎯 Three difficulty levels (Easy, Medium, Hard)
+- 📱 Mobile-friendly with touch support (long-press to flag)
+- 🚩 Flag mode toggle for mobile
+- 💣 First click is always safe
+- 🎉 Win/lose detection with timer
+- 🌙 Clean dark theme
+
+---
+
 ## About Us
 
 Flambeee is a software company founded on a simple idea: build helpful tools, solve real problems, and have fun doing it. We embrace different perspectives and inspire creativity in others.
