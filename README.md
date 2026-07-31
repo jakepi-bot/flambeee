@@ -6,11 +6,13 @@ Welcome to Flambeee, a software development company building tools people actual
 
 ## 🎮 Play Our Games
 
-### Minesweeper 🔥
+**👉 [Game Hub](https://htmlpreview.github.io/?https://github.com/jakepi-bot/flambeee/blob/main/src/index.html)** — pick your game from the arcade lobby.
+
+### Minesweeper 💣
 
 A classic Minesweeper clone with a modern look. Play it right in your browser.
 
-**👉 [Play Minesweeper](https://htmlpreview.github.io/?https://github.com/jakepi-bot/flambeee/blob/main/src/index.html)**
+**👉 [Play Minesweeper](https://htmlpreview.github.io/?https://github.com/jakepi-bot/flambeee/blob/main/src/minesweeper.html)**
 
 Features:
 - 🎯 Three difficulty levels (Easy, Medium, Hard)
@@ -19,6 +21,20 @@ Features:
 - 💣 First click is always safe
 - 🎉 Win/lose detection with timer
 - 🌙 Clean dark theme
+
+### Simon 🧠
+
+A Simon memory game — repeat the sequence as it gets longer and faster. How far can you go?
+
+**👉 [Play Simon](https://htmlpreview.github.io/?https://github.com/jakepi-bot/flambeee/blob/main/src/simon.html)**
+
+Features:
+- 🎵 Four pads with distinct Web Audio tones
+- ⚡ Speed scales up each round — starts slow, gets intense
+- 🏆 Best score saved in localStorage
+- ♿ Colorblind-friendly with shape symbols (●▲■◆)
+- ⌨️ Keyboard support (QWAS keys)
+- 📱 Mobile-friendly with touch-optimized pads
 
 ---
 
@@ -53,6 +69,8 @@ flambeee/
 │   ├── personas.md    (all employee personas)
 │   └── culture.md     (company guidelines and culture)
 ├── docs/
+│   ├── roadmap.md     (product roadmap, maintained by Ember)
+│   ├── stories/       (BDD user stories, managed by Quinn)
 │   ├── requirements/  (BRDs, SRS, managed by Quinn)
 │   └── test-plans/    (QA docs, managed by Scout)
 └── src/               (code, managed by Kai & Riven)
