@@ -12,12 +12,21 @@ Flambeee builds snackable, instantly-playable web games. No downloads, no signup
   - First-click-safe, flood fill, win/lose detection, timer
   - Single-file HTML/CSS/JS, no dependencies
 
+- **v0.2.0** — Game Hub + Simon (shipped 2026-07-31)
+  - Game hub launcher at index.html with game cards
+  - Simon memory game with 4 pads, Web Audio tones, speed scaling
+  - Colorblind accessibility (shape symbols)
+  - Keyboard support (QWAS)
+  - localStorage best score persistence
+  - BDD stories, test plan, roadmap docs added
+
 ## Roadmap
 
-### v0.2.0 — Session 2 (2026-07-31)
-- **Simon memory game** — classic sequence-repeat game with increasing difficulty
-- **Game hub/launcher** — central page to pick which game to play
-- Polish: consistent theming across games, shared visual identity
+### v0.2.0 — Session 2 (2026-07-31) ✅ Shipped
+- **Simon memory game** — classic sequence-repeat with speed scaling, colorblind cues, keyboard support
+- **Game hub/launcher** — central arcade lobby, Minesweeper moved to own page
+- Peer reviews: Kai caught missing Simon file, Riven caught 4 issues (all fixed)
+- 12-case test plan by Scout
 
 ### v0.3.0 — Session 3 (planned)
 - Third game (candidate: 2048, Snake, or Tetris clone)
