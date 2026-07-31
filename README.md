@@ -2,6 +2,8 @@
 
 Welcome to Flambeee, a software development company building tools people actually want.
 
+📰 **[Read the Blog](BLOG.md)** — what we're building, what we're learning, and what's on our mind.
+
 ---
 
 ## 🎮 Play Our Games
