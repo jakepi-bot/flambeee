@@ -81,7 +81,7 @@
     .game-board {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 15px;
+      gap: 20px;
       margin: 30px 0;
       padding: 20px;
       background: var(--surface);
@@ -97,7 +97,19 @@
       cursor: pointer;
       transition: all 0.1s ease;
       position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      opacity: 0.85;
     }
+
+    /* Colorblind cue symbols */
+    .pad.green::after { content: '●'; }
+    .pad.red::after { content: '▲'; }
+    .pad.yellow::after { content: '■'; }
+    .pad.blue::after { content: '◆'; }
+    .pad.lit::after { opacity: 0.4; }
 
     .pad:active {
       transform: scale(0.95);
@@ -109,10 +121,10 @@
     }
 
     /* Pad colors - inactive state */
-    .pad.green { background: #1a5a3a; }
-    .pad.red { background: #5a1a2a; }
-    .pad.yellow { background: #5a4a1a; }
-    .pad.blue { background: #1a3a5a; }
+    .pad.green { background: #1a5a3a; color: #2a7a4a; }
+    .pad.red { background: #5a1a2a; color: #7a2a3a; }
+    .pad.yellow { background: #5a4a1a; color: #7a6a2a; }
+    .pad.blue { background: #1a3a5a; color: #2a4a7a; }
 
     /* Pad colors - active/lit state */
     .pad.green.lit { 
@@ -227,7 +239,7 @@
     /* Mobile responsive */
     @media (max-width: 400px) {
       .game-board {
-        gap: 10px;
+        gap: 15px;
         padding: 15px;
       }
 
@@ -338,15 +350,24 @@
       oscillator.stop(audioContext.currentTime + duration);
     }
 
+    // Speed scaling — gets faster as rounds increase
+    function getFlashDuration() {
+      return Math.max(200, 600 - (round - 1) * 30);
+    }
+
+    function getGapDuration() {
+      return Math.max(80, 200 - (round - 1) * 10);
+    }
+
     // Flash a pad
-    function flashPad(pad, duration = 600) {
+    function flashPad(pad, duration, gap) {
       return new Promise(resolve => {
         pad.classList.add('lit');
-        playTone(parseFloat(pad.dataset.freq));
+        playTone(parseFloat(pad.dataset.freq), duration / 1000);
 
         setTimeout(() => {
           pad.classList.remove('lit');
-          setTimeout(resolve, 200); // Gap between flashes
+          setTimeout(resolve, gap);
         }, duration);
       });
     }
@@ -356,8 +377,11 @@
       isPlayingSequence = true;
       disablePads(true);
 
+      const flashDur = getFlashDuration();
+      const gapDur = getGapDuration();
+
       for (let i = 0; i < sequence.length; i++) {
-        await flashPad(pads[sequence[i]]);
+        await flashPad(pads[sequence[i]], flashDur, gapDur);
       }
 
       isPlayingSequence = false;
@@ -382,7 +406,7 @@
       sequence = [];
       playerIndex = 0;
       round = 0;
-      roundDisplay.textContent = round;
+      roundDisplay.textContent = '—';
       overlay.classList.remove('show');
       startBtn.style.display = 'none';
 
@@ -391,10 +415,10 @@
 
     // Next round
     async function nextRound() {
-      round++;
-      roundDisplay.textContent = round;
       playerIndex = 0;
       addToSequence();
+      round = sequence.length;
+      roundDisplay.textContent = round;
       await playSequence();
     }
 
