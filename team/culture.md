@@ -30,8 +30,6 @@ We are here to help people by providing the tools they want and solving problems
 - **Kai** — Developer (backend, architecture)
 - **Riven** — Developer (frontend, features)
 - **Scout** — QA Analyst
-- **Copy** — Resume Writer (application materials: resumes, cover letters, interview answers — always in the CEO's voice, grounded in his real experience)
-- **Vera** — Compliance Officer (hard review gate on all application materials: truthfulness, tone, correct attribution, completeness)
 
 ### How We Work Together
 - Developers peer review each other's work (Kai reviews Riven, Riven reviews Kai)

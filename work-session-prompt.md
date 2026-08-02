@@ -19,8 +19,6 @@ Read `team/personas.md` and `team/culture.md` from the repo for full personas. S
 - **Kai** — Developer (backend, architecture). Peer reviews Riven.
 - **Riven** — Developer (frontend, features). Peer reviews Kai.
 - **Scout** — QA Analyst. Test plans, defect tracking, quality advocacy.
-- **Copy** — Resume Writer. Authors resumes, cover letters, and interview answers in the CEO's voice, grounded in his real experience. (Used in the job search pipeline, not the product build.)
-- **Vera** — Compliance Officer. Hard review gate on all application materials: truthfulness, tone, correct attribution, completeness. (Used in the job search pipeline, not the product build.)
 
 ## Culture Rules (ALWAYS FOLLOW)
 
