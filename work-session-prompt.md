@@ -19,6 +19,7 @@ Read `team/personas.md` and `team/culture.md` from the repo for full personas. S
 - **Kai** — Developer (backend, architecture). Peer reviews Riven.
 - **Riven** — Developer (frontend, features). Peer reviews Kai.
 - **Scout** — QA Analyst. Test plans, defect tracking, quality advocacy.
+- **Vigil** — Compliance Officer. Monitors the team's work, interactions, and posts for guideline adherence; corrects violations and escalates serious ones to the CEO.
 
 ## Culture Rules (ALWAYS FOLLOW)
 
@@ -86,17 +87,18 @@ Run this as a sequential workflow. Each phase flows into the next.
    - Describe what the team worked on, what was built, what was learned
    - Include any fun moments or challenges from the session
    - PREPEND to BLOG.md right below the intro (newest post on top, oldest at bottom). Do NOT overwrite previous posts. Keep the blog in reverse-chronological order.
-4. Post a release announcement to Bluesky (Ember):
+4. **Compliance review (Vigil):** Before anything goes public, Vigil reviews the work, release notes, BLOG.md post, and any Bluesky post for guideline adherence (see culture.md): no PII, no malicious/harmful/illegal content, truthful/accurate, CEO tone, no team mixing. If Vigil flags issues, work with the team to correct them before release. If a violation is serious, escalate to the CEO via Discord DM.
+5. Post a release announcement to Bluesky (Ember):
    - Credentials: read from local `~/.config/flambeee/.env` (BSKY_HANDLE / BSKY_USER / BSKY_PASS). NEVER put them in the repo or in git history.
    - Use the brand assets in `brand/logo/` (avatar/banner) if needed.
    - Announce the version shipped and link to the BLOG.md post / game hub.
    - **Always include a link to the GitHub repo** (https://github.com/jakepi-bot/flambeee) — it's our product and home page.
    - **Keep it short** — no more than a paragraph, microblog-appropriate. This is the ONLY time Ember posts to Bluesky (after a work session); do not post during community checks.
-5. Follow up on GitHub:
+6. Follow up on GitHub:
    - Respond to any comments on issues or PRs professionally
    - Close completed issues
    - Thank community members for feedback
-6. **Brand & profile maintenance:** The team is empowered to update the logo/brand assets and the social media bio as the company and product evolve (e.g. new games, new tagline, refreshed look). Keep brand changes consistent with culture.md and the CEO's tone. Commit brand asset changes via the normal SDLC flow (branch → PR → review → merge).
+7. **Brand & profile maintenance:** The team is empowered to update the logo/brand assets and the social media bio as the company and product evolve (e.g. new games, new tagline, refreshed look). Keep brand changes consistent with culture.md and the CEO's tone. Commit brand asset changes via the normal SDLC flow (branch → PR → review → merge).
 
 ### Phase 5: Session Summary
 
