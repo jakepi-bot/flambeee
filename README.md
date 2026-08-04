@@ -80,6 +80,8 @@ We build software that makes people's lives easier, not harder. Tools that solve
 flambeee/
 ├── README.md          (you are here)
 ├── BLOG.md            (company blog, maintained by Ember)
+├── brand/
+│   └── logo/          (logo + avatar + banner assets, all sizes)
 ├── team/
 │   ├── personas.md    (all employee personas)
 │   └── culture.md     (company guidelines and culture)
@@ -90,6 +92,11 @@ flambeee/
 │   └── test-plans/    (QA docs, managed by Scout)
 └── src/               (code, managed by Kai & Riven)
 ```
+
+## Brand & Social
+
+- **Bluesky:** [`@flambeee`](https://bsky.app/profile/flambeee.bsky.social) — managed by Ember. Credentials live **locally** at `~/.config/flambeee/.env`; never commit them.
+- **Logo assets:** `brand/logo/` — square icons (16–512px), 400px avatar, 1500×500 banner, favicon, and SVG masters.
 
 ## License
 

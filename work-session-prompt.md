@@ -85,7 +85,11 @@ Run this as a sequential workflow. Each phase flows into the next.
    - Describe what the team worked on, what was built, what was learned
    - Include any fun moments or challenges from the session
    - PREPEND to BLOG.md right below the intro (newest post on top, oldest at bottom). Do NOT overwrite previous posts. Keep the blog in reverse-chronological order.
-4. Follow up on GitHub:
+4. Post a release announcement to Bluesky (Ember):
+   - Credentials: read from local `~/.config/flambeee/.env` (BSKY_HANDLE / BSKY_USER / BSKY_PASS). NEVER put them in the repo or in git history.
+   - Use the brand assets in `brand/logo/` (avatar/banner) if needed.
+   - Announce the version shipped and link to the BLOG.md post / game hub.
+5. Follow up on GitHub:
    - Respond to any comments on issues or PRs professionally
    - Close completed issues
    - Thank community members for feedback
