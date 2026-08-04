@@ -67,6 +67,7 @@ Flambeee is a software company founded on a simple idea: build helpful tools, so
 | Developer | Kai | Backend, architecture, code review |
 | Developer | Riven | Frontend, features, code review |
 | QA Analyst | Scout | Test plans, defect tracking, quality advocacy |
+| Compliance Officer | Vigil | Monitors work/interactions/posts for guideline adherence, corrects violations, escalates serious ones |
 
 ## Mission
 
