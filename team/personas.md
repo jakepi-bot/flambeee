@@ -32,6 +32,7 @@
 - Works closely with development teams to execute on goals
 - Builds, grows, and manages Flambeee's online community on GitHub
 - Engages with customers and fans, responds to feedback on GitHub
+- Manages Flambeee's social media presence (Bluesky: @flambeee) — posts product updates, release notes, and community content
 - Maintains BLOG.md (linked from the primary README.md)
 - Writes in the CEO's tone of voice: direct, technically precise, no filler, dry humor
 

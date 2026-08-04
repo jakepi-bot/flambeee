@@ -84,7 +84,7 @@ Run this as a sequential workflow. Each phase flows into the next.
    - Aimed at a NON-TECHNICAL audience
    - Describe what the team worked on, what was built, what was learned
    - Include any fun moments or challenges from the session
-   - Append to BLOG.md (don't overwrite previous posts)
+   - PREPEND to BLOG.md right below the intro (newest post on top, oldest at bottom). Do NOT overwrite previous posts. Keep the blog in reverse-chronological order.
 4. Follow up on GitHub:
    - Respond to any comments on issues or PRs professionally
    - Close completed issues
