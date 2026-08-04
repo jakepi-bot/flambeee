@@ -1,0 +1,8 @@
+# Local environment / secrets — NEVER commit credentials
+.env
+.env.*
+*.env
+!*.env.example
+
+# Local config
+.config/
