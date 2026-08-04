@@ -28,15 +28,16 @@ Flambeee builds snackable, instantly-playable web games. No downloads, no signup
 - Peer reviews: Kai caught missing Simon file, Riven caught 4 issues (all fixed)
 - 12-case test plan by Scout
 
-### v0.3.0 — Session 3 (planned)
-- Third game (candidate: 2048, Snake, or Tetris clone)
+### v0.3.0 — Session 3 (2026-08-04) 🚧 In Progress
+- **2048 game** — chosen via market scan (2048/merge-puzzle remains a top 2026 browser-game trend, snackable, zero friction)
 - High score persistence (localStorage)
-- Difficulty selection from hub
+- Difficulty selection from hub (easy/medium/hard grid sizes)
 
 ### v0.4.0 — Session 4 (planned)
 - Fourth game
 - Game stats tracking (games played, best times, win rate)
 - Community feedback integration (GitHub issues → feature requests)
+- Difficulty selection rollout across all games
 
 ### Future
 - Mobile app packaging (PWA)
