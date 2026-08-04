@@ -38,6 +38,19 @@ Features:
 - ⌨️ Keyboard support (QWAS keys)
 - 📱 Mobile-friendly with touch-optimized pads
 
+### 2048 🔢
+
+A classic merge-puzzle game. Slide tiles, merge matching numbers, and chase 2048.
+
+**👉 [Play 2048](https://htmlpreview.github.io/?https://github.com/jakepi-bot/flambeee/blob/main/src/2048.html)**
+
+Features:
+- 🔢 Merge tiles with arrow keys / WASD / swipe
+- 🎯 Classic 4×4 board or Hard 5×5
+- 🏆 High score saved in localStorage
+- 🎉 Win and game-over overlays
+- 📱 Mobile-friendly with swipe support
+
 ---
 
 ## About Us

@@ -28,10 +28,11 @@ Flambeee builds snackable, instantly-playable web games. No downloads, no signup
 - Peer reviews: Kai caught missing Simon file, Riven caught 4 issues (all fixed)
 - 12-case test plan by Scout
 
-### v0.3.0 — Session 3 (2026-08-04) 🚧 In Progress
-- **2048 game** — chosen via market scan (2048/merge-puzzle remains a top 2026 browser-game trend, snackable, zero friction)
-- High score persistence (localStorage)
-- Difficulty selection from hub (easy/medium/hard grid sizes)
+### v0.3.0 — Session 3 (2026-08-04) ✅ Shipped
+- **2048 game** — merge-puzzle, 4x4 classic + 5x5 Hard, arrow/WASD keys, swipe, localStorage best score, win/game-over overlays
+- **Game Hub** — 2048 card added
+- Peer review (Kai): 2 non-blocking observations noted for next session (merge animation approximation, difficulty persistence)
+- 4/4 core logic assertions passed; 18-case test plan by Scout
 
 ### v0.4.0 — Session 4 (planned)
 - Fourth game
