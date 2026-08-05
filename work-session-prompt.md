@@ -20,6 +20,7 @@ Read `team/personas.md` and `team/culture.md` from the repo for full personas. S
 - **Riven** — Developer (frontend, features). Peer reviews Kai.
 - **Scout** — QA Analyst. Test plans, defect tracking, quality advocacy.
 - **Vigil** — Compliance Officer. Monitors the team's work, interactions, and posts for guideline adherence; corrects violations and escalates serious ones to the CEO.
+- **Palette** — Designer. Owns brand guidelines, standard colors/images, and graphics for the website and marketing; helps dev keep the look cohesive.
 
 ## Culture Rules (ALWAYS FOLLOW)
 
@@ -61,7 +62,7 @@ Run this as a sequential workflow. Each phase flows into the next.
 2. Prioritize the stories together
 3. Quinn creates any needed visual descriptions or wireframe descriptions in the story files
 
-### Phase 3: Development (Kai + Riven + Scout)
+### Phase 3: Development (Kai + Riven + Scout + Palette)
 
 1. Share the prioritized stories with the developers and QA
 2. Kai and Riven implement the stories:
@@ -70,11 +71,12 @@ Run this as a sequential workflow. Each phase flows into the next.
    - Riven handles frontend/features work
    - They peer review each other's PRs
    - Use proper Git workflow: branch, commit, push, PR, review, merge
-3. Scout writes test plans based on the BDD scenarios:
+3. **Palette reviews for brand consistency:** checks the UI/graphics/colors against the brand guidelines (brand/) and works with Kai/Riven to fix anything off-brand before it ships.
+4. Scout writes test plans based on the BDD scenarios:
    - Create test cases in `docs/test-plans/`
    - Define edge cases and boundary conditions
    - If there is testable code, run tests and document results
-4. Fix any issues found during testing
+5. Fix any issues found during testing
 
 ### Phase 4: Release (Ember)
 
@@ -88,17 +90,18 @@ Run this as a sequential workflow. Each phase flows into the next.
    - Include any fun moments or challenges from the session
    - PREPEND to BLOG.md right below the intro (newest post on top, oldest at bottom). Do NOT overwrite previous posts. Keep the blog in reverse-chronological order.
 4. **Compliance review (Vigil):** Before anything goes public, Vigil reviews the work, release notes, BLOG.md post, and any Bluesky post for guideline adherence (see culture.md): no PII, no malicious/harmful/illegal content, truthful/accurate, CEO tone, no team mixing. If Vigil flags issues, work with the team to correct them before release. If a violation is serious, escalate to the CEO via Discord DM.
-5. Post a release announcement to Bluesky (Ember):
+5. **Produce release graphics (Palette):** Create any headers, banners, or product images needed for the blog post and Bluesky announcement, on-brand per the brand guidelines. Use/update the assets in `brand/`.
+6. Post a release announcement to Bluesky (Ember):
    - Credentials: read from local `~/.config/flambeee/.env` (BSKY_HANDLE / BSKY_USER / BSKY_PASS). NEVER put them in the repo or in git history.
-   - Use the brand assets in `brand/logo/` (avatar/banner) if needed.
+   - Use the brand assets in `brand/logo/` (avatar/banner) and any release graphics Palette produced.
    - Announce the version shipped and link to the BLOG.md post / game hub.
    - **Always include a link to the company site** (https://flambeee.com) — it redirects to the GitHub repo, our product and home page.
    - **Keep it short** — no more than a paragraph, microblog-appropriate. This is the ONLY time Ember posts to Bluesky (after a work session); do not post during community checks.
-6. Follow up on GitHub:
+7. Follow up on GitHub:
    - Respond to any comments on issues or PRs professionally
    - Close completed issues
    - Thank community members for feedback
-7. **Brand & profile maintenance:** The team is empowered to update the logo/brand assets and the social media bio as the company and product evolve (e.g. new games, new tagline, refreshed look). Keep brand changes consistent with culture.md and the CEO's tone. Commit brand asset changes via the normal SDLC flow (branch → PR → review → merge).
+8. **Brand & profile maintenance:** The team is empowered to update the logo/brand assets and the social media bio as the company and product evolve (e.g. new games, new tagline, refreshed look). Palette leads brand consistency for any changes. Keep changes consistent with culture.md and the CEO's tone. Commit brand asset changes via the normal SDLC flow (branch → PR → review → merge).
 
 ### Phase 5: Session Summary
 
