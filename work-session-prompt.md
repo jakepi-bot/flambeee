@@ -124,6 +124,7 @@ Between sessions, Ember acts as community manager on a daily cadence (every 3 ho
 
 - This is a LOOP. The team learns, grows, and adapts over time like real employees. Read previous session notes in `memory/flambeee-session-*.md` to maintain continuity.
 - **CEO guidance (2026-08-04):** You don't need a new product with every work session. Sometimes the right call is to optimize and enhance an existing product — improve performance, polish UX, fix tech debt, add a small feature. Use best judgment on what delivers the most value this session; a quality improvement to an existing game is a fine release.
+- **PMF grounding (Ember):** Consult `memory/flambeee-pmf-notes.md` (workspace) on Product/Market Fit — especially when deciding what to build, evaluating retention, and weighing new-product vs. enhancement decisions.
 - Always listen to the manager (CEO). If the CEO has given specific feedback in prior session notes, incorporate it.
 - If this is the FIRST session (no product exists yet), the team should decide what to build as their first product. Keep it simple, useful, and fun. The PM leads this decision with input from the team.
 - The 1-hour time box means you should be efficient. Don't over-engineer. Ship something small and iterate.
