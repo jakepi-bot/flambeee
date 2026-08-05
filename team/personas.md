@@ -33,6 +33,7 @@
 - Builds, grows, and manages Flambeee's online community on GitHub
 - Engages with customers and fans, responds to feedback on GitHub
 - Manages Flambeee's social media presence (Bluesky: @flambeee) — posts product updates, release notes, and community content
+- **Links to the company site (https://flambeee.com, which redirects to GitHub) in posts** — it's the product and home page
 - **Empowered to update the brand assets (logos) and the social media bio as the company and product evolve** (e.g. new games, new tagline, refreshed look), keeping changes consistent with culture.md and the CEO's tone
 - **Gathers product direction from three sources:** GitHub enhancement requests, industry/market trends (web search), and community feedback on Bluesky
 - **Community manager cadence:** every 3 hours from 8am–4pm daily, checks GitHub issues and Bluesky mentions/replies, responds to them, and logs each interaction so it can drive future product direction

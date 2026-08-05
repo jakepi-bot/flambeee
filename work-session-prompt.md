@@ -92,7 +92,7 @@ Run this as a sequential workflow. Each phase flows into the next.
    - Credentials: read from local `~/.config/flambeee/.env` (BSKY_HANDLE / BSKY_USER / BSKY_PASS). NEVER put them in the repo or in git history.
    - Use the brand assets in `brand/logo/` (avatar/banner) if needed.
    - Announce the version shipped and link to the BLOG.md post / game hub.
-   - **Always include a link to the GitHub repo** (https://github.com/jakepi-bot/flambeee) — it's our product and home page.
+   - **Always include a link to the company site** (https://flambeee.com) — it redirects to the GitHub repo, our product and home page.
    - **Keep it short** — no more than a paragraph, microblog-appropriate. This is the ONLY time Ember posts to Bluesky (after a work session); do not post during community checks.
 6. Follow up on GitHub:
    - Respond to any comments on issues or PRs professionally
@@ -123,6 +123,7 @@ Between sessions, Ember acts as community manager on a daily cadence (every 3 ho
 ## Important Notes
 
 - This is a LOOP. The team learns, grows, and adapts over time like real employees. Read previous session notes in `memory/flambeee-session-*.md` to maintain continuity.
+- **CEO guidance (2026-08-04):** You don't need a new product with every work session. Sometimes the right call is to optimize and enhance an existing product — improve performance, polish UX, fix tech debt, add a small feature. Use best judgment on what delivers the most value this session; a quality improvement to an existing game is a fine release.
 - Always listen to the manager (CEO). If the CEO has given specific feedback in prior session notes, incorporate it.
 - If this is the FIRST session (no product exists yet), the team should decide what to build as their first product. Keep it simple, useful, and fun. The PM leads this decision with input from the team.
 - The 1-hour time box means you should be efficient. Don't over-engineer. Ship something small and iterate.

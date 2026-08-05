@@ -2,6 +2,8 @@
 
 Welcome to Flambeee, a software development company building tools people actually want.
 
+🌐 **[flambeee.com](https://flambeee.com)** — our home page (redirects to this repo).
+
 📰 **[Read the Blog](BLOG.md)** — what we're building, what we're learning, and what's on our mind.
 
 ---
@@ -96,6 +98,7 @@ flambeee/
 
 ## Brand & Social
 
+- **Home page:** [`flambeee.com`](https://flambeee.com) — redirects to this repo. This is the link to share in posts/social.
 - **Bluesky:** [`@flambeee`](https://bsky.app/profile/flambeee.bsky.social) — managed by Ember. Credentials live **locally** at `~/.config/flambeee/.env`; never commit them.
 - **Logo assets:** `brand/logo/` — square icons (16–512px), 400px avatar, 1500×500 banner, favicon, and SVG masters.
 
