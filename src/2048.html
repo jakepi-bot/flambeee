@@ -6,12 +6,12 @@
 <title>Flambeee 2048</title>
 <style>
   :root {
-    --bg: #121212;
-    --panel: #1e1e1e;
-    --panel-2: #2a2a2a;
-    --text: #f5f5f5;
+    --bg: #1a1a2e;
+    --panel: #22223a;
+    --panel-2: #2a2a4a;
+    --text: #eee;
     --muted: #9aa0a6;
-    --accent: #ffb300;
+    --accent: #e94560;
     --cell-gap: 12px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -26,6 +26,7 @@
     justify-content: center;
     padding: 16px;
     touch-action: manipulation;
+    overscroll-behavior: none;
     user-select: none;
     -webkit-user-select: none;
   }
@@ -61,6 +62,7 @@
     padding: var(--cell-gap);
     max-width: 460px;
     width: 100%;
+    touch-action: none;
   }
   .grid {
     display: grid;
@@ -70,7 +72,7 @@
   }
   .grid.hard { grid-template-columns: repeat(5, 1fr); }
   .cell {
-    background: #2f2f2f;
+    background: #1e1e36;
     border-radius: 8px;
     display: flex;
     align-items: center;
@@ -81,8 +83,8 @@
     transition: transform 0.1s ease, background 0.12s ease;
     position: relative;
   }
-  .cell[data-v="2"]   { background: #3a3a3a; }
-  .cell[data-v="4"]   { background: #4a4a4a; }
+  .cell[data-v="2"]   { background: #2a2a4a; }
+  .cell[data-v="4"]   { background: #3a3a5a; }
   .cell[data-v="8"]   { background: #6d4c00; }
   .cell[data-v="16"]  { background: #7a5700; }
   .cell[data-v="32"]  { background: #8f6500; }
@@ -90,15 +92,15 @@
   .cell[data-v="128"] { background: #c08a00; }
   .cell[data-v="256"] { background: #d99a00; }
   .cell[data-v="512"] { background: #f0ab00; color: #000; }
-  .cell[data-v="1024"]{ background: #ffbe0f; color: #000; }
-  .cell[data-v="2048"]{ background: #ffd23f; color: #000; }
+  .cell[data-v="1024"]{ background: #e94560; color: #fff; }
+  .cell[data-v="2048"]{ background: #ff5a75; color: #fff; }
   .cell.merged { transform: scale(1.12); }
   .cell.new { animation: pop 0.18s ease; }
   @keyframes pop { from { transform: scale(0.5); opacity: 0.4; } to { transform: scale(1); opacity: 1; } }
   .overlay {
     position: absolute;
     inset: 0;
-    background: rgba(18,18,18,0.85);
+    background: rgba(26,26,46,0.9);
     border-radius: 12px;
     display: none;
     flex-direction: column;
@@ -164,6 +166,19 @@
   var sizeSel = document.getElementById("size");
 
   var STORAGE_KEY = "flambeee-2048-best";
+  var SIZE_KEY = "flambeee-2048-size";
+
+  function loadSize() {
+    try {
+      var s = parseInt(localStorage.getItem(SIZE_KEY), 10);
+      if (s === 4 || s === 5) SIZE = s;
+    } catch (e) { /* private mode */ }
+    sizeSel.value = String(SIZE);
+  }
+
+  function saveSize() {
+    try { localStorage.setItem(SIZE_KEY, String(SIZE)); } catch (e) { /* private mode */ }
+  }
 
   function loadBest() {
     try { best = parseInt(localStorage.getItem(STORAGE_KEY), 10) || 0; } catch (e) { best = 0; }
@@ -244,17 +259,19 @@
       }
   }
 
-  // Slide a single line toward index 0, return points gained + moved flag
+  // Slide a single line toward index 0, return points gained + moved flag + merged positions
   function slideLine(line) {
     var filtered = line.filter(function (v) { return v > 0; });
     var out = [];
     var gained = 0;
     var moved = false;
+    var mergedIdx = [];
     for (var i = 0; i < filtered.length; i++) {
       if (i + 1 < filtered.length && filtered[i] === filtered[i + 1]) {
         var merged = filtered[i] * 2;
         out.push(merged);
         gained += merged;
+        mergedIdx.push(out.length - 1);
         i++; // skip the paired tile
         moved = true;
       } else {
@@ -263,14 +280,14 @@
     }
     while (out.length < SIZE) out.push(0);
     if (line.join(",") !== out.join(",")) moved = true;
-    return { line: out, gained: gained, moved: moved };
+    return { line: out, gained: gained, moved: moved, mergedIdx: mergedIdx };
   }
 
   function move(direction) {
     if (over) return false;
     var movedAny = false;
     var gained = 0;
-    var mergedFlags = [];
+    var mergedCells = [];
 
     if (direction === "left" || direction === "right") {
       for (var r = 0; r < SIZE; r++) {
@@ -282,13 +299,10 @@
         gained += res.gained;
         if (res.moved) movedAny = true;
         for (var c2 = 0; c2 < SIZE; c2++) board[r][c2].value = res.line[c2];
-        // mark merged cells for animation
-        if (res.gained > 0) {
-          for (var cc = 0; cc < SIZE; cc++) {
-            if (res.line[cc] > 0 && board[r][cc].value === res.line[cc]) {
-              // approximate: mark cells that could be a merge (value present and not alone)
-            }
-          }
+        for (var mi = 0; mi < res.mergedIdx.length; mi++) {
+          var idx = res.mergedIdx[mi];
+          var col = (direction === "right") ? SIZE - 1 - idx : idx;
+          mergedCells.push([r, col]);
         }
       }
     } else {
@@ -301,26 +315,31 @@
         gained += res2.gained;
         if (res2.moved) movedAny = true;
         for (var r2 = 0; r2 < SIZE; r2++) board[r2][c].value = res2.line[r2];
+        for (var mi2 = 0; mi2 < res2.mergedIdx.length; mi2++) {
+          var idx2 = res2.mergedIdx[mi2];
+          var row2 = (direction === "down") ? SIZE - 1 - idx2 : idx2;
+          mergedCells.push([row2, c]);
+        }
       }
     }
 
-    if (!movedAny) return false;
+    if (!movedAny) {
+      checkGameOver();
+      return false;
+    }
 
     score += gained;
     scoreEl.textContent = score;
     saveBest();
 
-    // Mark merged tiles for animation: find any tile that equals a value that was just gained
-    // Simpler: animate all cells with values >= 8 that appear after a move where gained>0
-    if (gained > 0) {
-      for (var rr = 0; rr < SIZE; rr++)
-        for (var cc2 = 0; cc2 < SIZE; cc2++)
-          if (board[rr][cc2].value >= 8) board[rr][cc2].merged = true;
+    // Mark only the tiles that actually merged for the pulse animation
+    for (var m = 0; m < mergedCells.length; m++) {
+      board[mergedCells[m][0]][mergedCells[m][1]].merged = true;
     }
 
     addRandomTile();
     checkWin();
-    if (!movedAny && !over) checkGameOver();
+    checkGameOver();
     render();
     return true;
   }
@@ -368,6 +387,7 @@
 
   sizeSel.addEventListener("change", function () {
     SIZE = parseInt(sizeSel.value, 10);
+    saveSize();
     reset();
   });
 
@@ -398,6 +418,7 @@
   }, { passive: true });
 
   loadBest();
+  loadSize();
   reset();
 })();
 </script>
