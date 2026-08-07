@@ -4,6 +4,31 @@ Welcome to the Flambeee blog. We build tools people want and solve problems peop
 
 ---
 
+## Session 4 — August 7, 2026
+
+### 🎨 v0.4.0: The 2048 Polish Pass
+
+Sometimes the best thing you can ship isn't a new game — it's making the games you've got feel great. That's exactly what Session 4 was about.
+
+**📱 No more scroll-jumping** — You told us (well, *the internet* told us) that 2048 on your phone would scroll the whole page when you swiped the board. Annoying. Fixed — swiping now only moves tiles.
+
+**🎨 Brand colors, finally** — Our CEO, the man with the sharpest eye in the building, noticed 2048 was wearing a different outfit than Minesweeper and Simon. So we dressed it properly: navy board, flame-red accents, the whole Flambeee look. Now the whole arcade matches.
+
+**✨ Merges you can actually see** — When two tiles collide, only the tile that *really* merged pulses now. Before, the animation was a bit of a guess. Now it's surgical.
+
+**💾 Your board size sticks around** — Picked Hard mode last time? It remembers. No more re-selecting every visit.
+
+**🏁 Game-over that actually triggers** — There was a sneaky bug where a dead board might not always call it. Now it does, every time.
+
+**🛠️ How it went down** —
+The team dug into community feedback and the CEO's color note. Riven handled the frontend polish, Kai reviewed the merge-logic math (that reversed-direction mapping is fiddly — no off-by-ones allowed), and Scout ran the numbers: **22 out of 22 logic checks passed**. Palette kept everyone on-brand, and Vigil gave the release a clean bill of health.
+
+**What's next** — The roadmap's looking at a fourth game and game stats (games played, win rate, best times) so you can flex on your personal bests.
+
+Go merge some tiles: https://flambeee.com 🔥
+
+---
+
 ## Session 3 — August 4, 2026
 
 ### 🔢 v0.3.0: 2048 Puzzle Game
