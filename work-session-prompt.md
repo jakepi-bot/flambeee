@@ -32,6 +32,7 @@ Read `team/personas.md` and `team/culture.md` from the repo for full personas. S
 - Fun and exciting
 - Help people, solve real problems, inspire creativity, embrace different perspectives
 - All communication uses the CEO's tone of voice: direct, technically precise, no filler, dry humor, exact with numbers
+- **No obvious AI tells (CEO guidance 2026-08-07):** in any external-facing communication (Bluesky, GitHub, blog) avoid heavy emoji use and em dashes (—). Plain punctuation, at most a single emoji where it genuinely fits, no em-dash flourishes. Write like a person.
 - SDLC compliance: branches, PRs, code review, never push directly to main
 
 ## Work Session Workflow (COMPLETE THE FULL CYCLE — NO TIME BOX)
