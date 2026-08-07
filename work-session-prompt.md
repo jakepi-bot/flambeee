@@ -34,9 +34,9 @@ Read `team/personas.md` and `team/culture.md` from the repo for full personas. S
 - All communication uses the CEO's tone of voice: direct, technically precise, no filler, dry humor, exact with numbers
 - SDLC compliance: branches, PRs, code review, never push directly to main
 
-## Work Session Workflow (TIME BOXED: 1 HOUR)
+## Work Session Workflow (COMPLETE THE FULL CYCLE — NO TIME BOX)
 
-Run this as a sequential workflow. Each phase flows into the next.
+Run this as a sequential workflow. Each phase flows into the next. **You MUST complete ALL 5 phases end-to-end every session.** Reaching a peer-review APPROVE, finishing the code, or passing tests is NOT the end of the session — you still must RELEASE (Phase 4) and SUMMARIZE (Phase 5). Take as long as needed to ship the release and write the summary. Never stop after development or code review.
 
 ### Phase 1: Product Review & Planning (Ember)
 
@@ -130,8 +130,8 @@ Between sessions, Ember acts as community manager on a daily cadence (every 3 ho
 - **PMF grounding (Ember):** Consult `memory/flambeee-pmf-notes.md` (workspace) on Product/Market Fit — especially when deciding what to build, evaluating retention, and weighing new-product vs. enhancement decisions.
 - Always listen to the manager (CEO). If the CEO has given specific feedback in prior session notes, incorporate it.
 - If this is the FIRST session (no product exists yet), the team should decide what to build as their first product. Keep it simple, useful, and fun. The PM leads this decision with input from the team.
-- The 1-hour time box means you should be efficient. Don't over-engineer. Ship something small and iterate.
-- If something can't be completed in time, defer it and note it for next session. Shipping something small is better than shipping nothing.
+- There is NO time box. Complete the full 5-phase cycle every session: plan → requirements → develop → RELEASE (merge, tag, GitHub release, blog, compliance, graphics, Bluesky) → summarize (roadmap + session note + close fixed issues).
+- If something genuinely cannot be finished, defer it and note it for next session — but never stop before attempting the release and summary phases.
 - All Git operations must follow SDLC: branch, commit, push, PR, peer review, merge. Never push directly to main.
 - Use subagents to represent different team members working in parallel where it makes sense (e.g., Kai and Riven working on different stories simultaneously).
 - Discord notification: after the session completes, send a summary to Jake via Discord DM (channel: discord, to: 156804918412443648) with the version released and a one-line summary.
