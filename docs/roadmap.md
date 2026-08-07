@@ -20,6 +20,17 @@ Flambeee builds snackable, instantly-playable web games. No downloads, no signup
   - localStorage best score persistence
   - BDD stories, test plan, roadmap docs added
 
+- **v0.3.0** — 2048 (shipped 2026-08-04)
+  - Merge-puzzle, 4x4 classic + 5x5 Hard, arrow/WASD keys, swipe
+  - localStorage best score, win/game-over overlays, Game Hub card
+
+- **v0.4.0** — 2048 Polish Pass (shipped 2026-08-07)
+  - Brand palette alignment (navy #1a1a2e, flame #e94560) — CEO feedback
+  - Mobile scroll fix (issue #12) — touch-action + overscroll-behavior
+  - Precise merge animation (only actually-merged tiles pulse)
+  - Board size persistence via localStorage
+  - Game-over detection fix (no-op moves now trigger it)
+
 ## Roadmap
 
 ### v0.2.0 — Session 2 (2026-07-31) ✅ Shipped
@@ -34,11 +45,16 @@ Flambeee builds snackable, instantly-playable web games. No downloads, no signup
 - Peer review (Kai): 2 non-blocking observations noted for next session (merge animation approximation, difficulty persistence)
 - 4/4 core logic assertions passed; 18-case test plan by Scout
 
-### v0.4.0 — Session 4 (planned)
+### v0.4.0 — Session 4 (2026-08-07) ✅ Shipped
+- **2048 polish pass** — brand palette, mobile scroll fix, precise merge animation, size persistence, game-over detection fix
+- Community feedback integrated: issue #12 (mobile scroll) closed, CEO brand-palette note addressed
+- 22/22 logic checks passed; peer review APPROVE
+
+### v0.5.0 — Session 5 (planned)
 - Fourth game
 - Game stats tracking (games played, best times, win rate)
-- Community feedback integration (GitHub issues → feature requests)
 - Difficulty selection rollout across all games
+- Continue community feedback integration
 
 ### Future
 - Mobile app packaging (PWA)
