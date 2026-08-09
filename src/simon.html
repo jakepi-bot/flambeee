@@ -342,6 +342,7 @@
     let bestScore = 0;
     let isPlayingSequence = false;
     let audioContext = null;
+    let gameGen = 0; // bumped on every startGame; stale sequence loops abort
 
     // Difficulty presets: { flash, gap, flashStep, gapStep, flashFloor, gapFloor }
     const DIFFICULTIES = {
@@ -472,6 +473,7 @@
 
     // Play the sequence
     async function playSequence() {
+      const gen = gameGen;
       isPlayingSequence = true;
       disablePads(true);
 
@@ -479,9 +481,11 @@
       const gapDur = getGapDuration();
 
       for (let i = 0; i < sequence.length; i++) {
+        if (gen !== gameGen) return; // game was reset mid-sequence
         await flashPad(pads[sequence[i]], flashDur, gapDur);
       }
 
+      if (gen !== gameGen) return;
       isPlayingSequence = false;
       disablePads(false);
     }
@@ -500,6 +504,7 @@
 
     // Start game
     function startGame() {
+      gameGen++;
       initAudio();
       sequence = [];
       playerIndex = 0;

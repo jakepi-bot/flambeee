@@ -399,7 +399,7 @@
   function checkGameOver() {
     if (!canMove()) {
       over = true;
-      recordPlay();
+      if (!won) recordPlay(); // a win already recorded the play; avoid double-count
       showOverlay("Game Over", "No moves left. Final score: " + score + (score >= best ? " — new best! 🏆" : ""));
     }
   }

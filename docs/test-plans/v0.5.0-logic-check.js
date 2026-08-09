@@ -79,6 +79,15 @@ let t = { plays: 0, wins: 0 };
 record2048Win(t);
 check('2048 win counts play+win once', t.plays === 1 && t.wins === 1);
 
+// 2048: game over after a win must NOT double-count the play
+function record2048GameOver(stats, won) { if (!won) stats.plays += 1; return stats; }
+let t2 = { plays: 1, wins: 1 }; // already recorded at win
+record2048GameOver(t2, true);
+check('2048 game-over after win does not double-count', t2.plays === 1);
+let t3 = { plays: 0, wins: 0 };
+record2048GameOver(t3, false);
+check('2048 game-over without win counts play', t3.plays === 1);
+
 // Corrupt JSON handling: loadStats returns defaults
 function loadStats(raw) {
   try { if (raw) return JSON.parse(raw); } catch (e) { /* private mode */ }
