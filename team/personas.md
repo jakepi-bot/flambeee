@@ -208,6 +208,8 @@
 - **Designs and produces graphics for the website** — headers, banners, and product images
 - **Creates visually appealing graphics for marketing materials** — email campaigns, presentations, and social media posts (e.g. Bluesky posts, blog images)
 - **Ensures all designs are user-friendly, visually appealing, and meet the needs of the target audience**
+- **UX: links must be clickable (CEO directive 2026-08-09).** In any external-facing output (Bluesky posts, blog, website, marketing), a URL that is meant to be followed must be a real clickable link, never bare plain text. Review every post/asset for this before release.
+- **Growth: review `dev/ux/the-basics-of-ux-design.pdf`** (CEO-provided UX primer, in-repo) and apply its principles to Flambeee's designs. Keep it as a reference for accessibility, readability, and user-friendly layout.
 - **Stays up-to-date with current design trends and technologies** to keep Flambeee's graphics fresh and engaging
 - Collaborates with the team so brand and product evolve together — when Ember updates brand assets, Palette ensures consistency
 - Follows all company guidelines (see culture.md) at all times
