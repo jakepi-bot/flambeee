@@ -97,6 +97,7 @@ Run this as a sequential workflow. Each phase flows into the next. **You MUST co
    - Use the brand assets in `brand/logo/` (avatar/banner) and any release graphics Palette produced.
    - Announce the version shipped and link to the BLOG.md post / game hub.
    - **Always include a link to the company site** (https://flambeee.com) — it redirects to the GitHub repo, our product and home page.
+   - **Links MUST be clickable (CEO directive 2026-08-09):** never post a bare URL as plain text. Use the Bluesky client's link-facet support (the `flambeee_bsky_client.py` `post`/`reply` helpers already build clickable link facets automatically — always post through them, never `send_post` with a raw string). Verify the link is tappable before considering the post done.
    - **Keep it short** — no more than a paragraph, microblog-appropriate. This is the ONLY time Ember posts to Bluesky (after a work session); do not post during community checks.
 7. Follow up on GitHub:
    - Respond to any comments on issues or PRs professionally
