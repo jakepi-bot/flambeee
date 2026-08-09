@@ -148,6 +148,31 @@
       margin-top: 20px;
     }
 
+    /* Difficulty selector */
+    .difficulty {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .difficulty button {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 14px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .difficulty button:hover, .difficulty button.active {
+      background: var(--cell);
+      border-color: var(--accent);
+    }
+
     .btn {
       background: var(--cell);
       color: var(--text);
@@ -279,6 +304,12 @@
     </div>
   </div>
 
+  <div class="difficulty">
+    <button data-diff="easy">Easy</button>
+    <button data-diff="classic" class="active">Classic</button>
+    <button data-diff="hard">Hard</button>
+  </div>
+
   <div class="game-board">
     <button class="pad green" data-color="green" data-freq="329.63" aria-label="Green pad"></button>
     <button class="pad red" data-color="red" data-freq="261.63" aria-label="Red pad"></button>
@@ -307,9 +338,22 @@
     let sequence = [];
     let playerIndex = 0;
     let round = 0;
-    let bestScore = parseInt(localStorage.getItem('flambeee-simon-best')) || 0;
+    let difficulty = 'classic';
+    let bestScore = 0;
     let isPlayingSequence = false;
     let audioContext = null;
+    let gameGen = 0; // bumped on every startGame; stale sequence loops abort
+
+    // Difficulty presets: { flash, gap, flashStep, gapStep, flashFloor, gapFloor }
+    const DIFFICULTIES = {
+      easy:   { flash: 800, gap: 300, flashStep: 20, gapStep: 10, flashFloor: 350, gapFloor: 120 },
+      classic: { flash: 600, gap: 200, flashStep: 30, gapStep: 10, flashFloor: 200, gapFloor: 80 },
+      hard:   { flash: 450, gap: 150, flashStep: 40, gapStep: 15, flashFloor: 120, gapFloor: 50 }
+    };
+
+    const DIFF_KEY = 'flambeee-simon-difficulty';
+    const BEST_KEY = 'flambeee-simon-best';
+    const STATS_KEY = 'flambeee-stats-simon';
 
     // DOM elements
     const pads = document.querySelectorAll('.pad');
@@ -320,9 +364,62 @@
     const overlay = document.getElementById('overlay');
     const finalScoreDisplay = document.getElementById('finalScore');
     const newBestDisplay = document.getElementById('newBest');
+    const diffButtons = document.querySelectorAll('.difficulty button');
+
+    // --- Stats helpers (localStorage, private-mode safe) ---
+    function loadStats() {
+      try {
+        const raw = localStorage.getItem(STATS_KEY);
+        if (raw) return JSON.parse(raw);
+      } catch (e) { /* private mode */ }
+      return { plays: 0, wins: 0 };
+    }
+
+    function saveStats(stats) {
+      try { localStorage.setItem(STATS_KEY, JSON.stringify(stats)); } catch (e) { /* private mode */ }
+    }
+
+    function recordGame() {
+      const stats = loadStats();
+      stats.plays += 1;
+      saveStats(stats);
+    }
+
+    // --- Difficulty ---
+    function loadDifficulty() {
+      try {
+        const d = localStorage.getItem(DIFF_KEY);
+        if (d === 'easy' || d === 'classic' || d === 'hard') difficulty = d;
+      } catch (e) { /* private mode */ }
+      diffButtons.forEach(b => b.classList.toggle('active', b.dataset.diff === difficulty));
+    }
+
+    function saveDifficulty() {
+      try { localStorage.setItem(DIFF_KEY, difficulty); } catch (e) { /* private mode */ }
+    }
+
+    function bestKey() {
+      return difficulty === 'classic' ? BEST_KEY : BEST_KEY + '-' + difficulty;
+    }
+
+    function loadBest() {
+      try { bestScore = parseInt(localStorage.getItem(bestKey()), 10) || 0; } catch (e) { bestScore = 0; }
+      bestDisplay.textContent = bestScore;
+    }
+
+    diffButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        difficulty = btn.dataset.diff;
+        diffButtons.forEach(b => b.classList.toggle('active', b.dataset.diff === difficulty));
+        saveDifficulty();
+        loadBest();
+        startGame();
+      });
+    });
 
     // Initialize best score display
-    bestDisplay.textContent = bestScore;
+    loadDifficulty();
+    loadBest();
 
     // Audio context initialization
     function initAudio() {
@@ -350,13 +447,15 @@
       oscillator.stop(audioContext.currentTime + duration);
     }
 
-    // Speed scaling — gets faster as rounds increase
+    // Speed scaling — gets faster as rounds increase, per difficulty
     function getFlashDuration() {
-      return Math.max(200, 600 - (round - 1) * 30);
+      const d = DIFFICULTIES[difficulty];
+      return Math.max(d.flashFloor, d.flash - (round - 1) * d.flashStep);
     }
 
     function getGapDuration() {
-      return Math.max(80, 200 - (round - 1) * 10);
+      const d = DIFFICULTIES[difficulty];
+      return Math.max(d.gapFloor, d.gap - (round - 1) * d.gapStep);
     }
 
     // Flash a pad
@@ -374,6 +473,7 @@
 
     // Play the sequence
     async function playSequence() {
+      const gen = gameGen;
       isPlayingSequence = true;
       disablePads(true);
 
@@ -381,9 +481,11 @@
       const gapDur = getGapDuration();
 
       for (let i = 0; i < sequence.length; i++) {
+        if (gen !== gameGen) return; // game was reset mid-sequence
         await flashPad(pads[sequence[i]], flashDur, gapDur);
       }
 
+      if (gen !== gameGen) return;
       isPlayingSequence = false;
       disablePads(false);
     }
@@ -402,6 +504,7 @@
 
     // Start game
     function startGame() {
+      gameGen++;
       initAudio();
       sequence = [];
       playerIndex = 0;
@@ -457,10 +560,11 @@
 
       if (isNewBest) {
         bestScore = round;
-        localStorage.setItem('flambeee-simon-best', bestScore);
+        try { localStorage.setItem(bestKey(), bestScore); } catch (e) { /* private mode */ }
         bestDisplay.textContent = bestScore;
       }
 
+      recordGame();
       finalScoreDisplay.textContent = round;
       newBestDisplay.classList.toggle('show', isNewBest);
       overlay.classList.add('show');

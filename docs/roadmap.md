@@ -51,9 +51,13 @@ Flambeee builds snackable, instantly-playable web games. No downloads, no signup
 - 22/22 logic checks passed; peer review APPROVE
 
 ### v0.5.0 — Session 5 (planned)
-- Fourth game
-- Game stats tracking (games played, best times, win rate)
-- Difficulty selection rollout across all games
+- **Game stats tracking** (games played, wins, best times) — retention play per PMF notes: watch for pull signals, give players a reason to come back
+- **Simon difficulty levels** — completes the difficulty rollout across all games (Minesweeper has it, 2048 has board size, Simon gets Easy/Classic/Hard)
+- Continue community feedback integration
+
+### v0.6.0 — Session 6 (candidate)
+- Fourth game (candidates: Snake, Tetris, Wordle-style)
+- Game of the week rotation
 - Continue community feedback integration
 
 ### Future

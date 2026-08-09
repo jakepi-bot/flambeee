@@ -305,6 +305,33 @@
   const overlayBtn = document.getElementById('overlayBtn');
   const diffButtons = document.querySelectorAll('.difficulty button');
 
+  // --- Stats (localStorage, private-mode safe) ---
+  const STATS_KEY = 'flambeee-stats-minesweeper';
+
+  function loadStats() {
+    try {
+      const raw = localStorage.getItem(STATS_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) { /* private mode */ }
+    return { plays: 0, wins: 0, bestTime: null };
+  }
+
+  function saveStats(stats) {
+    try { localStorage.setItem(STATS_KEY, JSON.stringify(stats)); } catch (e) { /* private mode */ }
+  }
+
+  function recordGame(won) {
+    const stats = loadStats();
+    stats.plays += 1;
+    if (won) {
+      stats.wins += 1;
+      if (stats.bestTime === null || elapsed < stats.bestTime) {
+        stats.bestTime = elapsed;
+      }
+    }
+    saveStats(stats);
+  }
+
   // Difficulty selection
   diffButtons.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -627,6 +654,7 @@
       timerInterval = null;
     }
     resetBtn.textContent = won ? '🎉' : '💀';
+    recordGame(won);
 
     // Reveal all mines
     if (!won) {
