@@ -89,6 +89,13 @@
     margin-bottom: 20px;
   }
 
+  .game-stats {
+    color: #888;
+    font-size: 0.8rem;
+    margin-bottom: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+
   .play-btn {
     background: var(--accent);
     color: white;
@@ -147,6 +154,7 @@
     <div class="game-icon">💣</div>
     <div class="game-name">Minesweeper</div>
     <div class="game-desc">Classic mine-hunting puzzle. Clear the board without blowing up!</div>
+    <div class="game-stats" id="stats-minesweeper"></div>
     <button class="play-btn">Play</button>
   </a>
 
@@ -154,6 +162,7 @@
     <div class="game-icon">🧠</div>
     <div class="game-name">Simon</div>
     <div class="game-desc">Memory challenge. Repeat the pattern and test your recall!</div>
+    <div class="game-stats" id="stats-simon"></div>
     <button class="play-btn">Play</button>
   </a>
 
@@ -161,9 +170,58 @@
     <div class="game-icon">🔢</div>
     <div class="game-name">2048</div>
     <div class="game-desc">Merge the tiles. Reach 2048 and chase a new high score!</div>
+    <div class="game-stats" id="stats-2048"></div>
     <button class="play-btn">Play</button>
   </a>
 </div>
+
+<script>
+(function () {
+  'use strict';
+
+  function loadStats(key) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw) return JSON.parse(raw);
+    } catch (e) { /* private mode */ }
+    return null;
+  }
+
+  function fmtTime(s) {
+    if (s === null || s === undefined) return null;
+    if (s < 60) return s + 's';
+    const m = Math.floor(s / 60);
+    return m + 'm' + (s % 60) + 's';
+  }
+
+  function renderMinesweeper() {
+    const s = loadStats('flambeee-stats-minesweeper');
+    const el = document.getElementById('stats-minesweeper');
+    if (!s || !el) return;
+    const parts = [s.plays + ' plays', s.wins + ' wins'];
+    if (s.bestTime !== null) parts.push('best ' + fmtTime(s.bestTime));
+    el.textContent = parts.join(' · ');
+  }
+
+  function renderSimon() {
+    const s = loadStats('flambeee-stats-simon');
+    const el = document.getElementById('stats-simon');
+    if (!s || !el) return;
+    el.textContent = s.plays + ' plays · best round ' + (parseInt(localStorage.getItem('flambeee-simon-best'), 10) || 0);
+  }
+
+  function render2048() {
+    const s = loadStats('flambeee-stats-2048');
+    const el = document.getElementById('stats-2048');
+    if (!s || !el) return;
+    el.textContent = s.plays + ' plays · ' + s.wins + ' wins · best ' + (parseInt(localStorage.getItem('flambeee-2048-best'), 10) || 0);
+  }
+
+  renderMinesweeper();
+  renderSimon();
+  render2048();
+})();
+</script>
 
 <footer>
   Built by <a href="https://github.com/jakepi-bot/flambeee">Flambeee 🔥</a> &mdash; <a href="https://github.com/jakepi84">CEO</a>

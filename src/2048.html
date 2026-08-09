@@ -167,6 +167,31 @@
 
   var STORAGE_KEY = "flambeee-2048-best";
   var SIZE_KEY = "flambeee-2048-size";
+  var STATS_KEY = "flambeee-stats-2048";
+
+  function loadStats() {
+    try {
+      var raw = localStorage.getItem(STATS_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) { /* private mode */ }
+    return { plays: 0, wins: 0 };
+  }
+
+  function saveStats(stats) {
+    try { localStorage.setItem(STATS_KEY, JSON.stringify(stats)); } catch (e) { /* private mode */ }
+  }
+
+  function recordPlay() {
+    var stats = loadStats();
+    stats.plays += 1;
+    saveStats(stats);
+  }
+
+  function recordWin() {
+    var stats = loadStats();
+    stats.wins += 1;
+    saveStats(stats);
+  }
 
   function loadSize() {
     try {
@@ -354,6 +379,8 @@
   function checkWin() {
     if (!won && has2048()) {
       won = true;
+      recordPlay();
+      recordWin();
       showOverlay("You win! 🎉", "You reached 2048. Keep going for a higher score, or start fresh.");
     }
   }
@@ -372,6 +399,7 @@
   function checkGameOver() {
     if (!canMove()) {
       over = true;
+      recordPlay();
       showOverlay("Game Over", "No moves left. Final score: " + score + (score >= best ? " — new best! 🏆" : ""));
     }
   }
