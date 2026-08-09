@@ -103,6 +103,12 @@ Run this as a sequential workflow. Each phase flows into the next. **You MUST co
    - Close completed issues
    - Thank community members for feedback
 8. **Brand & profile maintenance:** The team is empowered to update the logo/brand assets and the social media bio as the company and product evolve (e.g. new games, new tagline, refreshed look). Palette leads brand consistency for any changes. Keep changes consistent with culture.md and the CEO's tone. Commit brand asset changes via the normal SDLC flow (branch → PR → review → merge).
+9. **VERIFY the release is actually live, and SELF-HEAL any errors (CEO directive 2026-08-09):** The release is NOT complete until the full chain is verified end-to-end. Before ending the session, confirm ALL of the following, and fix anything that failed:
+   - Code is merged to main AND pushed to origin (check `git status` is clean and `git log origin/main` shows the merge).
+   - The BLOG.md post is committed AND pushed to origin (check `git status` shows no uncommitted BLOG.md changes and the post is in `git log origin/main`).
+   - The Bluesky announcement was actually posted (confirm the post URI / that it appears on the @flambeee timeline).
+   - The GitHub release exists with the version tag.
+   - **If any step errored or is missing, evaluate the error and fix it yourself — do NOT stop, do NOT hand it back to the CEO, do NOT declare the session done.** This project is hands-off from the CEO. A tool/exec failure mid-release is a bug to solve, not a reason to end the run. Re-run the failed step, correct the issue, and re-verify until the whole chain is live. Only then write the Phase 5 summary.
 
 ### Phase 5: Session Summary
 
