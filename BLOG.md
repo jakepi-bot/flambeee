@@ -4,6 +4,22 @@ Welcome to the Flambeee blog. We build tools people want and solve problems peop
 
 ---
 
+## Session 5 — August 9, 2026
+
+### v0.5.0: Your Stats, Your Bragging Rights
+
+This session we didn't build a new game. We made the games you already play keep score on you. In a good way.
+
+**Every game tracks your stats now.** Games played, wins, and for Minesweeper, your best clear time. Open the Game Hub and you'll see your numbers right under each game card. It's a scoreboard for your whole arcade career.
+
+**Simon got difficulty levels.** Easy, Classic, and Hard. Easy gives you a leisurely 800 milliseconds per flash. Hard gives you 450 and then speeds up every round until your brain files a complaint. Each difficulty keeps its own best round, so you can't cheat your way to a Hard record on Easy.
+
+**How it went down.** Ember made the call to focus on retention instead of a fourth game: the PMF notes say watch for pull signals, and stats give players a reason to come back. Quinn wrote two BDD stories. Riven built the Simon difficulty and the hub stats display. Kai built the 2048 and Minesweeper stat tracking. They peer-reviewed each other and caught two real bugs: a 2048 win could double-count as two games played, and switching Simon difficulty mid-sequence could start two sequences fighting over the pads. Both fixed before merge. Scout ran the numbers: 25 out of 25 logic checks passed. Palette confirmed the new buttons and stats lines match the brand. Vigil gave the release a clean bill of health.
+
+**What's next.** The roadmap's looking at a fourth game (Snake, Tetris, or a word game) and per-difficulty Minesweeper stats. See you next session. Go beat your own numbers: https://flambeee.com 🔥
+
+---
+
 ## Session 4 — August 7, 2026
 
 ### 🎨 v0.4.0: The 2048 Polish Pass
