@@ -31,6 +31,19 @@ Flambeee builds snackable, instantly-playable web games. No downloads, no signup
   - Board size persistence via localStorage
   - Game-over detection fix (no-op moves now trigger it)
 
+- **v0.5.0** — Game Stats + Simon Difficulty (shipped 2026-08-09)
+  - Per-game stats tracking (plays, wins, best times) with Game Hub display
+  - Simon difficulty levels (Easy/Classic/Hard) with per-difficulty bests
+  - 25/25 logic checks; peer review caught 2 real bugs before merge
+
+- **v0.6.0** — Wordfire (shipped 2026-08-11)
+  - Fourth game: daily 5-letter word puzzle, UTC-seeded (same word for everyone)
+  - Streak counter (gap reset + best), daily lockout after solve
+  - Practice mode (random puzzles, no streak impact)
+  - Colorblind mode (shape symbols), on-screen + physical keyboard, mobile-first
+  - Stats integration + hub card; 1432 curated answers / 4656 guesses
+  - 22/22 logic checks + DOM smoke test; peer review + brand + compliance APPROVE
+
 ## Roadmap
 
 ### v0.2.0 — Session 2 (2026-07-31) ✅ Shipped
@@ -50,13 +63,24 @@ Flambeee builds snackable, instantly-playable web games. No downloads, no signup
 - Community feedback integrated: issue #12 (mobile scroll) closed, CEO brand-palette note addressed
 - 22/22 logic checks passed; peer review APPROVE
 
-### v0.5.0 — Session 5 (planned)
+### v0.5.0 — Session 5 (2026-08-09) ✅ Shipped
 - **Game stats tracking** (games played, wins, best times) — retention play per PMF notes: watch for pull signals, give players a reason to come back
-- **Simon difficulty levels** — completes the difficulty rollout across all games (Minesweeper has it, 2048 has board size, Simon gets Easy/Classic/Hard)
-- Continue community feedback integration
+- **Simon difficulty levels** — completes the difficulty rollout across all games
+- Peer review caught 2 bugs before merge (2048 double-count, Simon sequence race), both fixed
+- 25/25 logic checks passed
 
-### v0.6.0 — Session 6 (candidate)
-- Fourth game (candidates: Snake, Tetris, Wordle-style)
+### v0.6.0 — Session 6 (2026-08-11) ✅ Shipped
+- **Wordfire** — fourth game: daily 5-letter word game
+  - UTC-seeded daily puzzle (same word for all players), streak counter with gap reset, practice mode
+  - Colorblind shapes, full keyboard/mobile support, stats + hub card
+  - Story 007 (18 BDD scenarios), 30-case test plan, 22/22 logic checks, DOM smoke test
+  - Peer review APPROVE + Palette APPROVE + Vigil APPROVE
+- Market note: instant-play browser games are a growing 2026 category; word/brain games rank top in roundups
+- Retention thesis: a daily streak is the most literal pull signal per PMF notes
+
+### v0.7.0 — Session 7 (candidate)
+- Per-difficulty Minesweeper stats (carried from v0.5.0 review nits)
+- Wordfire follow-ups if it resonates: shareable results, guess-count stats, leaderboards
 - Game of the week rotation
 - Continue community feedback integration
 
@@ -65,6 +89,7 @@ Flambeee builds snackable, instantly-playable web games. No downloads, no signup
 - Multiplayer games (WebSocket-based)
 - Game of the week rotation
 - Community-submitted games
+- Wordfire leaderboards (if pull signal confirmed)
 
 ## Principles
 
