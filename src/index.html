@@ -150,6 +150,14 @@
 <p class="subtitle">Pick your poison</p>
 
 <div class="game-grid">
+  <a href="wordfire.html" class="game-card">
+    <div class="game-icon">🔥</div>
+    <div class="game-name">Wordfire</div>
+    <div class="game-desc">One word a day. Guess the 5-letter word and keep your streak alive!</div>
+    <div class="game-stats" id="stats-wordfire"></div>
+    <button class="play-btn">Play</button>
+  </a>
+
   <a href="minesweeper.html" class="game-card">
     <div class="game-icon">💣</div>
     <div class="game-name">Minesweeper</div>
@@ -217,9 +225,25 @@
     el.textContent = s.plays + ' plays · ' + s.wins + ' wins · best ' + (parseInt(localStorage.getItem('flambeee-2048-best'), 10) || 0);
   }
 
+  function renderWordfire() {
+    const s = loadStats('flambeee-stats-wordfire');
+    const el = document.getElementById('stats-wordfire');
+    if (!el) return;
+    let streak = 0;
+    try {
+      const raw = localStorage.getItem('flambeee-wordfire-streak');
+      if (raw) streak = (JSON.parse(raw).current || 0);
+    } catch (e) { /* private mode */ }
+    const parts = [];
+    if (s) parts.push(s.plays + ' plays', s.wins + ' wins');
+    if (streak > 0) parts.push('streak ' + streak);
+    if (parts.length) el.textContent = parts.join(' · ');
+  }
+
   renderMinesweeper();
   renderSimon();
   render2048();
+  renderWordfire();
 })();
 </script>
 

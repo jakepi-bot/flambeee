@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔥 Wordfire — Flambeee</title>
+<style>
+  :root {
+    --bg: #1a1a2e;
+    --surface: #16213e;
+    --accent: #e94560;
+    --accent-hover: #ff5a75;
+    --text: #eee;
+    --border: #3a3a4a;
+    --tile-empty: #1a1a2e;
+    --tile-border: #3a3a4a;
+    --gray: #3a3a4a;
+    --yellow: #f5a623;
+    --green: #4caf7d;
+    --key-bg: #2a2a3e;
+    --key-hover: #3a3a55;
+    --sub: #888;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 16px;
+  }
+
+  h1 {
+    font-size: 1.8rem;
+    margin-top: 8px;
+    letter-spacing: 1px;
+  }
+  h1 .flame { color: var(--accent); }
+
+  .subtitle {
+    color: var(--sub);
+    margin-bottom: 4px;
+    font-size: 0.9rem;
+  }
+
+  .streak-bar {
+    color: var(--accent);
+    font-size: 0.95rem;
+    font-weight: bold;
+    margin: 6px 0 10px;
+    min-height: 1.2em;
+  }
+
+  .mode-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .mode-btn {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 16px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .mode-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    font-weight: bold;
+  }
+  .mode-btn:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+
+  .colorblind-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--sub);
+    font-size: 0.8rem;
+    margin-bottom: 12px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .colorblind-toggle input { accent-color: var(--accent); cursor: pointer; }
+
+  .message {
+    min-height: 1.6em;
+    font-size: 0.95rem;
+    font-weight: bold;
+    margin-bottom: 8px;
+    text-align: center;
+    color: var(--text);
+  }
+  .message.err { color: var(--accent); }
+  .message.win { color: var(--green); }
+
+  /* Board */
+  .board {
+    display: grid;
+    grid-template-rows: repeat(6, 1fr);
+    gap: 5px;
+    margin-bottom: 16px;
+  }
+  .row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+  .tile {
+    width: 56px;
+    height: 56px;
+    border: 2px solid var(--tile-border);
+    border-radius: 8px;
+    background: var(--tile-empty);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    color: var(--text);
+    transition: background 0.25s, border-color 0.25s, transform 0.1s;
+  }
+  .tile.filled { border-color: var(--sub); }
+  .tile.pop { animation: pop 0.2s ease; }
+  @keyframes pop {
+    0% { transform: scale(0.9); }
+    50% { transform: scale(1.08); }
+    100% { transform: scale(1); }
+  }
+  .tile.shake { animation: shake 0.4s ease; }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+  }
+  .tile.gray { background: var(--gray); border-color: var(--gray); }
+  .tile.yellow { background: var(--yellow); border-color: var(--yellow); color: #1a1a2e; }
+  .tile.green { background: var(--green); border-color: var(--green); }
+  .tile.reveal { animation: reveal 0.4s ease forwards; }
+  @keyframes reveal {
+    0% { transform: rotateX(90deg); }
+    100% { transform: rotateX(0); }
+  }
+  .tile .shape { display: none; }
+  body.colorblind .tile .shape { display: inline; margin-left: 2px; font-size: 0.8rem; }
+  body.colorblind .tile.gray .shape::before { content: "✕"; color: #111; }
+  body.colorblind .tile.yellow .shape::before { content: "◇"; color: #1a1a2e; }
+  body.colorblind .tile.green .shape::before { content: "●"; color: #fff; }
+
+  /* Keyboard */
+  .keyboard { display: flex; flex-direction: column; gap: 6px; margin-bottom: 20px; }
+  .kb-row { display: flex; justify-content: center; gap: 5px; }
+  .key {
+    min-width: 34px;
+    height: 44px;
+    padding: 0 6px;
+    border: none;
+    border-radius: 6px;
+    background: var(--key-bg);
+    color: var(--text);
+    font-size: 0.95rem;
+    font-weight: bold;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: background 0.15s;
+  }
+  .key:hover { background: var(--key-hover); }
+  .key.wide { min-width: 56px; font-size: 0.75rem; }
+  .key.gray { background: var(--gray); }
+  .key.yellow { background: var(--yellow); color: #1a1a2e; }
+  .key.green { background: var(--green); }
+
+  footer {
+    margin-top: auto;
+    font-size: 0.8rem;
+    color: #555;
+    text-align: center;
+    padding-bottom: 8px;
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+
+  /* Overlay for game end */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(26, 26, 46, 0.92);
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    text-align: center;
+  }
+  .overlay.show { display: flex; }
+  .overlay-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px 40px;
+    max-width: 90vw;
+  }
+  .overlay-card h2 { margin-bottom: 8px; font-size: 1.6rem; }
+  .overlay-card .answer-word {
+    font-size: 1.4rem;
+    font-weight: bold;
+    letter-spacing: 4px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin: 8px 0 16px;
+  }
+  .overlay-card p { color: var(--sub); margin-bottom: 20px; }
+  .overlay-btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 28px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    margin: 0 6px;
+    transition: background 0.15s;
+  }
+  .overlay-btn:hover { background: var(--accent-hover); }
+  .overlay-btn.secondary { background: var(--surface); border: 1px solid var(--border); color: var(--text); }
+  .overlay-btn.secondary:hover { background: var(--key-bg); }
+
+  @media (max-width: 420px) {
+    .tile { width: 48px; height: 48px; font-size: 1.4rem; }
+    .key { min-width: 28px; height: 40px; }
+    .key.wide { min-width: 48px; }
+  }
+</style>
+</head>
+<body>
+
+<h1><span class="flame">🔥</span> Wordfire</h1>
+<p class="subtitle">One word a day. Light it up.</p>
+
+<div class="streak-bar" id="streakBar"></div>
+
+<div class="mode-bar">
+  <button class="mode-btn active" id="dailyBtn">Daily</button>
+  <button class="mode-btn" id="practiceBtn">Practice</button>
+</div>
+
+<label class="colorblind-toggle">
+  <input type="checkbox" id="colorblindToggle"> Colorblind mode (shape symbols)
+</label>
+
+<div class="message" id="message"></div>
+
+<div class="board" id="board"></div>
+
+<div class="keyboard" id="keyboard"></div>
+
+<div class="overlay" id="overlay">
+  <div class="overlay-card">
+    <h2 id="overlayTitle"></h2>
+    <div class="answer-word" id="overlayAnswer"></div>
+    <p id="overlayText"></p>
+    <button class="overlay-btn" id="overlayMainBtn"></button>
+    <button class="overlay-btn secondary" id="overlayPracticeBtn">Practice</button>
+  </div>
+</div>
+
+<footer>
+  Built by <a href="index.html">Flambeee 🔥</a>
+</footer>
+
+<script src="wordfire-words.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  const ROWS = 6;
+  const COLS = 5;
+
+  const STREAK_KEY = 'flambeee-wordfire-streak';
+  const DAILY_PREFIX = 'flambeee-wordfire-daily-';
+  const STATS_KEY = 'flambeee-stats-wordfire';
+  const CB_KEY = 'flambeee-wordfire-colorblind';
+
+  // --- localStorage helpers (private-mode safe) ---
+  function lsGet(key) {
+    try { return localStorage.getItem(key); } catch (e) { return null; }
+  }
+  function lsSet(key, val) {
+    try { localStorage.setItem(key, val); } catch (e) { /* private mode */ }
+  }
+  function lsDel(key) {
+    try { localStorage.removeItem(key); } catch (e) { /* private mode */ }
+  }
+  function loadStats() {
+    try {
+      const raw = localStorage.getItem(STATS_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) { /* private mode */ }
+    return { plays: 0, wins: 0 };
+  }
+  function saveStats(stats) {
+    try { localStorage.setItem(STATS_KEY, JSON.stringify(stats)); } catch (e) { /* private mode */ }
+  }
+
+  // --- Daily seeding ---
+  function dayIndex() {
+    return Math.floor(Date.now() / 86400000);
+  }
+  function dailyAnswer() {
+    return WORDFIRE_ANSWERS[dayIndex() % WORDFIRE_ANSWERS.length];
+  }
+  function practiceAnswer() {
+    return WORDFIRE_ANSWERS[Math.floor(Math.random() * WORDFIRE_ANSWERS.length)];
+  }
+
+  // --- Streak ---
+  function loadStreak() {
+    try {
+      const raw = localStorage.getItem(STREAK_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) { /* private mode */ }
+    return { current: 0, best: 0, lastSolvedDay: -1 };
+  }
+  function saveStreak(s) {
+    try { localStorage.setItem(STREAK_KEY, JSON.stringify(s)); } catch (e) { /* private mode */ }
+  }
+  function applyStreakGap(s) {
+    // A missed day breaks the streak: if lastSolvedDay < yesterday, reset current.
+    const today = dayIndex();
+    if (s.lastSolvedDay < today - 1) s.current = 0;
+    return s;
+  }
+  function recordDailyWin() {
+    const s = applyStreakGap(loadStreak());
+    const today = dayIndex();
+    if (s.lastSolvedDay === today) return s; // already counted today, never double-count
+    s.current = (s.lastSolvedDay === today - 1) ? s.current + 1 : 1;
+    s.lastSolvedDay = today;
+    if (s.current > s.best) s.best = s.current;
+    saveStreak(s);
+    return s;
+  }
+  function renderStreak() {
+    const el = document.getElementById('streakBar');
+    const s = applyStreakGap(loadStreak());
+    if (s.best > 0 || s.current > 0) {
+      el.textContent = '🔥 ' + s.current + '-day streak · best ' + s.best;
+    } else {
+      el.textContent = '';
+    }
+  }
+
+  // --- Game state ---
+  let answer = '';
+  let mode = 'daily';       // 'daily' | 'practice'
+  let currentGuess = '';
+  let guessIndex = 0;       // rows used
+  let gameOver = false;
+  let dailySolved = false;  // solved today's daily already (persisted)
+
+  const boardEl = document.getElementById('board');
+  const messageEl = document.getElementById('message');
+  const keyboardEl = document.getElementById('keyboard');
+  const overlay = document.getElementById('overlay');
+
+  const KEY_ROWS = [
+    ['q','w','e','r','t','y','u','i','o','p'],
+    ['a','s','d','f','g','h','j','k','l'],
+    ['enter','z','x','c','v','b','n','m','backspace']
+  ];
+
+  function isDailySolved() {
+    const raw = lsGet(DAILY_PREFIX + dayIndex());
+    return raw !== null;
+  }
+
+  // --- Board ---
+  function buildBoard() {
+    boardEl.innerHTML = '';
+    for (let r = 0; r < ROWS; r++) {
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.dataset.row = r;
+      for (let c = 0; c < COLS; c++) {
+        const tile = document.createElement('div');
+        tile.className = 'tile';
+        tile.dataset.c = c;
+        const shape = document.createElement('span');
+        shape.className = 'shape';
+        tile.appendChild(shape);
+        row.appendChild(tile);
+      }
+      boardEl.appendChild(row);
+    }
+  }
+
+  function tileAt(r, c) {
+    return boardEl.children[r].children[c];
+  }
+
+  function renderBoard() {
+    // Show current guess letters and committed guess colors
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const tile = tileAt(r, c);
+        tile.className = 'tile';
+        // keep the shape span for colorblind mode
+        const shape = tile.querySelector('.shape');
+        tile.textContent = '';
+        if (r < guessIndex) {
+          // committed row: restore from stored eval
+          const evalRow = committedRows[r];
+          tile.textContent = evalRow.word[c].toUpperCase();
+          tile.classList.add(evalRow.colors[c], 'filled');
+        } else if (r === guessIndex) {
+          if (c < currentGuess.length) {
+            tile.textContent = currentGuess[c].toUpperCase();
+            tile.classList.add('filled');
+          }
+        }
+        if (shape) tile.appendChild(shape);
+      }
+    }
+    renderKeyboard();
+  }
+
+  // Committed rows: { word, colors[] } where colors = 'gray'|'yellow'|'green'
+  let committedRows = [];
+
+  // --- Evaluation (standard Wordle duplicate rules) ---
+  function evaluate(guess, ans) {
+    const colors = new Array(COLS).fill('gray');
+    const remaining = {};
+    for (const ch of ans) remaining[ch] = (remaining[ch] || 0) + 1;
+    // Pass 1: exact matches
+    for (let i = 0; i < COLS; i++) {
+      if (guess[i] === ans[i]) {
+        colors[i] = 'green';
+        remaining[guess[i]]--;
+      }
+    }
+    // Pass 2: misplaced
+    for (let i = 0; i < COLS; i++) {
+      if (colors[i] === 'green') continue;
+      const ch = guess[i];
+      if (remaining[ch] > 0) {
+        colors[i] = 'yellow';
+        remaining[ch]--;
+      }
+    }
+    return colors;
+  }
+
+  // --- Keyboard ---
+  function buildKeyboard() {
+    keyboardEl.innerHTML = '';
+    const keyState = {}; // letter -> 'gray'|'yellow'|'green'
+    KEY_ROWS.forEach(row => {
+      const rowEl = document.createElement('div');
+      rowEl.className = 'kb-row';
+      row.forEach(key => {
+        const btn = document.createElement('button');
+        btn.className = 'key' + (key.length > 1 ? ' wide' : '');
+        btn.textContent = key === 'backspace' ? '⌫' : key;
+        btn.dataset.key = key;
+        btn.addEventListener('click', function () { onKey(key); });
+        rowEl.appendChild(btn);
+      });
+      keyboardEl.appendChild(rowEl);
+    });
+  }
+
+  function renderKeyboard() {
+    // Recompute key states from committed rows
+    const state = {};
+    committedRows.forEach(row => {
+      for (let i = 0; i < COLS; i++) {
+        const ch = row.word[i];
+        const col = row.colors[i];
+        if (col === 'green') state[ch] = 'green';
+        else if (col === 'yellow' && state[ch] !== 'green') state[ch] = 'yellow';
+        else if (state[ch] !== 'green' && state[ch] !== 'yellow') state[ch] = 'gray';
+      }
+    });
+    const keys = keyboardEl.querySelectorAll('.key');
+    keys.forEach(btn => {
+      const k = btn.dataset.key;
+      if (k.length === 1 && state[k]) {
+        btn.className = 'key ' + state[k];
+      } else if (k.length === 1) {
+        btn.className = 'key';
+      }
+    });
+  }
+
+  // --- Input ---
+  function onKey(key) {
+    if (gameOver) return;
+    if (key === 'enter') {
+      submitGuess();
+    } else if (key === 'backspace') {
+      currentGuess = currentGuess.slice(0, -1);
+      renderBoard();
+    } else if (/^[a-z]$/.test(key) && currentGuess.length < COLS) {
+      currentGuess += key;
+      renderBoard();
+    }
+  }
+
+  function showMessage(text, cls) {
+    messageEl.textContent = text;
+    messageEl.className = 'message' + (cls ? ' ' + cls : '');
+  }
+
+  function submitGuess() {
+    if (currentGuess.length !== COLS) {
+      showMessage('Not enough letters', 'err');
+      shakeRow(guessIndex);
+      return;
+    }
+    const guess = currentGuess;
+    if (!WORDFIRE_GUESSES.includes(guess)) {
+      showMessage('Not in word list', 'err');
+      shakeRow(guessIndex);
+      return;
+    }
+    const colors = evaluate(guess, answer);
+    committedRows.push({ word: guess, colors: colors });
+    revealRow(guessIndex, guess, colors);
+    guessIndex++;
+    currentGuess = '';
+
+    if (guess === answer) {
+      gameOver = true;
+      showMessage('Splendid!', 'win');
+      if (!(mode === 'daily' && dailySolved)) {
+        recordStats(true);
+      }
+      if (mode === 'daily') {
+        const streak = recordDailyWin();
+        lsSet(DAILY_PREFIX + dayIndex(), JSON.stringify({ guesses: guessIndex }));
+        dailySolved = true;
+        showOverlay('win', 'daily', streak);
+      } else {
+        showOverlay('win', 'practice', null);
+      }
+      renderStreak();
+      return;
+    }
+    if (guessIndex >= ROWS) {
+      gameOver = true;
+      showMessage(answer.toUpperCase(), 'err');
+      recordStats(false);
+      if (mode === 'daily') {
+        lsSet(DAILY_PREFIX + dayIndex(), JSON.stringify({ guesses: 0, lost: true }));
+        renderStreak();
+        showOverlay('lose', 'daily', null);
+      } else {
+        showOverlay('lose', 'practice', null);
+      }
+      return;
+    }
+    showMessage('');
+  }
+
+  function shakeRow(r) {
+    const row = boardEl.children[r];
+    row.classList.add('shake');
+    setTimeout(function () { row.classList.remove('shake'); }, 450);
+  }
+
+  function revealRow(r, guess, colors) {
+    const row = boardEl.children[r];
+    for (let c = 0; c < COLS; c++) {
+      const tile = row.children[c];
+      tile.textContent = guess[c].toUpperCase();
+      tile.classList.add('filled');
+      setTimeout(function () {
+        tile.classList.remove('filled');
+        tile.classList.add(colors[c], 'reveal');
+      }, c * 120);
+    }
+    setTimeout(renderBoard, COLS * 120 + 100);
+  }
+
+  // --- Stats ---
+  function recordStats(win) {
+    const stats = loadStats();
+    stats.plays += 1;
+    if (win) stats.wins += 1;
+    saveStats(stats);
+  }
+
+  // --- Overlay ---
+  function showOverlay(result, modeName, streak) {
+    const title = document.getElementById('overlayTitle');
+    const answerEl = document.getElementById('overlayAnswer');
+    const text = document.getElementById('overlayText');
+    const mainBtn = document.getElementById('overlayMainBtn');
+    const practiceBtn = document.getElementById('overlayPracticeBtn');
+
+    answerEl.textContent = answer;
+    if (result === 'win') {
+      title.textContent = 'Splendid!';
+      if (modeName === 'daily') {
+        text.textContent = 'You got it in ' + guessIndex + (guessIndex === 1 ? ' guess. ' : ' guesses. ') +
+          'Streak: ' + streak.current + (streak.current > 1 ? ' days' : ' day') + '.';
+        mainBtn.textContent = 'Play Again (Practice)';
+        mainBtn.onclick = function () { hideOverlay(); startPractice(); };
+      } else {
+        text.textContent = 'You got it in ' + guessIndex + (guessIndex === 1 ? ' guess.' : ' guesses.') + ' Streak is for the daily puzzle only.';
+        mainBtn.textContent = 'Play Again';
+        mainBtn.onclick = function () { hideOverlay(); startPractice(); };
+      }
+    } else {
+      title.textContent = 'Out of guesses';
+      if (modeName === 'daily') {
+        text.textContent = 'The word was below. Tomorrow is a new one.';
+        mainBtn.textContent = 'Practice';
+        mainBtn.onclick = function () { hideOverlay(); startPractice(); };
+      } else {
+        text.textContent = 'The word was below.';
+        mainBtn.textContent = 'Try Again';
+        mainBtn.onclick = function () { hideOverlay(); startPractice(); };
+      }
+    }
+    practiceBtn.style.display = (modeName === 'daily' && result === 'win') ? 'none' : 'inline-block';
+    practiceBtn.onclick = function () { hideOverlay(); startPractice(); };
+    overlay.classList.add('show');
+  }
+  function hideOverlay() {
+    overlay.classList.remove('show');
+  }
+
+  // --- Mode control ---
+  function setModeButtons() {
+    document.getElementById('dailyBtn').classList.toggle('active', mode === 'daily');
+    document.getElementById('practiceBtn').classList.toggle('active', mode === 'practice');
+  }
+
+  function startDaily() {
+    mode = 'daily';
+    setModeButtons();
+    answer = dailyAnswer();
+    committedRows = [];
+    guessIndex = 0;
+    currentGuess = '';
+    dailySolved = isDailySolved();
+    gameOver = dailySolved; // lock the board once today's puzzle is resolved
+    buildBoard();
+    renderBoard();
+    renderStreak();
+    if (dailySolved) {
+      showMessage('Daily puzzle done. Come back tomorrow, or practice now.');
+    } else {
+      showMessage('');
+    }
+    hideOverlay();
+  }
+
+  function startPractice() {
+    mode = 'practice';
+    setModeButtons();
+    answer = practiceAnswer();
+    committedRows = [];
+    guessIndex = 0;
+    currentGuess = '';
+    gameOver = false;
+    buildBoard();
+    renderBoard();
+    showMessage('');
+    hideOverlay();
+  }
+
+  // --- Physical keyboard ---
+  document.addEventListener('keydown', function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const k = e.key.toLowerCase();
+    if (k === 'enter') { e.preventDefault(); onKey('enter'); }
+    else if (k === 'backspace') { e.preventDefault(); onKey('backspace'); }
+    else if (/^[a-z]$/.test(k)) onKey(k);
+  });
+
+  // --- Colorblind toggle ---
+  function initColorblind() {
+    const cb = document.getElementById('colorblindToggle');
+    if (lsGet(CB_KEY) === '1') {
+      cb.checked = true;
+      document.body.classList.add('colorblind');
+    }
+    cb.addEventListener('change', function () {
+      const on = cb.checked;
+      document.body.classList.toggle('colorblind', on);
+      lsSet(CB_KEY, on ? '1' : '0');
+    });
+  }
+
+  // --- Init ---
+  document.getElementById('dailyBtn').addEventListener('click', startDaily);
+  document.getElementById('practiceBtn').addEventListener('click', startPractice);
+  buildKeyboard();
+  initColorblind();
+  startDaily();
+})();
+</script>
+</body>
+</html>
