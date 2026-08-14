@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>🔥 Wordfire — Flambeee</title>
 <style>
   :root {
@@ -33,6 +33,10 @@
     align-items: center;
     min-height: 100vh;
     padding: 16px;
+    touch-action: manipulation; /* no double-tap zoom, no 300ms tap delay (iOS) */
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
   }
 
   h1 {
@@ -167,6 +171,7 @@
     cursor: pointer;
     text-transform: uppercase;
     transition: background 0.15s;
+    touch-action: manipulation;
   }
   .key:hover { background: var(--key-hover); }
   .key.wide { min-width: 56px; font-size: 0.75rem; }
@@ -228,10 +233,45 @@
   .overlay-btn.secondary { background: var(--surface); border: 1px solid var(--border); color: var(--text); }
   .overlay-btn.secondary:hover { background: var(--key-bg); }
 
+  /* Color legend (Story 009) */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px 14px;
+    margin-bottom: 14px;
+    font-size: 0.75rem;
+    color: var(--sub);
+  }
+  .legend .item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .legend .box {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    border: 1px solid var(--tile-border);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    line-height: 1;
+  }
+  .legend .box.green { background: var(--green); border-color: var(--green); }
+  .legend .box.yellow { background: var(--yellow); border-color: var(--yellow); }
+  .legend .box.gray { background: var(--gray); border-color: var(--gray); }
+  .legend .box .shape { display: none; }
+  body.colorblind .legend .box .shape { display: inline; }
+  body.colorblind .legend .box.green .shape { color: #fff; }
+  body.colorblind .legend .box.yellow .shape { color: #1a1a2e; }
+  body.colorblind .legend .box.gray .shape { color: #111; }
+
   @media (max-width: 420px) {
     .tile { width: 48px; height: 48px; font-size: 1.4rem; }
-    .key { min-width: 28px; height: 40px; }
-    .key.wide { min-width: 48px; }
+    .key { min-width: 32px; height: 42px; }
+    .key.wide { min-width: 52px; }
   }
 </style>
 </head>
@@ -254,6 +294,12 @@
 <div class="message" id="message"></div>
 
 <div class="board" id="board"></div>
+
+<div class="legend" id="legend" aria-label="Color guide">
+  <span class="item"><span class="box green"><span class="shape">●</span></span> In word, right spot</span>
+  <span class="item"><span class="box yellow"><span class="shape">◇</span></span> In word, wrong spot</span>
+  <span class="item"><span class="box gray"><span class="shape">✕</span></span> Not in word</span>
+</div>
 
 <div class="keyboard" id="keyboard"></div>
 
