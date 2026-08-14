@@ -66,20 +66,25 @@ console.log('A4. Wordfire key tap targets (<=420px media query)');
 console.log('A5. Minesweeper responsive fit math');
 {
   const m = read('minesweeper.html');
-  check('A5 maxFit computation present', /maxFit\s*=\s*Math\.floor\(\(avail\s*-\s*12\s*-\s*\(cols\s*-\s*1\)\s*\*\s*2\)\s*\/\s*cols\)/.test(m), 'missing responsive cell sizing');
-  check('A5 size = max(min(configured, maxFit), MIN_CELL)', /Math\.max\(Math\.min\(cellSize, maxFit\), MIN_CELL\)/.test(m), 'cell sizing formula changed');
+  check('A5 natural-width comparison present', /natural\s*=\s*cellSize \* cols \+ \(cols - 1\) \* 2 \+ 12/.test(m), 'missing natural board width calc');
+  check('A5 shrink only when natural > avail', /if \(natural > avail\)/.test(m), 'missing conditional shrink');
   check('A5 MIN_CELL >= 18', /const MIN_CELL = 18/.test(m), 'MIN_CELL not 18');
   check('A5 board-scroll wrapper present', /\.board-scroll\s*\{[\s\S]*?overflow-x:\s*auto/.test(m), 'no scrollable board wrapper');
   check('A5 board touch-action pan-x', /#board\s*\{[\s\S]*?touch-action:\s*pan-x/.test(m), 'board touch-action not pan-x');
-  // numeric check at 375px and 320px viewports: cells never below MIN_CELL, board never overflows (scrolls instead)
+  // numeric checks: desktop keeps configured sizes; phones shrink to fit (>= MIN_CELL) or scroll
   const sizes = { easy: { cols: 9, base: 38 }, medium: { cols: 16, base: 30 }, hard: { cols: 30, base: 24 } };
+  // desktop (wide viewport): natural sizes preserved
+  for (const [k, { cols, base }] of Object.entries(sizes)) {
+    const natural = base * cols + (cols - 1) * 2 + 12;
+    check('A5 ' + k + ' desktop natural ' + natural + 'px <= 1200 (no shrink)', natural <= 1200, 'unexpectedly large');
+  }
   for (const vp of [375, 320]) {
     for (const [k, { cols, base }] of Object.entries(sizes)) {
-      const avail = Math.min(vp - 36, 520);
-      const maxFit = Math.floor((avail - 12 - (cols - 1) * 2) / cols);
-      const size = Math.max(Math.min(base, maxFit), 18);
-      const boardW = size * cols + (cols - 1) * 2 + 14;
-      check('A5 ' + k + ' @' + vp + 'px cell=' + size + 'px (board ' + boardW + 'px, wrapper scrolls if >' + vp + ')', size >= 18, 'cell ' + size + ' below MIN_CELL');
+      const avail = vp - 36;
+      const natural = base * cols + (cols - 1) * 2 + 12;
+      let size = base;
+      if (natural > avail) size = Math.max(Math.floor((avail - 12 - (cols - 1) * 2) / cols), 18);
+      check('A5 ' + k + ' @' + vp + 'px cell=' + size + 'px (scrolls if >' + vp + ')', size >= 18, 'cell ' + size + ' below MIN_CELL');
     }
   }
 }

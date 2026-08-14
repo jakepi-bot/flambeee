@@ -303,6 +303,8 @@
   // Long press handling for mobile flagging
   let pressTimer = null;
   let pressTarget = null;
+  let pressX = 0;
+  let pressY = 0;
   let longPressTriggered = false;
 
   const boardEl = document.getElementById('board');
@@ -377,13 +379,18 @@
     const { cols, rows, mines, cellSize } = config;
 
     // Responsive touch sizing (Story 008): shrink cells to fit the viewport when
-    // possible, but never below MIN_CELL (18px) so cells stay tappable. If the
-    // board still can't fit (hard mode on a phone), the .board-scroll wrapper
-    // scrolls horizontally instead of overflowing the page or forcing tiny cells.
+    // possible, but never below MIN_CELL (18px) so cells stay tappable. Only
+    // shrinks when the natural board exceeds the actual viewport (desktop keeps
+    // its configured cell sizes). If even MIN_CELL doesn't fit (hard mode on a
+    // phone), the .board-scroll wrapper scrolls horizontally instead of
+    // overflowing the page or forcing tiny cells.
     const MIN_CELL = 18;
-    const avail = Math.min(window.innerWidth - 36, 520); // body padding + board padding + border
-    const maxFit = Math.floor((avail - 12 - (cols - 1) * 2) / cols); // board padding + column gaps
-    let size = Math.max(Math.min(cellSize, maxFit), MIN_CELL);
+    const avail = window.innerWidth - 36; // body padding + board padding + border
+    const natural = cellSize * cols + (cols - 1) * 2 + 12;
+    let size = cellSize;
+    if (natural > avail) {
+      size = Math.max(Math.floor((avail - 12 - (cols - 1) * 2) / cols), MIN_CELL);
+    }
 
     boardEl.style.setProperty('--cell-size', size + 'px');
     boardEl.style.gridTemplateColumns = `repeat(${cols}, ${size}px)`;
@@ -484,6 +491,7 @@
 
         // Touch events (mobile)
         cell.addEventListener('touchstart', handleTouchStart, { passive: false });
+        cell.addEventListener('touchmove', handleTouchMove, { passive: true });
         cell.addEventListener('touchend', handleTouchEnd, { passive: false });
         cell.addEventListener('touchcancel', handleTouchCancel);
 
@@ -559,8 +567,11 @@
     const target = e.target;
     const r = parseInt(target.dataset.row);
     const c = parseInt(target.dataset.col);
+    const t = e.touches[0];
 
     pressTarget = target;
+    pressX = t ? t.clientX : 0;
+    pressY = t ? t.clientY : 0;
     longPressTriggered = false;
 
     // If flag mode is on, toggle immediately
@@ -575,6 +586,20 @@
       toggleFlag(r, c);
       if (navigator.vibrate) navigator.vibrate(50);
     }, 400);
+  }
+
+  // A moving finger is a scroll/pan, not a tap: cancel press + long-press intent.
+  function handleTouchMove(e) {
+    if (!pressTarget) return;
+    const t = e.touches[0];
+    if (!t) return;
+    const dx = t.clientX - pressX;
+    const dy = t.clientY - pressY;
+    if (Math.max(Math.abs(dx), Math.abs(dy)) > 10) {
+      if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+      pressTarget.classList.remove('pressing');
+      pressTarget = null;
+    }
   }
 
   function handleTouchEnd(e) {
