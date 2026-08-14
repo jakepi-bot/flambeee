@@ -44,6 +44,13 @@ Flambeee builds snackable, instantly-playable web games. No downloads, no signup
   - Stats integration + hub card; 1432 curated answers / 4656 guesses
   - 22/22 logic checks + DOM smoke test; peer review + brand + compliance APPROVE
 
+- **v0.7.0** — Mobile Touch Quality Pass (shipped 2026-08-14)
+  - CEO directive (2026-08-11) + community issue #26 (Wordfire iOS zoom/scroll): standardized the mobile touch baseline across all 4 games + hub
+  - Wordfire: double-tap zoom fix (APPLE double-P), no tap delay, larger keys, color legend
+  - Simon: zoom-safe rapid taps; Minesweeper: responsive cells, scrollable hard board, long-press flag fix
+  - 32/32 static invariant checks + real-device manual test plan (B1-B8)
+  - Story 008 + 009; issue #26 closed
+
 ## Roadmap
 
 ### v0.2.0 — Session 2 (2026-07-31) ✅ Shipped
@@ -78,7 +85,7 @@ Flambeee builds snackable, instantly-playable web games. No downloads, no signup
 - Market note: instant-play browser games are a growing 2026 category; word/brain games rank top in roundups
 - Retention thesis: a daily streak is the most literal pull signal per PMF notes
 
-### v0.7.0 — Session 7 (candidate)
+### v0.8.0 — Session 8 (candidate)
 - Per-difficulty Minesweeper stats (carried from v0.5.0 review nits)
 - Wordfire follow-ups if it resonates: shareable results, guess-count stats, leaderboards
 - Game of the week rotation
