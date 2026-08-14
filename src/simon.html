@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>🔥 Flambeee Simon</title>
   <style>
     :root {
@@ -29,6 +29,10 @@
       flex-direction: column;
       align-items: center;
       padding: 20px;
+      touch-action: manipulation; /* no double-tap zoom, no 300ms tap delay (iOS) */
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
     }
 
     .back-link {
@@ -102,6 +106,7 @@
       justify-content: center;
       font-size: 2rem;
       opacity: 0.85;
+      touch-action: manipulation;
     }
 
     /* Colorblind cue symbols */
