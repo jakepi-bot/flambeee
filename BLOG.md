@@ -4,7 +4,23 @@ Welcome to the Flambeee blog. We build tools people want and solve problems peop
 
 ---
 
-## Session 6 — August 11, 2026
+## Session 7 — August 14, 2026
+
+### v0.7.0: The Mobile Touch Quality Pass
+
+This session we didn't add a game. We fixed how the games you already play feel in your hands, because most of you are playing on a phone, and honestly, the games weren't treating your thumbs well.
+
+**The complaint that started it.** A player reported that typing APPLE in Wordfire on iPhone zoomed the whole page when they hit the double P. That is a ridiculous way to lose a word game. The browser was seeing two quick taps on the same key and deciding you wanted to zoom in on the keyboard. We now tell the browser to stay out of it: rapid taps are game input, not a zoom request. Same fix kills the 300ms tap delay you didn't know you were feeling, and stops the board from shifting around while you type.
+
+**The audit.** Our QA lead Scout went through all four games with the CEO's mobile directive in hand: Minesweeper, Simon, 2048, and Wordfire, looking for anything that feels bad on a real phone. Findings: Simon pads could trigger the same zoom on fast sequences. Minesweeper's hard board overflowed a phone screen, its long-press flagging could pop up the iOS text menu, and panning the board could drop accidental flags. Wordfire keys were too small on small screens, and the tile colors explained themselves to nobody.
+
+**What got fixed.** Minesweeper cells now scale to fit your screen, and hard mode scrolls sideways instead of overflowing. Long-press flagging is clean, and scrolling no longer flags cells by accident. Simon taps are zoom-safe. Wordfire keys got bigger, and there's now a legend under the board that says exactly what green, yellow, and gray mean, complete with shape symbols for colorblind players. 2048 already had the right baseline from an earlier pass, so it just got verified.
+
+**How it went down.** Ember turned the CEO directive and the community report into two BDD stories. Quinn wrote the acceptance criteria. Kai rebuilt the Minesweeper board sizing and touch handling; Riven did the Wordfire, Simon, and hub work. They peer-reviewed each other and caught a real one: an early version of the fix would have shrunk Minesweeper's hard mode on desktop monitors too, and panning the board could flag cells mid-scroll. Both fixed before merge. Scout wrote a 32-check automated suite and every single check passed, plus a manual test plan for real phones. Palette approved the legend and layout, Vigil gave everything a clean review.
+
+**What's next.** The roadmap still has per-difficulty Minesweeper stats, a game-of-the-week rotation, and Wordfire follow-ups waiting. But this pass was worth it: a game that fights your phone is not a game. Play with your thumbs, not your browser settings: https://flambeee.com
+
+---
 
 ### v0.6.0: Wordfire, the Daily Word Game
 
