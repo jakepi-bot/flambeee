@@ -32,6 +32,7 @@
     padding: 12px;
     -webkit-tap-highlight-color: transparent;
     user-select: none;
+    touch-action: manipulation; /* no double-tap zoom, no 300ms tap delay (iOS) */
   }
 
   .back-link {
@@ -114,6 +115,12 @@
   #resetBtn:hover { background: var(--cell); }
 
   /* Game board */
+  .board-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 8px;
+  }
   #board {
     display: grid;
     gap: 2px;
@@ -121,7 +128,7 @@
     padding: 6px;
     border-radius: 8px;
     border: 1px solid var(--border);
-    touch-action: none;
+    touch-action: pan-x; /* taps + long-press work; horizontal pan scrolls the board wrapper */
   }
 
   .cell {
@@ -137,6 +144,8 @@
     cursor: pointer;
     transition: background 0.1s;
     line-height: 1;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none; /* long-press flag must not trigger iOS callout */
   }
 
   .cell:hover { background: var(--cell-hover); }
@@ -252,7 +261,9 @@
   <div class="stat"><span class="icon">⏱️</span><span id="timer">0</span></div>
 </div>
 
-<div id="board"></div>
+<div class="board-scroll">
+  <div id="board"></div>
+</div>
 
 <div id="overlay">
   <div class="overlay-content">
@@ -365,9 +376,17 @@
 
     const { cols, rows, mines, cellSize } = config;
 
-    // Set CSS variable for cell size
-    boardEl.style.setProperty('--cell-size', cellSize + 'px');
-    boardEl.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
+    // Responsive touch sizing (Story 008): shrink cells to fit the viewport when
+    // possible, but never below MIN_CELL (18px) so cells stay tappable. If the
+    // board still can't fit (hard mode on a phone), the .board-scroll wrapper
+    // scrolls horizontally instead of overflowing the page or forcing tiny cells.
+    const MIN_CELL = 18;
+    const avail = Math.min(window.innerWidth - 36, 520); // body padding + board padding + border
+    const maxFit = Math.floor((avail - 12 - (cols - 1) * 2) / cols); // board padding + column gaps
+    let size = Math.max(Math.min(cellSize, maxFit), MIN_CELL);
+
+    boardEl.style.setProperty('--cell-size', size + 'px');
+    boardEl.style.gridTemplateColumns = `repeat(${cols}, ${size}px)`;
 
     // Initialize arrays
     board = Array.from({ length: rows }, () => Array(cols).fill(0));
@@ -532,7 +551,9 @@
 
   // Mobile handlers
   function handleTouchStart(e) {
-    e.preventDefault();
+    // No preventDefault: the board's touch-action: pan-x lets the browser
+    // arbitrate taps vs horizontal pan (board scrolls when too wide for the
+    // viewport); taps and long-presses still fire here.
     if (gameState === 'won' || gameState === 'lost') return;
 
     const target = e.target;
@@ -557,7 +578,6 @@
   }
 
   function handleTouchEnd(e) {
-    e.preventDefault();
     if (pressTimer) {
       clearTimeout(pressTimer);
       pressTimer = null;
