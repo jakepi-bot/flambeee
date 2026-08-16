@@ -320,13 +320,40 @@
 
   // --- Stats (localStorage, private-mode safe) ---
   const STATS_KEY = 'flambeee-stats-minesweeper';
+  const DIFF_KEYS = ['easy', 'medium', 'hard'];
+  let currentDiff = 'easy';
+
+  function emptyDiffStats() {
+    return { easy: 0, medium: 0, hard: 0 };
+  }
 
   function loadStats() {
     try {
       const raw = localStorage.getItem(STATS_KEY);
-      if (raw) return JSON.parse(raw);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        // Migrate legacy flat shape { plays, wins, bestTime } -> per-difficulty
+        if (parsed && typeof parsed.plays === 'number') {
+          const legacy = parsed;
+          const migrated = {
+            plays: emptyDiffStats(),
+            wins: emptyDiffStats(),
+            bestTime: { easy: null, medium: null, hard: null }
+          };
+          // Attribute legacy plays/wins to the last-played difficulty if known, else easy
+          const target = (legacy.lastDiff && DIFF_KEYS.indexOf(legacy.lastDiff) !== -1) ? legacy.lastDiff : 'easy';
+          migrated.plays[target] = legacy.plays;
+          migrated.wins[target] = legacy.wins;
+          // Aggregate bestTime is ambiguous across difficulties; drop it rather than lie
+          saveStats(migrated);
+          return migrated;
+        }
+        if (parsed && parsed.plays && typeof parsed.plays === 'object') {
+          return parsed;
+        }
+      }
     } catch (e) { /* private mode */ }
-    return { plays: 0, wins: 0, bestTime: null };
+    return { plays: emptyDiffStats(), wins: emptyDiffStats(), bestTime: { easy: null, medium: null, hard: null } };
   }
 
   function saveStats(stats) {
@@ -335,11 +362,11 @@
 
   function recordGame(won) {
     const stats = loadStats();
-    stats.plays += 1;
+    stats.plays[currentDiff] += 1;
     if (won) {
-      stats.wins += 1;
-      if (stats.bestTime === null || elapsed < stats.bestTime) {
-        stats.bestTime = elapsed;
+      stats.wins[currentDiff] += 1;
+      if (stats.bestTime[currentDiff] === null || elapsed < stats.bestTime[currentDiff]) {
+        stats.bestTime[currentDiff] = elapsed;
       }
     }
     saveStats(stats);
@@ -351,6 +378,7 @@
       diffButtons.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       config = DIFFICULTIES[btn.dataset.diff];
+      currentDiff = btn.dataset.diff;
       initGame();
     });
   });
