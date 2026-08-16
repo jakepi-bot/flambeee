@@ -232,6 +232,33 @@
   .overlay-btn:hover { background: var(--accent-hover); }
   .overlay-btn.secondary { background: var(--surface); border: 1px solid var(--border); color: var(--text); }
   .overlay-btn.secondary:hover { background: var(--key-bg); }
+  .overlay-btn.share-btn { background: var(--green); }
+  .overlay-btn.share-btn:hover { background: #5ec98f; }
+  .share-copy {
+    display: none;
+    margin-top: 12px;
+    padding: 8px 10px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 0.8rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    white-space: pre;
+    overflow-x: auto;
+    text-align: left;
+    max-width: 100%;
+  }
+  .share-copy.show { display: block; }
+  .share-msg {
+    display: none;
+    color: var(--green);
+    font-size: 0.85rem;
+    font-weight: bold;
+    margin-top: 10px;
+    min-height: 1.2em;
+  }
+  .share-msg.show { display: block; }
 
   /* Color legend (Story 009) */
   .legend {
@@ -310,6 +337,9 @@
     <p id="overlayText"></p>
     <button class="overlay-btn" id="overlayMainBtn"></button>
     <button class="overlay-btn secondary" id="overlayPracticeBtn">Practice</button>
+    <button class="overlay-btn share-btn" id="overlayShareBtn" style="display:none">Share</button>
+    <div class="share-copy" id="shareCopy"></div>
+    <div class="share-msg" id="shareMsg"></div>
   </div>
 </div>
 
@@ -656,10 +686,12 @@
           'Streak: ' + streak.current + (streak.current > 1 ? ' days' : ' day') + '.';
         mainBtn.textContent = 'Play Again (Practice)';
         mainBtn.onclick = function () { hideOverlay(); startPractice(); };
+        wireShare(guessIndex, streak);
       } else {
         text.textContent = 'You got it in ' + guessIndex + (guessIndex === 1 ? ' guess.' : ' guesses.') + ' Streak is for the daily puzzle only.';
         mainBtn.textContent = 'Play Again';
         mainBtn.onclick = function () { hideOverlay(); startPractice(); };
+        hideShare();
       }
     } else {
       title.textContent = 'Out of guesses';
@@ -672,6 +704,7 @@
         mainBtn.textContent = 'Try Again';
         mainBtn.onclick = function () { hideOverlay(); startPractice(); };
       }
+      hideShare();
     }
     practiceBtn.style.display = (modeName === 'daily' && result === 'win') ? 'none' : 'inline-block';
     practiceBtn.onclick = function () { hideOverlay(); startPractice(); };
@@ -679,6 +712,88 @@
   }
   function hideOverlay() {
     overlay.classList.remove('show');
+    document.getElementById('shareCopy').classList.remove('show');
+    document.getElementById('shareMsg').classList.remove('show');
+  }
+
+  // --- Share (Story 010) ---
+  function buildShareText(guesses, streak) {
+    const cb = document.body.classList.contains('colorblind');
+    const green = cb ? '●' : '🟩';
+    const yellow = cb ? '◇' : '🟨';
+    const gray = cb ? '✕' : '⬛';
+    const lines = [];
+    for (let r = 0; r < ROWS; r++) {
+      let line = '';
+      if (r < committedRows.length) {
+        const row = committedRows[r];
+        for (let c = 0; c < COLS; c++) {
+          line += row.colors[c] === 'green' ? green : row.colors[c] === 'yellow' ? yellow : gray;
+        }
+      } else {
+        line = gray.repeat(COLS);
+      }
+      lines.push(line);
+    }
+    const streakPart = streak && streak.current > 0 ? ' · streak ' + streak.current : '';
+    return 'Wordfire ' + guesses + '/6' + streakPart + '\n' + lines.join('\n');
+  }
+
+  function copyText(text) {
+    // 1) Web Share API (mobile)
+    if (navigator.share) {
+      return navigator.share({ text: text }).then(function () { return 'shared'; });
+    }
+    // 2) Clipboard API
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text).then(function () { return 'copied'; });
+    }
+    // 3) textarea fallback
+    return new Promise(function (resolve) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta);
+      resolve(ok ? 'copied' : 'manual');
+    });
+  }
+
+  function wireShare(guesses, streak) {
+    const shareBtn = document.getElementById('overlayShareBtn');
+    const shareCopy = document.getElementById('shareCopy');
+    const shareMsg = document.getElementById('shareMsg');
+    shareBtn.style.display = 'inline-block';
+    shareCopy.classList.remove('show');
+    shareMsg.classList.remove('show');
+    shareBtn.onclick = function () {
+      const text = buildShareText(guesses, streak);
+      copyText(text).then(function (result) {
+        if (result === 'shared') {
+          shareMsg.textContent = 'Shared!';
+        } else if (result === 'copied') {
+          shareMsg.textContent = 'Copied!';
+        } else {
+          shareCopy.textContent = text;
+          shareCopy.classList.add('show');
+          shareMsg.textContent = 'Copy manually';
+        }
+        shareMsg.classList.add('show');
+      }).catch(function () {
+        shareCopy.textContent = text;
+        shareCopy.classList.add('show');
+        shareMsg.textContent = 'Copy manually';
+        shareMsg.classList.add('show');
+      });
+    };
+  }
+
+  function hideShare() {
+    document.getElementById('overlayShareBtn').style.display = 'none';
   }
 
   // --- Mode control ---
