@@ -383,6 +383,9 @@
     });
   });
 
+  // Migrate legacy stats on load so hub + game are consistent immediately
+  loadStats();
+
   // Flag mode toggle
   flagModeBtn.addEventListener('click', () => {
     flagMode = !flagMode;
