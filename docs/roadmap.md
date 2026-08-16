@@ -51,6 +51,13 @@ Flambeee builds snackable, instantly-playable web games. No downloads, no signup
   - 32/32 static invariant checks + real-device manual test plan (B1-B8)
   - Story 008 + 009; issue #26 closed
 
+- **v0.8.0** — Wordfire Share + Per-Difficulty Stats (shipped 2026-08-16)
+  - Wordfire: shareable daily results (Story 010) — spoiler-free N/6 + streak + 6x5 grid, colorblind shapes, Web Share/clipboard/fallback
+  - Minesweeper: per-difficulty stats (Story 011) — plays/wins/bestTime per difficulty, legacy migration, hub E/M/H bests
+  - Website: What's New section (Story 012) on flambeee.com — latest release + Releases/Blog links
+  - 23/23 static invariant checks + browser smoke tests (daily win share, no share on loss/practice, migration, per-diff recording)
+  - Market note: puzzle games are the most-played browser category (23% of sessions); sharing is the most literal pull signal per PMF notes
+
 ## Roadmap
 
 ### v0.2.0 — Session 2 (2026-07-31) ✅ Shipped
@@ -85,11 +92,17 @@ Flambeee builds snackable, instantly-playable web games. No downloads, no signup
 - Market note: instant-play browser games are a growing 2026 category; word/brain games rank top in roundups
 - Retention thesis: a daily streak is the most literal pull signal per PMF notes
 
-### v0.8.0 — Session 8 (candidate)
-- Per-difficulty Minesweeper stats (carried from v0.5.0 review nits)
-- Wordfire follow-ups if it resonates: shareable results, guess-count stats, leaderboards
+### v0.8.0 — Session 8 (2026-08-16) ✅ Shipped
+- **Wordfire shareable results** — daily win overlay gets a Share button; spoiler-free summary (N/6 + streak + 6x5 tile grid), colorblind shapes, Web Share/clipboard/textarea fallback. Retention play: sharing is the most literal pull signal per PMF notes.
+- **Minesweeper per-difficulty stats** — plays/wins/bestTime tracked per difficulty (carried from v0.5.0 review nits); legacy stats migrated; hub shows E/M/H bests.
+- **Website What's New section** — flambeee.com home page now shows the latest release with Releases/Blog links (brand surface per CEO 2026-08-14).
+- 23/23 static checks + browser smoke tests; peer review APPROVE + Palette APPROVE
+
+### v0.9.0 — Session 9 (candidate)
+- Wordfire follow-ups if it resonates: guess-count stats, leaderboards
 - Game of the week rotation
 - Continue community feedback integration
+- Website: consider a games page with per-game screenshots (Palette)
 
 ### Future
 - Mobile app packaging (PWA)
@@ -97,6 +110,7 @@ Flambeee builds snackable, instantly-playable web games. No downloads, no signup
 - Game of the week rotation
 - Community-submitted games
 - Wordfire leaderboards (if pull signal confirmed)
+- Wordfire guess-count stats (if pull signal confirmed)
 
 ## Principles
 
