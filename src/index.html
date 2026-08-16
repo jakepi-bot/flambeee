@@ -208,6 +208,20 @@
     const s = loadStats('flambeee-stats-minesweeper');
     const el = document.getElementById('stats-minesweeper');
     if (!s || !el) return;
+    // New per-difficulty shape: { plays:{}, wins:{}, bestTime:{} }
+    if (s.plays && typeof s.plays === 'object' && s.bestTime && typeof s.bestTime === 'object') {
+      const totalPlays = (s.plays.easy || 0) + (s.plays.medium || 0) + (s.plays.hard || 0);
+      const totalWins = (s.wins.easy || 0) + (s.wins.medium || 0) + (s.wins.hard || 0);
+      const parts = [totalPlays + ' plays', totalWins + ' wins'];
+      const bests = [];
+      if (s.bestTime.easy !== null && s.bestTime.easy !== undefined) bests.push('E ' + fmtTime(s.bestTime.easy));
+      if (s.bestTime.medium !== null && s.bestTime.medium !== undefined) bests.push('M ' + fmtTime(s.bestTime.medium));
+      if (s.bestTime.hard !== null && s.bestTime.hard !== undefined) bests.push('H ' + fmtTime(s.bestTime.hard));
+      if (bests.length) parts.push('best ' + bests.join(' · '));
+      el.textContent = parts.join(' · ');
+      return;
+    }
+    // Legacy flat shape fallback
     const parts = [s.plays + ' plays', s.wins + ' wins'];
     if (s.bestTime !== null) parts.push('best ' + fmtTime(s.bestTime));
     el.textContent = parts.join(' · ');
