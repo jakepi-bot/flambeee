@@ -58,6 +58,12 @@ Flambeee builds snackable, instantly-playable web games. No downloads, no signup
   - 23/23 static invariant checks + browser smoke tests (daily win share, no share on loss/practice, migration, per-diff recording)
   - Market note: puzzle games are the most-played browser category (23% of sessions); sharing is the most literal pull signal per PMF notes
 
+- **v0.9.0** — Wordfire Guess Distribution + Website Screenshots (shipped 2026-08-18)
+  - Wordfire: guess-distribution panel (Story 013) — bars for wins in 1-6 guesses, played/won/win%, daily-only, once per day, practice isolated
+  - Website: game card screenshots (Story 014) — real board captures from actual game HTML, alt text, responsive 4:3, no more emoji icons
+  - 29/29 static invariant checks + 6 browser smoke tests; peer review APPROVE + Palette APPROVE + Vigil APPROVE
+  - Market note: word games growing ~31.7% (2023-2026, Wordle pipeline); daily-puzzle habits dominate browser gaming; distribution is the standard companion to shares
+
 ## Roadmap
 
 ### v0.2.0 — Session 2 (2026-07-31) ✅ Shipped
@@ -92,17 +98,29 @@ Flambeee builds snackable, instantly-playable web games. No downloads, no signup
 - Market note: instant-play browser games are a growing 2026 category; word/brain games rank top in roundups
 - Retention thesis: a daily streak is the most literal pull signal per PMF notes
 
+### v0.7.0 — Session 7 (2026-08-14) ✅ Shipped
+- **Mobile Touch Quality Pass** — CEO directive (2026-08-11) + community issue #26: standardized the mobile touch baseline across all 4 games + hub
+  - Wordfire: double-tap zoom fix, no tap delay, larger keys, color legend
+  - Simon: zoom-safe rapid taps; Minesweeper: responsive cells, scrollable hard board, long-press flag fix
+  - 32/32 static checks + real-device manual test plan; Stories 008 + 009; issue #26 closed
+
 ### v0.8.0 — Session 8 (2026-08-16) ✅ Shipped
 - **Wordfire shareable results** — daily win overlay gets a Share button; spoiler-free summary (N/6 + streak + 6x5 tile grid), colorblind shapes, Web Share/clipboard/textarea fallback. Retention play: sharing is the most literal pull signal per PMF notes.
 - **Minesweeper per-difficulty stats** — plays/wins/bestTime tracked per difficulty (carried from v0.5.0 review nits); legacy stats migrated; hub shows E/M/H bests.
 - **Website What's New section** — flambeee.com home page now shows the latest release with Releases/Blog links (brand surface per CEO 2026-08-14).
 - 23/23 static checks + browser smoke tests; peer review APPROVE + Palette APPROVE
 
-### v0.9.0 — Session 9 (candidate)
-- Wordfire follow-ups if it resonates: guess-count stats, leaderboards
+### v0.9.0 — Session 9 (2026-08-18) ✅ Shipped
+- **Wordfire guess distribution** — daily players get a record panel: bars for wins in 1-6 guesses + played/won/win% (daily only, once per day, practice isolated). Retention play: visible personal record that only grows by returning; matches the share grid format from v0.8.0.
+- **Website game card screenshots** — flambeee.com game cards now show real board screenshots (Playwright captures of actual game HTML with scripted in-play states) instead of emoji icons; alt text on all 4, responsive 4:3 aspect. Brand surface per CEO 2026-08-14.
+- Stories 013 (7 BDD scenarios) + 014 (5 BDD scenarios); 29/29 static checks + 6 browser smoke tests; peer review APPROVE + Palette APPROVE + Vigil APPROVE
+- Market note: word games growing ~31.7% 2023-2026 (Wordle pipeline); puzzle retention benchmarks ~30% D1 / 14% D7; daily-puzzle habits dominate browser gaming. Guess distribution is the standard companion to shares.
+
+### v0.10.0 — Session 10 (candidate)
+- Wordfire leaderboards (if pull signal confirmed)
 - Game of the week rotation
 - Continue community feedback integration
-- Website: consider a games page with per-game screenshots (Palette)
+- Website: full games page with per-game detail (screenshots landed in v0.9.0; next step is a dedicated page)
 
 ### Future
 - Mobile app packaging (PWA)
