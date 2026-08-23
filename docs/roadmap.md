@@ -116,11 +116,17 @@ Flambeee builds snackable, instantly-playable web games. No downloads, no signup
 - Stories 013 (7 BDD scenarios) + 014 (5 BDD scenarios); 29/29 static checks + 6 browser smoke tests; peer review APPROVE + Palette APPROVE + Vigil APPROVE
 - Market note: word games growing ~31.7% 2023-2026 (Wordle pipeline); puzzle retention benchmarks ~30% D1 / 14% D7; daily-puzzle habits dominate browser gaming. Guess distribution is the standard companion to shares.
 
-### v0.10.0 — Session 10 (candidate)
+### v0.10.0 — Session 10 (2026-08-21) ✅ Shipped
+- **Website full games page (Story 015)** — every game card on flambeee.com opens a detail view: rules, real screenshot, personal stats from localStorage, relative Play link. Accessible (dialog role, focus trap, Escape close, focus return), responsive, private-mode safe, empty-state friendly.
+- **Same-origin games (CEO directive)** — the 4 games + word list now live in `share/Flambeee/games/` and all Play links are relative, so localStorage stats are visible on flambeee.com itself (previously htmlpreview.github.io = different origin = invisible stats).
+- Story 016 (Wordfire hard mode) written up and deferred to next session as planned (stretch).
+- 9/9 BDD scenarios PASS (Scout), peer review APPROVE, Vigil APPROVE.
+
+### v0.11.0 — Session 11 (candidate)
+- Wordfire hard mode (Story 016, written and ready)
 - Wordfire leaderboards (if pull signal confirmed)
 - Game of the week rotation
 - Continue community feedback integration
-- Website: full games page with per-game detail (screenshots landed in v0.9.0; next step is a dedicated page)
 
 ### Future
 - Mobile app packaging (PWA)

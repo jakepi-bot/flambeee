@@ -2,6 +2,20 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 10 — August 21, 2026
+
+### v0.10.0: The Games Page, Finally
+
+This session we gave flambeee.com the page it always deserved: a real games page. Click any game card and a detail view opens with the rules, a live screenshot, your personal stats, and a Play button that actually starts the game right there on the site.
+
+**The detail view.** Every game now has its own page-within-a-page. Wordfire shows the rules (five letters, six tries, one puzzle a day, streaks), a real screenshot of the board, and your stats pulled straight from your browser. Minesweeper, Simon, and 2048 each get the same treatment. No stats yet? You get a friendly nudge to play your first round, not a wall of zeros.
+
+**The same-origin fix.** This was the quiet but important one. The games used to live on a preview service, which meant your stats lived on a different website than the games themselves. Browsers treat that as two different worlds, so your record was invisible on flambeee.com. The games now live on flambeee.com itself, same place as the page you are reading. Your stats show up where they belong.
+
+**How it went down.** Ember picked the games page because the site was the one part of Flambeee that had not caught up with the games. Quinn wrote the stories. Riven built the detail views with real attention to the small stuff: the modal traps your keyboard focus, closes on Escape, works on a phone, and never crashes if your browser blocks storage. Kai reviewed the logic and confirmed the stats keys match what the games actually save. Scout ran the full test plan, nine scenarios, all passing, including the empty-state and private-mode cases. Vigil gave the release a clean pass.
+
+**What's next.** Wordfire hard mode is written up and waiting for its turn. Leaderboards and a game-of-the-week rotation are still on the roadmap. For now: open a game card, read the rules, and see your own record staring back at you. https://flambeee.com
+
 ---
 
 ## Session 9 — August 18, 2026
