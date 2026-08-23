@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flambeee — Web games, zero friction, just play</title>
+<meta name="description" content="Flambeee builds web games that just work. No installs, no accounts, no friction. Pick a game and play.">
+<link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+<style>
+  :root {
+    --bg: #0f1428;
+    --bg-2: #16213e;
+    --surface: #1a1a2e;
+    --surface-2: #1f2a4a;
+    --accent: #e94560;
+    --accent-2: #ff5a75;
+    --flame-top: #ffb74d;
+    --text: #eef2ff;
+    --text-dim: #9aa7d8;
+    --text-mute: #6b76a8;
+    --border: #2a3a6e;
+    --radius: 14px;
+    --shadow: 0 10px 30px rgba(0,0,0,0.35);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent-2); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .container {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* ---------- Nav ---------- */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(15,20,40,0.85);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+  }
+  nav .container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 1.25rem;
+    letter-spacing: 1px;
+    color: var(--text);
+  }
+  .brand img { height: 30px; width: 30px; }
+  .nav-links { display: flex; gap: 28px; }
+  .nav-links a { color: var(--text-dim); font-size: 0.95rem; }
+  .nav-links a:hover { color: var(--text); text-decoration: none; }
+
+  /* ---------- Hero ---------- */
+  .hero {
+    text-align: center;
+    padding: 88px 24px 72px;
+    background:
+      radial-gradient(ellipse at 50% -20%, rgba(233,69,96,0.18), transparent 60%),
+      linear-gradient(180deg, var(--bg-2) 0%, var(--bg) 100%);
+    border-bottom: 1px solid var(--border);
+  }
+  .hero .flame-mark {
+    width: 84px;
+    height: 84px;
+    margin: 0 auto 24px;
+    display: block;
+  }
+  .hero h1 {
+    font-size: clamp(2.2rem, 5vw, 3.4rem);
+    font-weight: 800;
+    letter-spacing: 1px;
+    line-height: 1.1;
+    margin-bottom: 16px;
+  }
+  .hero h1 .accent { color: var(--accent-2); }
+  .hero .tagline {
+    font-size: clamp(1rem, 2.5vw, 1.25rem);
+    color: var(--text-dim);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .hero p.lede {
+    max-width: 640px;
+    margin: 0 auto 36px;
+    color: var(--text-dim);
+    font-size: 1.1rem;
+  }
+  .hero-cta {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .btn {
+    display: inline-block;
+    padding: 14px 34px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 1rem;
+    transition: transform 0.1s, background 0.15s, box-shadow 0.15s;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #fff;
+  }
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(233,69,96,0.4);
+    text-decoration: none;
+  }
+  .btn-ghost {
+    border: 1px solid var(--border);
+    color: var(--text);
+    background: transparent;
+  }
+  .btn-ghost:hover {
+    border-color: var(--accent-2);
+    color: var(--accent-2);
+    text-decoration: none;
+  }
+
+  /* ---------- Section headers ---------- */
+  .section {
+    padding: 72px 0;
+  }
+  .section-head {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+  .section-head h2 {
+    font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+  }
+  .section-head p {
+    color: var(--text-dim);
+    max-width: 560px;
+    margin: 0 auto;
+  }
+
+  /* ---------- Game grid ---------- */
+  .game-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+  }
+  .game-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px 24px;
+    text-align: center;
+    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .game-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--accent-2);
+    box-shadow: var(--shadow);
+  }
+  .game-shot {
+    width: 100%;
+    max-width: 220px;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    margin-bottom: 14px;
+    background: var(--bg-2);
+  }
+  .game-icon {
+    font-size: 3rem;
+    margin-bottom: 14px;
+  }
+  .game-name {
+    font-size: 1.35rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .game-desc {
+    color: var(--text-dim);
+    font-size: 0.92rem;
+    line-height: 1.5;
+    margin-bottom: 18px;
+    flex-grow: 1;
+  }
+  .play-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 30px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .play-btn:hover { background: var(--accent-2); }
+  .play-btn:active { transform: scale(0.95); }
+
+  /* ---------- What's New ---------- */
+  .whats-new {
+    background: var(--bg-2);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .whats-new .container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .whats-new .wn-badge {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 20px;
+    flex-shrink: 0;
+  }
+  .whats-new .wn-text {
+    flex: 1;
+    min-width: 240px;
+  }
+  .whats-new .wn-text h3 {
+    font-size: 1.15rem;
+    margin-bottom: 4px;
+  }
+  .whats-new .wn-text p {
+    color: var(--text-dim);
+    font-size: 0.92rem;
+  }
+  .whats-new .wn-links {
+    display: flex;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+  .whats-new .wn-links a {
+    font-size: 0.9rem;
+    font-weight: 700;
+  }
+
+  /* ---------- Why / features ---------- */
+  .features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+  }
+  .feature {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px 24px;
+  }
+  .feature .f-icon { font-size: 1.8rem; margin-bottom: 12px; }
+  .feature h3 { font-size: 1.15rem; margin-bottom: 8px; }
+  .feature p { color: var(--text-dim); font-size: 0.92rem; }
+
+  /* ---------- About / company ---------- */
+  .about {
+    background: var(--bg-2);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .about .container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: center;
+  }
+  .about h2 { font-size: 1.8rem; font-weight: 800; margin-bottom: 16px; }
+  .about p { color: var(--text-dim); margin-bottom: 16px; }
+  .about .stat-row {
+    display: flex;
+    gap: 32px;
+    margin-top: 8px;
+  }
+  .stat .num {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--accent-2);
+  }
+  .stat .label { color: var(--text-mute); font-size: 0.85rem; }
+  .about-visual {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    text-align: center;
+  }
+  .about-visual img { max-width: 100%; border-radius: 8px; }
+
+  /* ---------- Footer ---------- */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 0;
+    text-align: center;
+    color: var(--text-mute);
+    font-size: 0.9rem;
+  }
+  footer .footer-links {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  footer .footer-links a { color: var(--text-dim); }
+  footer .footer-links a:hover { color: var(--text); }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 720px) {
+    .nav-links { display: none; }
+    .about .container { grid-template-columns: 1fr; }
+    .hero { padding: 64px 20px 56px; }
+  }
+
+  /* ---------- Game Detail Modal ---------- */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+  .modal-overlay.show {
+    display: flex;
+  }
+  .modal-dialog {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    max-width: 800px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: var(--shadow);
+  }
+  .modal-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 8px;
+    line-height: 1;
+    border-radius: 6px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .modal-close:hover {
+    background: var(--surface-2);
+    color: var(--text);
+  }
+  .modal-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    padding: 24px;
+  }
+  .modal-screenshot {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg-2);
+  }
+  .modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .modal-title {
+    font-size: 1.8rem;
+    font-weight: 800;
+    margin-bottom: 4px;
+  }
+  .modal-desc {
+    color: var(--text-dim);
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+  .modal-section {
+    margin-top: 8px;
+  }
+  .modal-section-title {
+    font-size: 0.85rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .modal-rules {
+    color: var(--text-dim);
+    font-size: 0.92rem;
+    line-height: 1.6;
+  }
+  .modal-rules ul {
+    padding-left: 18px;
+    margin: 0;
+  }
+  .modal-rules li {
+    margin-bottom: 6px;
+  }
+  .modal-stats {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .modal-stats-empty {
+    color: var(--text-mute);
+    font-size: 0.92rem;
+    font-style: italic;
+  }
+  .modal-stats-data {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    color: var(--text-dim);
+    font-size: 0.92rem;
+  }
+  .modal-stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .modal-stat-label {
+    font-size: 0.75rem;
+    color: var(--text-mute);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .modal-stat-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .modal-play-btn {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 14px 34px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+    transition: transform 0.1s, box-shadow 0.15s;
+    margin-top: 8px;
+  }
+  .modal-play-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(233, 69, 96, 0.4);
+    text-decoration: none;
+  }
+  .modal-play-btn:active {
+    transform: scale(0.98);
+  }
+  @media (max-width: 720px) {
+    .modal-content {
+      grid-template-columns: 1fr;
+      gap: 16px;
+      padding: 16px;
+    }
+    .modal-screenshot {
+      order: -1;
+    }
+    .modal-title {
+      font-size: 1.5rem;
+    }
+    .modal-play-btn {
+      width: 100%;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== Nav ===== -->
+<nav>
+  <div class="container">
+    <a class="brand" href="#top">
+      <img src="assets/flambeee-32.png" alt="Flambeee flame logo">
+      flambeee
+    </a>
+    <div class="nav-links">
+      <a href="#games">Games</a>
+      <a href="#why">Why Flambeee</a>
+      <a href="#about">About</a>
+      <a href="https://github.com/jakepi-bot/flambeee" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://bsky.app/profile/flambeee.bsky.social" target="_blank" rel="noopener">Bluesky</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ===== Hero ===== -->
+<header class="hero" id="top">
+  <img class="flame-mark" src="assets/flambeee-128.png" alt="Flambeee flame logo">
+  <h1>Web games, <span class="accent">zero friction</span>, just play.</h1>
+  <div class="tagline">Flambeee</div>
+  <p class="lede">
+    No installs. No accounts. No waiting. Flambeee builds small, sharp web games
+    that load fast and play right in your browser. Pick one and go.
+  </p>
+  <div class="hero-cta">
+    <a class="btn btn-primary" href="#games">Play a game</a>
+    <a class="btn btn-ghost" href="#about">About the company</a>
+  </div>
+</header>
+
+<!-- ===== Games ===== -->
+<section class="section" id="games">
+  <div class="container">
+    <div class="section-head">
+      <h2>Pick your poison</h2>
+      <p>Four games, one arcade. All free, all in your browser.</p>
+    </div>
+    <div class="game-grid">
+      <div class="game-card">
+        <img class="game-shot" src="assets/game-wordfire.png" alt="Wordfire word game board with colored letter tiles">
+        <div class="game-name">Wordfire</div>
+        <div class="game-desc">One word a day. Guess the 5-letter word and keep your streak alive.</div>
+        <a class="play-btn" href="games/wordfire.html">Play</a>
+      </div>
+      <div class="game-card">
+        <img class="game-shot" src="assets/game-minesweeper.png" alt="Minesweeper board with revealed cells and numbers">
+        <div class="game-name">Minesweeper</div>
+        <div class="game-desc">Classic mine-hunting puzzle. Clear the board without blowing up.</div>
+        <a class="play-btn" href="games/minesweeper.html">Play</a>
+      </div>
+      <div class="game-card">
+        <img class="game-shot" src="assets/game-simon.png" alt="Simon memory game with four colored pads">
+        <div class="game-name">Simon</div>
+        <div class="game-desc">Memory challenge. Repeat the pattern as it gets longer and faster.</div>
+        <a class="play-btn" href="games/simon.html">Play</a>
+      </div>
+      <div class="game-card">
+        <img class="game-shot" src="assets/game-2048.png" alt="2048 grid with numbered merge tiles">
+        <div class="game-name">2048</div>
+        <div class="game-desc">Merge the tiles. Reach 2048 and chase a new high score.</div>
+        <a class="play-btn" href="games/2048.html">Play</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== What's New ===== -->
+<section class="whats-new" id="whats-new">
+  <div class="container">
+    <span class="wn-badge">What's new</span>
+    <div class="wn-text">
+      <h3>v0.9.0: Your Wordfire record, in bars</h3>
+      <p>Daily solves now build a guess-distribution chart, and every game card shows a real screenshot.</p>
+    </div>
+    <div class="wn-links">
+      <a href="https://github.com/jakepi-bot/flambeee/releases" target="_blank" rel="noopener">Releases</a>
+      <a href="https://github.com/jakepi-bot/flambeee/blob/main/BLOG.md" target="_blank" rel="noopener">Blog</a>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Why ===== -->
+<section class="section" id="why">
+  <div class="container">
+    <div class="section-head">
+      <h2>Why Flambeee</h2>
+      <p>We build tools people actually want. Small, honest, and fun.</p>
+    </div>
+    <div class="features">
+      <div class="feature">
+        <div class="f-icon">⚡</div>
+        <h3>Zero friction</h3>
+        <p>No sign-up, no download, no paywall. The game is one click away and loads in seconds.</p>
+      </div>
+      <div class="feature">
+        <div class="f-icon">📱</div>
+        <h3>Built for your thumbs</h3>
+        <p>Every game is touch-optimized and works on a phone as well as a desktop. Play anywhere.</p>
+      </div>
+      <div class="feature">
+        <div class="f-icon">🎯</div>
+        <h3>Small and sharp</h3>
+        <p>One idea per game, done well. No bloat, no clutter, no 200MB installs.</p>
+      </div>
+      <div class="feature">
+        <div class="f-icon">🔄</div>
+        <h3>Always improving</h3>
+        <p>We ship regularly and listen to players. If something feels bad, we fix it.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== About ===== -->
+<section class="section about" id="about">
+  <div class="container">
+    <div>
+      <h2>A small company building games people want</h2>
+      <p>
+        Flambeee is a software company with one simple mission: build helpful tools,
+        solve real problems, and have fun doing it. We started with web games because
+        they're the purest version of that idea — something you can play in seconds,
+        no strings attached.
+      </p>
+      <p>
+        We're a small, hands-on team. We ship often, we listen to the community, and
+        we treat every game like it deserves to be great.
+      </p>
+      <div class="stat-row">
+        <div class="stat">
+          <div class="num">4</div>
+          <div class="label">Games shipped</div>
+        </div>
+        <div class="stat">
+          <div class="num">0</div>
+          <div class="label">Accounts required</div>
+        </div>
+      </div>
+    </div>
+    <div class="about-visual">
+      <img src="assets/flambeee-banner-1200.png" alt="Flambeee banner">
+      <p style="color:var(--text-mute);font-size:0.85rem;margin-top:12px;">
+        flambeee · web games · zero friction · just play
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Footer ===== -->
+<footer>
+  <div class="container">
+    <div class="footer-links">
+      <a href="#games">Games</a>
+      <a href="#whats-new">What's New</a>
+      <a href="#about">About</a>
+      <a href="https://github.com/jakepi-bot/flambeee" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://bsky.app/profile/flambeee.bsky.social" target="_blank" rel="noopener">Bluesky</a>
+    </div>
+    <p>© 2026 Flambeee. Built with care, played with thumbs.</p>
+  </div>
+</footer>
+
+<!-- ===== Game Detail Modals ===== -->
+<div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-hidden="true">
+  <div class="modal-dialog" tabindex="-1">
+    <button class="modal-close" id="modalClose" aria-label="Close">&times;</button>
+    <div class="modal-content">
+      <img class="modal-screenshot" id="modalScreenshot" alt="">
+      <div class="modal-body">
+        <h2 class="modal-title" id="modalTitle"></h2>
+        <p class="modal-desc" id="modalDesc"></p>
+        <div class="modal-section">
+          <div class="modal-section-title">How to play</div>
+          <div class="modal-rules" id="modalRules"></div>
+        </div>
+        <div class="modal-section">
+          <div class="modal-section-title">Your record</div>
+          <div class="modal-stats" id="modalStats"></div>
+        </div>
+        <a class="modal-play-btn" id="modalPlayBtn" href="#">Play</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // --- Game data ---
+  const GAMES = {
+    wordfire: {
+      name: 'Wordfire',
+      desc: 'One word a day. Guess the 5-letter word and keep your streak alive.',
+      screenshot: 'assets/game-wordfire.png',
+      screenshotAlt: 'Wordfire word game board with colored letter tiles showing green, yellow, and gray feedback',
+      playLink: 'games/wordfire.html',
+      rules: [
+        'Guess the 5-letter word in 6 tries',
+        'Green tile = right letter in the right spot',
+        'Yellow tile = right letter in the wrong spot',
+        'Gray tile = letter not in the word',
+        'One daily word for everyone, resets at UTC midnight',
+        'Solve the daily word to grow your streak; miss a day and it resets',
+        'Practice mode gives unlimited random puzzles and never touches your streak'
+      ],
+      getStats: function () {
+        let stats = { plays: 0, wins: 0, streak: 0 };
+        try {
+          const statsRaw = localStorage.getItem('flambeee-stats-wordfire');
+          if (statsRaw) {
+            const s = JSON.parse(statsRaw);
+            stats.plays = s.plays || 0;
+            stats.wins = s.wins || 0;
+          }
+          const streakRaw = localStorage.getItem('flambeee-wordfire-streak');
+          if (streakRaw) {
+            const st = JSON.parse(streakRaw);
+            stats.streak = st.current || 0;
+          }
+        } catch (e) { /* private mode or corrupt data */ }
+        return stats;
+      },
+      formatStats: function (s) {
+        if (s.plays === 0 && s.wins === 0 && s.streak === 0) return null;
+        return [
+          { label: 'Plays', value: s.plays },
+          { label: 'Wins', value: s.wins },
+          { label: 'Streak', value: s.streak }
+        ];
+      }
+    },
+    minesweeper: {
+      name: 'Minesweeper',
+      desc: 'Classic mine-hunting puzzle. Clear the board without blowing up.',
+      screenshot: 'assets/game-minesweeper.png',
+      screenshotAlt: 'Minesweeper board with revealed cells showing numbers and flagged mines',
+      playLink: 'games/minesweeper.html',
+      rules: [
+        'Clear the board without hitting a mine',
+        'Numbers tell you how many mines touch that cell',
+        'Right-click (desktop) or long-press (mobile) to flag a suspected mine',
+        'Three board sizes: Easy 9x9, Medium 16x16, Hard 30x16',
+        'Your first click is always safe'
+      ],
+      getStats: function () {
+        let stats = { plays: 0, wins: 0, bestTime: null };
+        try {
+          const raw = localStorage.getItem('flambeee-stats-minesweeper');
+          if (raw) {
+            const d = JSON.parse(raw);
+            // New shape (post-v0.8.0): per-difficulty
+            if (d.plays && typeof d.plays === 'object') {
+              stats.plays = (d.plays.easy || 0) + (d.plays.medium || 0) + (d.plays.hard || 0);
+              stats.wins = (d.wins ? ((d.wins.easy || 0) + (d.wins.medium || 0) + (d.wins.hard || 0)) : 0);
+              // Find best time across difficulties
+              if (d.bestTime) {
+                const times = [d.bestTime.easy, d.bestTime.medium, d.bestTime.hard].filter(t => t !== null && t !== undefined);
+                if (times.length > 0) stats.bestTime = Math.min.apply(null, times);
+              }
+            } else {
+              // Legacy flat shape
+              stats.plays = d.plays || 0;
+              stats.wins = d.wins || 0;
+              stats.bestTime = d.bestTime || null;
+            }
+          }
+        } catch (e) { /* private mode or corrupt data */ }
+        return stats;
+      },
+      formatStats: function (s) {
+        if (s.plays === 0 && s.wins === 0 && !s.bestTime) return null;
+        const items = [
+          { label: 'Plays', value: s.plays },
+          { label: 'Wins', value: s.wins }
+        ];
+        if (s.bestTime) {
+          const mins = Math.floor(s.bestTime / 60);
+          const secs = s.bestTime % 60;
+          items.push({ label: 'Best time', value: mins > 0 ? mins + ':' + (secs < 10 ? '0' : '') + secs : secs + 's' });
+        }
+        return items;
+      }
+    },
+    simon: {
+      name: 'Simon',
+      desc: 'Memory challenge. Repeat the pattern as it gets longer and faster.',
+      screenshot: 'assets/game-simon.png',
+      screenshotAlt: 'Simon memory game with four colored pads (green, red, yellow, blue) arranged in a square',
+      playLink: 'games/simon.html',
+      rules: [
+        'Watch the sequence of lights, then repeat it',
+        'Each round adds one more step and the pace picks up',
+        'Three difficulties: Easy, Classic, Hard',
+        'Green, red, yellow, blue - each plays a different tone'
+      ],
+      getStats: function () {
+        let stats = { plays: 0, bestRound: 0 };
+        try {
+          const statsRaw = localStorage.getItem('flambeee-stats-simon');
+          if (statsRaw) {
+            const s = JSON.parse(statsRaw);
+            stats.plays = s.plays || 0;
+          }
+          // Best round depends on difficulty, but show overall best
+          const bestClassic = parseInt(localStorage.getItem('flambeee-simon-best') || '0', 10);
+          const bestEasy = parseInt(localStorage.getItem('flambeee-simon-best-easy') || '0', 10);
+          const bestHard = parseInt(localStorage.getItem('flambeee-simon-best-hard') || '0', 10);
+          stats.bestRound = Math.max(bestClassic, bestEasy, bestHard);
+        } catch (e) { /* private mode or corrupt data */ }
+        return stats;
+      },
+      formatStats: function (s) {
+        if (s.plays === 0 && s.bestRound === 0) return null;
+        return [
+          { label: 'Rounds played', value: s.plays },
+          { label: 'Best round', value: s.bestRound }
+        ];
+      }
+    },
+    '2048': {
+      name: '2048',
+      desc: 'Merge the tiles. Reach 2048 and chase a new high score.',
+      screenshot: 'assets/game-2048.png',
+      screenshotAlt: '2048 grid with numbered merge tiles showing powers of two',
+      playLink: 'games/2048.html',
+      rules: [
+        'Slide tiles to merge matching numbers',
+        'Two 2s make a 4, two 4s make an 8, keep going',
+        'Reach the 2048 tile to win',
+        'Arrow keys or WASD on desktop, swipe on mobile',
+        'Classic 4x4 board or Hard 5x5'
+      ],
+      getStats: function () {
+        let stats = { plays: 0, wins: 0, bestScore: 0 };
+        try {
+          const statsRaw = localStorage.getItem('flambeee-stats-2048');
+          if (statsRaw) {
+            const s = JSON.parse(statsRaw);
+            stats.plays = s.plays || 0;
+            stats.wins = s.wins || 0;
+          }
+          const bestRaw = localStorage.getItem('flambeee-2048-best');
+          if (bestRaw) stats.bestScore = parseInt(bestRaw, 10) || 0;
+        } catch (e) { /* private mode or corrupt data */ }
+        return stats;
+      },
+      formatStats: function (s) {
+        if (s.plays === 0 && s.wins === 0 && s.bestScore === 0) return null;
+        return [
+          { label: 'Plays', value: s.plays },
+          { label: 'Wins', value: s.wins },
+          { label: 'Best score', value: s.bestScore }
+        ];
+      }
+    }
+  };
+
+  // --- Modal state ---
+  let currentGame = null;
+  let lastFocusedElement = null;
+
+  // --- DOM elements ---
+  const overlay = document.getElementById('modalOverlay');
+  const dialog = overlay.querySelector('.modal-dialog');
+  const closeBtn = document.getElementById('modalClose');
+  const titleEl = document.getElementById('modalTitle');
+  const descEl = document.getElementById('modalDesc');
+  const screenshotEl = document.getElementById('modalScreenshot');
+  const rulesEl = document.getElementById('modalRules');
+  const statsEl = document.getElementById('modalStats');
+  const playBtn = document.getElementById('modalPlayBtn');
+
+  // --- Open modal ---
+  function openModal(gameKey) {
+    const game = GAMES[gameKey];
+    if (!game) return;
+
+    currentGame = gameKey;
+    lastFocusedElement = document.activeElement;
+
+    // Populate content
+    titleEl.textContent = game.name;
+    descEl.textContent = game.desc;
+    screenshotEl.src = game.screenshot;
+    screenshotEl.alt = game.screenshotAlt;
+
+    // Rules
+    rulesEl.innerHTML = '<ul>' + game.rules.map(function (r) {
+      return '<li>' + r + '</li>';
+    }).join('') + '</ul>';
+
+    // Stats
+    const stats = game.getStats();
+    const formatted = game.formatStats(stats);
+    if (!formatted) {
+      statsEl.innerHTML = '<div class="modal-stats-empty">Play your first round to see your stats here</div>';
+    } else {
+      statsEl.innerHTML = '<div class="modal-stats-data">' + formatted.map(function (item) {
+        return '<div class="modal-stat-item"><span class="modal-stat-label">' + item.label + '</span><span class="modal-stat-value">' + item.value + '</span></div>';
+      }).join('') + '</div>';
+    }
+
+    // Play link
+    playBtn.href = game.playLink;
+    playBtn.textContent = 'Play ' + game.name;
+
+    // Show modal
+    overlay.classList.add('show');
+    overlay.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+
+    // Focus management
+    dialog.focus();
+    trapFocus(dialog);
+  }
+
+  // --- Close modal ---
+  function closeModal() {
+    overlay.classList.remove('show');
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    currentGame = null;
+
+    // Return focus
+    if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
+      lastFocusedElement.focus();
+    }
+  }
+
+  // --- Focus trap ---
+  function trapFocus(element) {
+    const focusableSelectors = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+    const focusable = element.querySelectorAll(focusableSelectors);
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+
+    function handleKeyDown(e) {
+      if (e.key === 'Escape') {
+        closeModal();
+        return;
+      }
+      if (e.key === 'Tab') {
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
+    }
+
+    element.addEventListener('keydown', handleKeyDown);
+    element._trapHandler = handleKeyDown;
+  }
+
+  // --- Event listeners ---
+  closeBtn.addEventListener('click', closeModal);
+  overlay.addEventListener('click', function (e) {
+    if (e.target === overlay) closeModal();
+  });
+
+  // --- Game card clicks ---
+  document.querySelectorAll('.game-card').forEach(function (card) {
+    const playBtn = card.querySelector('.play-btn');
+    if (!playBtn) return;
+
+    const href = playBtn.getAttribute('href');
+    let gameKey = null;
+    if (href === 'games/wordfire.html') gameKey = 'wordfire';
+    else if (href === 'games/minesweeper.html') gameKey = 'minesweeper';
+    else if (href === 'games/simon.html') gameKey = 'simon';
+    else if (href === 'games/2048.html') gameKey = '2048';
+
+    if (gameKey) {
+      playBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        openModal(gameKey);
+      });
+      // Also make the whole card clickable for opening the modal
+      card.style.cursor = 'pointer';
+      card.addEventListener('click', function (e) {
+        if (e.target !== playBtn) {
+          openModal(gameKey);
+        }
+      });
+    }
+  });
+
+  // Keyboard support for Escape at document level
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && currentGame) {
+      closeModal();
+    }
+  });
+})();
+</script>
+
+</body>
+</html>
