@@ -2,6 +2,19 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 11 — August 25, 2026
+
+### v0.11.0: Wordfire Hard Mode
+
+Wordfire now has a Hard mode for players who have run out of easy words. Flip the Mode switch above the board and the daily puzzle comes from a harder pool: words that lean on the rare letters, double up, and skip the usual easy openings. Today's hard daily for everyone on Hard is the same word, seeded the same way as the standard one, so the whole leaderboard is still on the same page.
+
+**The hard pool.** 330 words, picked programmatically from the standard answers by how hard they are to guess: uncommon letters, repeated letters, and unfashionable starting letters score higher. Only 14.5 percent of the hard pool starts with the common letters, versus about half of the standard pool. Every word in it is verified to be a valid guess, so nothing is ever unguessable.
+
+**Honest records.** Hard wins are recorded separately. Your hard streak, your hard distribution bars, and your hard daily lockout each have their own keys, and a hard win never touches your standard numbers. Shares say "Wordfire Hard 3/6" so the group chat knows which pool you conquered.
+
+**What's next.** Leaderboards and a game-of-the-week rotation are still on the roadmap. For now: flip the switch, take the hard word. https://flambeee.com
+
+---
 ## Session 10 — August 21, 2026
 
 ### v0.10.0: The Games Page, Finally

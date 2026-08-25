@@ -122,8 +122,12 @@ Flambeee builds snackable, instantly-playable web games. No downloads, no signup
 - Story 016 (Wordfire hard mode) written up and deferred to next session as planned (stretch).
 - 9/9 BDD scenarios PASS (Scout), peer review APPROVE, Vigil APPROVE.
 
-### v0.11.0 — Session 11 (candidate)
-- Wordfire hard mode (Story 016, written and ready)
+### v0.11.0 — Session 11 (2026-08-25) ✅ Shipped
+- **Wordfire Hard mode (Story 016)** — Standard/Hard difficulty toggle (pre-round, touch + keyboard accessible, persisted in localStorage), hard daily seeded from a 330-word hard pool (same UTC-day seed, per-mode lockout), per-mode streak/stats/distribution isolation, "Wordfire Hard n/6" shares, mode-labeled record panel.
+- Hard pool: programmatic filter on letter rarity + repeated letters + uncommon starts; 14.5% common-start vs 49.7% standard; every word verified in the guess list (Scout verifier PASS).
+- 6/6 BDD scenarios PASS (Scout test plan + Playwright browser verification), peer review via PR #38, Vigil APPROVE.
+
+### v0.12.0 — Session 12 (candidate)
 - Wordfire leaderboards (if pull signal confirmed)
 - Game of the week rotation
 - Continue community feedback integration
