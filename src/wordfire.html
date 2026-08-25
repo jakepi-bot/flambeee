@@ -140,6 +140,41 @@
   }
   .mode-btn:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
 
+  /* Difficulty selector (Story 016) */
+  .diff-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .diff-label {
+    color: var(--sub);
+    font-size: 0.8rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-right: 4px;
+  }
+  .diff-btn {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    touch-action: manipulation;
+    min-height: 40px;
+  }
+  .diff-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    font-weight: bold;
+  }
+  .diff-btn:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+  .diff-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
   .colorblind-toggle {
     display: flex;
     align-items: center;
@@ -367,8 +402,14 @@
 
 <div class="streak-bar" id="streakBar"></div>
 
+<div class="diff-bar" role="group" aria-label="Difficulty">
+  <span class="diff-label">Mode</span>
+  <button class="diff-btn" id="stdBtn" aria-pressed="true">Standard</button>
+  <button class="diff-btn" id="hardBtn" aria-pressed="false">Hard</button>
+</div>
+
 <div class="dist-panel" id="distPanel">
-  <div class="dist-title">Your record</div>
+  <div class="dist-title" id="distTitle">Your record</div>
   <div class="dist-sub" id="distSub"></div>
   <div id="distBars"></div>
 </div>
@@ -420,10 +461,18 @@
   const COLS = 5;
 
   const STREAK_KEY = 'flambeee-wordfire-streak';
+  const STREAK_KEY_HARD = 'flambeee-wordfire-streak-hard';
   const DAILY_PREFIX = 'flambeee-wordfire-daily-';
+  const DAILY_PREFIX_HARD = 'flambeee-wordfire-daily-hard-';
   const STATS_KEY = 'flambeee-stats-wordfire';
+  const STATS_KEY_HARD = 'flambeee-stats-wordfire-hard';
   const CB_KEY = 'flambeee-wordfire-colorblind';
   const DIST_KEY = 'flambeee-wordfire-distribution';
+  const DIST_KEY_HARD = 'flambeee-wordfire-distribution-hard';
+  const MODE_KEY = 'flambeee-wordfire-mode';
+
+  // --- Difficulty (standard | hard) ---
+  let difficulty = 'standard';
 
   // --- localStorage helpers (private-mode safe) ---
   function lsGet(key) {
@@ -435,48 +484,60 @@
   function lsDel(key) {
     try { localStorage.removeItem(key); } catch (e) { /* private mode */ }
   }
-  function loadStats() {
+  function statsKey(d) { return d === 'hard' ? STATS_KEY_HARD : STATS_KEY; }
+  function distKey(d) { return d === 'hard' ? DIST_KEY_HARD : DIST_KEY; }
+  function streakKey(d) { return d === 'hard' ? STREAK_KEY_HARD : STREAK_KEY; }
+  function dailyPrefix(d) { d = d || difficulty; return d === 'hard' ? DAILY_PREFIX_HARD : DAILY_PREFIX; }
+
+  function loadStats(d) {
+    d = d || difficulty;
     try {
-      const raw = localStorage.getItem(STATS_KEY);
+      const raw = localStorage.getItem(statsKey(d));
       if (raw) return JSON.parse(raw);
     } catch (e) { /* private mode */ }
     return { plays: 0, wins: 0 };
   }
-  function saveStats(stats) {
-    try { localStorage.setItem(STATS_KEY, JSON.stringify(stats)); } catch (e) { /* private mode */ }
+  function saveStats(stats, d) {
+    d = d || difficulty;
+    try { localStorage.setItem(statsKey(d), JSON.stringify(stats)); } catch (e) { /* private mode */ }
   }
 
   // --- Guess distribution (daily games only) ---
-  function loadDist() {
+  function loadDist(d) {
+    d = d || difficulty;
     try {
-      const raw = localStorage.getItem(DIST_KEY);
+      const raw = localStorage.getItem(distKey(d));
       if (raw) {
-        const d = JSON.parse(raw);
-        if (d && Array.isArray(d.guesses) && d.guesses.length === 6 &&
-            typeof d.played === 'number' && typeof d.wins === 'number') {
-          return d;
+        const dd = JSON.parse(raw);
+        if (dd && Array.isArray(dd.guesses) && dd.guesses.length === 6 &&
+            typeof dd.played === 'number' && typeof dd.wins === 'number') {
+          return dd;
         }
       }
     } catch (e) { /* private mode */ }
     return { guesses: [0, 0, 0, 0, 0, 0], played: 0, wins: 0 };
   }
-  function saveDist(d) {
-    try { localStorage.setItem(DIST_KEY, JSON.stringify(d)); } catch (e) { /* private mode */ }
+  function saveDist(dd, d) {
+    d = d || difficulty;
+    try { localStorage.setItem(distKey(d), JSON.stringify(dd)); } catch (e) { /* private mode */ }
   }
-  function recordDist(win, guessCount) {
-    const d = loadDist();
-    d.played += 1;
+  function recordDist(win, guessCount, d) {
+    d = d || difficulty;
+    const dd = loadDist(d);
+    dd.played += 1;
     if (win) {
-      d.wins += 1;
-      if (guessCount >= 1 && guessCount <= 6) d.guesses[guessCount - 1] += 1;
+      dd.wins += 1;
+      if (guessCount >= 1 && guessCount <= 6) dd.guesses[guessCount - 1] += 1;
     }
-    saveDist(d);
+    saveDist(dd, d);
     renderDist();
   }
   function renderDist() {
     const panel = document.getElementById('distPanel');
     if (!panel) return;
     const d = loadDist();
+    const title = document.getElementById('distTitle');
+    if (title) title.textContent = 'Your record' + (difficulty === 'hard' ? ' (Hard)' : '');
     const sub = document.getElementById('distSub');
     const pct = d.played > 0 ? Math.round((d.wins / d.played) * 100) : 0;
     sub.textContent = d.played + ' played · ' + d.wins + ' won · ' + pct + '%';
@@ -498,23 +559,28 @@
   function dayIndex() {
     return Math.floor(Date.now() / 86400000);
   }
+  function answerPool() {
+    return difficulty === 'hard' ? WORDFIRE_HARD_ANSWERS : WORDFIRE_ANSWERS;
+  }
   function dailyAnswer() {
-    return WORDFIRE_ANSWERS[dayIndex() % WORDFIRE_ANSWERS.length];
+    return answerPool()[dayIndex() % answerPool().length];
   }
   function practiceAnswer() {
-    return WORDFIRE_ANSWERS[Math.floor(Math.random() * WORDFIRE_ANSWERS.length)];
+    return answerPool()[Math.floor(Math.random() * answerPool().length)];
   }
 
   // --- Streak ---
-  function loadStreak() {
+  function loadStreak(d) {
+    d = d || difficulty;
     try {
-      const raw = localStorage.getItem(STREAK_KEY);
+      const raw = localStorage.getItem(streakKey(d));
       if (raw) return JSON.parse(raw);
     } catch (e) { /* private mode */ }
     return { current: 0, best: 0, lastSolvedDay: -1 };
   }
-  function saveStreak(s) {
-    try { localStorage.setItem(STREAK_KEY, JSON.stringify(s)); } catch (e) { /* private mode */ }
+  function saveStreak(s, d) {
+    d = d || difficulty;
+    try { localStorage.setItem(streakKey(d), JSON.stringify(s)); } catch (e) { /* private mode */ }
   }
   function applyStreakGap(s) {
     // A missed day breaks the streak: if lastSolvedDay < yesterday, reset current.
@@ -522,21 +588,23 @@
     if (s.lastSolvedDay < today - 1) s.current = 0;
     return s;
   }
-  function recordDailyWin() {
-    const s = applyStreakGap(loadStreak());
+  function recordDailyWin(d) {
+    d = d || difficulty;
+    const s = applyStreakGap(loadStreak(d));
     const today = dayIndex();
     if (s.lastSolvedDay === today) return s; // already counted today, never double-count
     s.current = (s.lastSolvedDay === today - 1) ? s.current + 1 : 1;
     s.lastSolvedDay = today;
     if (s.current > s.best) s.best = s.current;
-    saveStreak(s);
+    saveStreak(s, d);
     return s;
   }
   function renderStreak() {
     const el = document.getElementById('streakBar');
     const s = applyStreakGap(loadStreak());
+    const dLabel = difficulty === 'hard' ? ' Hard' : '';
     if (s.best > 0 || s.current > 0) {
-      el.textContent = '🔥 ' + s.current + '-day streak · best ' + s.best;
+      el.textContent = '🔥 ' + s.current + '-day streak' + dLabel + ' · best ' + s.best;
     } else {
       el.textContent = '';
     }
@@ -562,8 +630,9 @@
     ['enter','z','x','c','v','b','n','m','backspace']
   ];
 
-  function isDailySolved() {
-    const raw = lsGet(DAILY_PREFIX + dayIndex());
+  function isDailySolved(d) {
+    d = d || difficulty;
+    const raw = lsGet(dailyPrefix(d) + dayIndex());
     return raw !== null;
   }
 
@@ -731,7 +800,7 @@
       }
       if (mode === 'daily') {
         const streak = recordDailyWin();
-        lsSet(DAILY_PREFIX + dayIndex(), JSON.stringify({ guesses: guessIndex }));
+        lsSet(dailyPrefix() + dayIndex(), JSON.stringify({ guesses: guessIndex }));
         dailySolved = true;
         if (!recordedThisDay) {
           recordDist(true, guessIndex);
@@ -749,7 +818,7 @@
       showMessage(answer.toUpperCase(), 'err');
       recordStats(false);
       if (mode === 'daily') {
-        lsSet(DAILY_PREFIX + dayIndex(), JSON.stringify({ guesses: 0, lost: true }));
+        lsSet(dailyPrefix() + dayIndex(), JSON.stringify({ guesses: 0, lost: true }));
         if (!recordedThisDay) {
           recordDist(false, 0);
           recordedThisDay = true;
@@ -791,7 +860,6 @@
     if (win) stats.wins += 1;
     saveStats(stats);
   }
-
   // --- Overlay ---
   function showOverlay(result, modeName, streak) {
     const title = document.getElementById('overlayTitle');
@@ -801,8 +869,9 @@
     const practiceBtn = document.getElementById('overlayPracticeBtn');
 
     answerEl.textContent = answer;
+    const dLabel = difficulty === 'hard' ? ' (Hard)' : '';
     if (result === 'win') {
-      title.textContent = 'Splendid!';
+      title.textContent = 'Splendid!' + dLabel;
       if (modeName === 'daily') {
         text.textContent = 'You got it in ' + guessIndex + (guessIndex === 1 ? ' guess. ' : ' guesses. ') +
           'Streak: ' + streak.current + (streak.current > 1 ? ' days' : ' day') + '.';
@@ -816,7 +885,7 @@
         hideShare();
       }
     } else {
-      title.textContent = 'Out of guesses';
+      title.textContent = 'Out of guesses' + dLabel;
       if (modeName === 'daily') {
         text.textContent = 'The word was below. Tomorrow is a new one.';
         mainBtn.textContent = 'Practice';
@@ -858,7 +927,8 @@
       lines.push(line);
     }
     const streakPart = streak && streak.current > 0 ? ' · streak ' + streak.current : '';
-    return 'Wordfire ' + guesses + '/6' + streakPart + '\n' + lines.join('\n');
+    const modeLabel = difficulty === 'hard' ? 'Wordfire Hard ' : 'Wordfire ';
+    return modeLabel + guesses + '/6' + streakPart + '\n' + lines.join('\n');
   }
 
   function copyText(text) {
@@ -924,6 +994,12 @@
     document.getElementById('practiceBtn').classList.toggle('active', mode === 'practice');
   }
 
+  // --- Difficulty control (Story 016) ---
+  function setDifficultyButtons() {
+    document.getElementById('stdBtn').classList.toggle('active', difficulty === 'standard');
+    document.getElementById('hardBtn').classList.toggle('active', difficulty === 'hard');
+  }
+
   function startDaily() {
     mode = 'daily';
     setModeButtons();
@@ -936,6 +1012,7 @@
     buildBoard();
     renderBoard();
     renderStreak();
+    renderDist();
     if (dailySolved) {
       showMessage('Daily puzzle done. Come back tomorrow, or practice now.');
     } else {
@@ -967,6 +1044,24 @@
     else if (/^[a-z]$/.test(k)) onKey(k);
   });
 
+  // --- Difficulty switching ---
+  function applyDifficulty(newDiff) {
+    if (newDiff === difficulty) return;
+    if (!gameOver && (guessIndex > 0 || currentGuess.length > 0)) {
+      // Mid-round: abandon the current round rather than corrupt state.
+      showMessage('Difficulty switched. Starting a fresh round.');
+    }
+    difficulty = newDiff;
+    lsSet(MODE_KEY, difficulty);
+    setDifficultyButtons();
+    renderDist();
+    if (mode === 'daily') {
+      startDaily();
+    } else {
+      startPractice();
+    }
+  }
+
   // --- Colorblind toggle ---
   function initColorblind() {
     const cb = document.getElementById('colorblindToggle');
@@ -984,6 +1079,10 @@
   // --- Init ---
   document.getElementById('dailyBtn').addEventListener('click', startDaily);
   document.getElementById('practiceBtn').addEventListener('click', startPractice);
+  document.getElementById('stdBtn').addEventListener('click', function () { applyDifficulty('standard'); });
+  document.getElementById('hardBtn').addEventListener('click', function () { applyDifficulty('hard'); });
+  difficulty = lsGet(MODE_KEY) === 'hard' ? 'hard' : 'standard';
+  setDifficultyButtons();
   buildKeyboard();
   initColorblind();
   renderDist();
