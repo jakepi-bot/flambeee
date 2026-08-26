@@ -8,7 +8,7 @@ memory_search, do NOT spawn subagents, do NOT use any tool other than read/exec/
 
 ## Step 1 — GitHub (1 exec call)
 
-Run this single command and read its output:
+Run this single command **inline as-is** (do NOT save it to a script file, do NOT modify it) and read its output:
 
 ```
 cd /home/jake/.openclaw/workspace && echo "ISSUES:" && gh issue list --repo jakepi-bot/flambeee --state open --limit 30 && echo "PRS:" && gh pr list --repo jakepi-bot/flambeee --state open --limit 30 && echo "COMMENTS:" && gh api "repos/jakepi-bot/flambeee/issues/comments?since=2026-08-10T00:00:00Z&per_page=50" -q '.[] | "\(.created_at) | \(.user.login) | \(.body[0:100])"' && echo "RELEASES:" && gh release list --repo jakepi-bot/flambeee --limit 3'
