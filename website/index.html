@@ -593,8 +593,8 @@
   <div class="container">
     <span class="wn-badge">What's new</span>
     <div class="wn-text">
-      <h3>v0.10.0: The games page, finally</h3>
-      <p>Click any game card for the rules, a live screenshot, and your personal stats. Games now live on flambeee.com itself.</p>
+      <h3>v0.11.0: Wordfire Hard mode</h3>
+      <p>Flip the Mode switch and the daily word comes from a harder pool: rare letters, repeated letters, fewer easy openings. Hard records stay separate, so your standard streak never takes the hit. Shares say Wordfire Hard n/6.</p>
     </div>
     <div class="wn-links">
       <a href="https://github.com/jakepi-bot/flambeee/releases" target="_blank" rel="noopener">Releases</a>
@@ -715,7 +715,7 @@
   const GAMES = {
     wordfire: {
       name: 'Wordfire',
-      desc: 'One word a day. Guess the 5-letter word and keep your streak alive.',
+      desc: 'One word a day. Guess the 5-letter word, or flip to Hard mode for a tougher pool.',
       screenshot: 'assets/game-wordfire.png',
       screenshotAlt: 'Wordfire word game board with colored letter tiles showing green, yellow, and gray feedback',
       playLink: 'games/wordfire.html',
@@ -726,32 +726,48 @@
         'Gray tile = letter not in the word',
         'One daily word for everyone, resets at UTC midnight',
         'Solve the daily word to grow your streak; miss a day and it resets',
-        'Practice mode gives unlimited random puzzles and never touches your streak'
+        'Practice mode gives unlimited random puzzles and never touches your streak',
+        'Hard mode draws from a tougher word pool and keeps its own streak'      
       ],
       getStats: function () {
-        let stats = { plays: 0, wins: 0, streak: 0 };
-        try {
-          const statsRaw = localStorage.getItem('flambeee-stats-wordfire');
-          if (statsRaw) {
-            const s = JSON.parse(statsRaw);
-            stats.plays = s.plays || 0;
-            stats.wins = s.wins || 0;
-          }
-          const streakRaw = localStorage.getItem('flambeee-wordfire-streak');
-          if (streakRaw) {
-            const st = JSON.parse(streakRaw);
-            stats.streak = st.current || 0;
-          }
-        } catch (e) { /* private mode or corrupt data */ }
-        return stats;
+        function readMode(statsKey, streakKey) {
+          var rec = { plays: 0, wins: 0, streak: 0 };
+          try {
+            var statsRaw = localStorage.getItem(statsKey);
+            if (statsRaw) {
+              var s = JSON.parse(statsRaw);
+              rec.plays = s.plays || 0;
+              rec.wins = s.wins || 0;
+            }
+            var streakRaw = localStorage.getItem(streakKey);
+            if (streakRaw) {
+              var st = JSON.parse(streakRaw);
+              rec.streak = st.current || 0;
+            }
+          } catch (e) { /* private mode or corrupt data */ }
+          return rec;
+        }
+        var std = readMode('flambeee-stats-wordfire', 'flambeee-wordfire-streak');
+        var hard = readMode('flambeee-stats-wordfire-hard', 'flambeee-wordfire-streak-hard');
+        return { standard: std, hard: hard };
       },
       formatStats: function (s) {
-        if (s.plays === 0 && s.wins === 0 && s.streak === 0) return null;
-        return [
-          { label: 'Plays', value: s.plays },
-          { label: 'Wins', value: s.wins },
-          { label: 'Streak', value: s.streak }
-        ];
+        var std = s.standard, hard = s.hard;
+        var stdEmpty = std.plays === 0 && std.wins === 0 && std.streak === 0;
+        var hardEmpty = hard.plays === 0 && hard.wins === 0 && hard.streak === 0;
+        if (stdEmpty && hardEmpty) return null;
+        var items = [];
+        if (!stdEmpty) {
+          items.push({ label: 'Standard plays', value: std.plays });
+          items.push({ label: 'Standard wins', value: std.wins });
+          items.push({ label: 'Standard streak', value: std.streak });
+        }
+        if (!hardEmpty) {
+          items.push({ label: 'Hard plays', value: hard.plays });
+          items.push({ label: 'Hard wins', value: hard.wins });
+          items.push({ label: 'Hard streak', value: hard.streak });
+        }
+        return items;
       }
     },
     minesweeper: {
