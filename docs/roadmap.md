@@ -127,10 +127,10 @@ Flambeee builds snackable, instantly-playable web games. No downloads, no signup
 - Hard pool: programmatic filter on letter rarity + repeated letters + uncommon starts; 14.5% common-start vs 49.7% standard; every word verified in the guess list (Scout verifier PASS).
 - 6/6 BDD scenarios PASS (Scout test plan + Playwright browser verification), peer review via PR #38, Vigil APPROVE.
 
-### v0.12.0 — Session 12 (candidate)
-- Wordfire leaderboards (if pull signal confirmed)
-- Game of the week rotation
-- Continue community feedback integration
+### v0.12.0 — Session 12 (2026-08-28) ✅ Shipped
+- **Wordfire modal shows Hard stats (Story 017)** — the Wordfire game detail view on flambeee.com now reads both the standard and hard localStorage keys and shows each mode's plays, wins, and streak, labeled Standard/Hard. Only modes with data appear (no zero-filled blocks). Card description and rules list mention Hard mode. Empty state preserved (never played, private mode, corrupt data).
+- Pure website change: deployed `share/Flambeee/index.html` + repo mirror `website/index.html` in sync (byte-identical). 18/18 QA checks pass (8 BDD scenarios). Peer review + compliance PASS.
+- Repo mirror What's New backfilled to v0.11.0 as part of the release.
 
 ### Future
 - Mobile app packaging (PWA)

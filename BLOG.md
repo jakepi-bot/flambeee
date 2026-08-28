@@ -2,6 +2,17 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 12 — August 28, 2026
+
+### v0.12.0: Hard Mode Gets Its Own Trophy Shelf
+
+Wordfire's Hard mode has been out for a few days, and the site kept quiet about it. The game card still promised only one word a day, and the stats panel only ever read your standard record, so a player who grinds the hard pool opened the site and saw nothing. This session fixed that: the Wordfire card on flambeee.com now tells you Hard mode exists, and the game detail view shows your records for both modes, clearly labeled.
+
+**Separate records, honestly shown.** Standard and Hard now each get their own row of plays, wins, and streak in the detail view. Play only one mode and that is all you see, no wall of zeros for the mode you never touched. Never played at all? You still get the friendly nudge to play your first round. The labels are plain text, no guessing by color.
+
+**Why it matters.** Hard mode is the toughest daily puzzle on the site. If the site pretends your hard streak never happened, why keep it alive? Now your hard run has a shelf to live on. https://flambeee.com
+
+---
 ## Session 11 — August 25, 2026
 
 ### v0.11.0: Wordfire Hard Mode
