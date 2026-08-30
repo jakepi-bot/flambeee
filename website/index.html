@@ -557,7 +557,7 @@
   <div class="container">
     <div class="section-head">
       <h2>Pick your poison</h2>
-      <p>Four games, one arcade. All free, all in your browser.</p>
+      <p>Five games, one arcade. All free, all in your browser.</p>
     </div>
     <div class="game-grid">
       <div class="game-card">
@@ -584,6 +584,12 @@
         <div class="game-desc">Merge the tiles. Reach 2048 and chase a new high score.</div>
         <a class="play-btn" href="games/2048.html">Play</a>
       </div>
+      <div class="game-card">
+        <img class="game-shot" src="assets/game-cinder.png" alt="Cinder BBS-style text RPG terminal screen with ANSI-colored combat log">
+        <div class="game-name">Cinder</div>
+        <div class="game-desc">A BBS-style text RPG. Fight monsters, bank your gold, level up.</div>
+        <a class="play-btn" href="games/cinder.html">Play</a>
+      </div>
     </div>
   </div>
 </section>
@@ -593,8 +599,8 @@
   <div class="container">
     <span class="wn-badge">What's new</span>
     <div class="wn-text">
-      <h3>v0.12.0: Hard mode gets its own records</h3>
-      <p>The Wordfire card and rules now mention Hard mode, and the game detail view shows your Standard and Hard records side by side, clearly labeled. Play one mode and that is all you see; no zeros for modes you never touched.</p>
+      <h3>v0.13.0: Cinder — a BBS-style text RPG</h3>
+      <p>Cinder is live. A single-player BBS door game in your browser: town hub, wilderness combat, shops, bank, inn, daily fight limits, UTC-midnight reset. Bank your gold before you die. Original monsters, dry humor, no accounts.</p>
     </div>
     <div class="wn-links">
       <a href="https://github.com/jakepi-bot/flambeee/releases" target="_blank" rel="noopener">Releases</a>
@@ -652,7 +658,7 @@
       </p>
       <div class="stat-row">
         <div class="stat">
-          <div class="num">4</div>
+          <div class="num">5</div>
           <div class="label">Games shipped</div>
         </div>
         <div class="stat">
@@ -893,6 +899,46 @@
           { label: 'Best score', value: s.bestScore }
         ];
       }
+    },
+    cinder: {
+      name: 'Cinder',
+      desc: 'A BBS-style text RPG. Fight monsters, bank your gold, level up.',
+      screenshot: 'assets/game-cinder.png',
+      screenshotAlt: 'Cinder BBS-style text RPG terminal screen with ANSI-colored combat log and town menu',
+      playLink: 'games/cinder.html',
+      rules: [
+        'Create your character and explore the town hub',
+        'Fight up to 15 monsters per day in the Wilderness',
+        'Attack or run in turn-based combat',
+        'Win fights to earn XP and gold, level up at the Trainer',
+        'Buy better weapons and armor at the shops',
+        'Bank your gold before you die - carried gold is lost on death, banked gold is safe',
+        'Heal at the Inn or revive for free after death',
+        'Daily reset at UTC midnight restores your fights and Inn heals'
+      ],
+      getStats: function () {
+        let stats = { level: 0, gold: 0, wins: 0, deaths: 0 };
+        try {
+          const raw = localStorage.getItem('flambeee-cinder-save');
+          if (raw) {
+            const s = JSON.parse(raw);
+            stats.level = s.level || 0;
+            stats.gold = s.gold || 0;
+            stats.wins = s.wins || 0;
+            stats.deaths = s.deaths || 0;
+          }
+        } catch (e) { /* private mode or corrupt data */ }
+        return stats;
+      },
+      formatStats: function (s) {
+        if (s.level === 0 && s.gold === 0 && s.wins === 0 && s.deaths === 0) return null;
+        return [
+          { label: 'Level', value: s.level },
+          { label: 'Gold', value: s.gold },
+          { label: 'Wins', value: s.wins },
+          { label: 'Deaths', value: s.deaths }
+        ];
+      }
     }
   };
 
@@ -1016,6 +1062,7 @@
     else if (href === 'games/minesweeper.html') gameKey = 'minesweeper';
     else if (href === 'games/simon.html') gameKey = 'simon';
     else if (href === 'games/2048.html') gameKey = '2048';
+    else if (href === 'games/cinder.html') gameKey = 'cinder';
 
     if (gameKey) {
       playBtn.addEventListener('click', function (e) {
