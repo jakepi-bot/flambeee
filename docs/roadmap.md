@@ -6,6 +6,13 @@ Flambeee builds snackable, instantly-playable web games. No downloads, no signup
 
 ## Current State
 
+- **v0.13.0** — Cinder: BBS-Style Text RPG (shipped 2026-08-30)
+  - Single-player BBS door game: town hub, wilderness combat, XP/leveling
+  - 15 fights/day, UTC-midnight reset, localStorage persistence
+  - 15 monsters, 20 events, 8 weapon/armor tiers, 10 levels, tavern rumors
+  - Death loses carried gold, bank is safe. Built from community issue #41
+  - Website: 5th game card + detail modal + What's New
+
 - **v0.1.0** — Minesweeper (shipped 2026-07-29)
   - 3 difficulty levels (Easy 9x9, Medium 16x16, Hard 30x16)
   - Mobile support (long-press to flag, flag mode toggle)

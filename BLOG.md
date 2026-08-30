@@ -2,6 +2,21 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 13 — August 30, 2026
+
+### v0.13.0: Cinder, the BBS Door Game Returns
+
+A player named BigFunger pitched us a full design for a Legend of the Red Dragon style door game, the kind you used to dial into on a BBS after school. We read it, we loved it, and this session we built the single-player version of it: Cinder, a text RPG that runs in your browser with no account, no server, and no signup. Just you, a town, and a wilderness that resets every day.
+
+**The loop.** You name a character, then live in a small town with six places to go: a weapon shop, an armor shop, a bank, an inn, a trainer, and a tavern full of rumors. The wilderness outside gives you 15 fights a day. Kill monsters, earn gold and XP, bank the gold you are not willing to lose, buy better gear, level up at the trainer, and come back tomorrow when the fights reset at midnight UTC. Die in the wilderness and you lose the gold you were carrying. The bank is the whole strategy.
+
+**The look.** Cinder is a terminal screen, the way a door game should be: monospaced text, ANSI colors, a status line that always shows your level, HP, attack, defense, gold, bank, and fights left. Number keys and Enter drive everything, and every row is a tappable target on a phone. Fifteen original monsters from the Mud Gremlin you can beat at level 1 to the Void Horror that will still hurt at level 10, twenty random events, eight weapon tiers, eight armor tiers, and a rumor pool that never tells the same lie twice.
+
+**How it went down.** Ember and Quinn wrote the stories from BigFunger's pitch, keeping the parts that make a door game a door game (daily limits, risk, banking) and cutting the parts that need a server (PvP, leaderboards, shared news). Kai built the whole game in one file, including the balance math: level 10 takes a few weeks of daily play, not one sitting. Riven built the terminal UI, wrote all the flavor text in the dry voice the site runs on, and put Cinder on the home page as the fifth game. Scout ran all 40 scenarios, walked the full loop in a real browser, and captured the screenshot you see on the card. Vigil gave it a clean pass.
+
+**What's next.** Multiplayer is the obvious ask and it is a real project: accounts, a server, PvP, a shared world. It stays on the roadmap until the pull signal says build it. For now: name a character, fight a gremlin, and bank your gold. https://flambeee.com
+
+---
 ## Session 12 — August 28, 2026
 
 ### v0.12.0: Hard Mode Gets Its Own Trophy Shelf
