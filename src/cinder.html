@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Cinder - A BBS-style Text RPG | Flambeee</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; background: #0a0a0f; color: #33ff33; font-family: ui-monospace, "Courier New", monospace; font-size: 14px; line-height: 1.5; overflow: hidden; }
+    .terminal { display: flex; flex-direction: column; height: 100%; max-width: 900px; margin: 0 auto; padding: 12px; }
+    .title { text-align: center; margin-bottom: 8px; }
+    .title h1 { color: #ffcc00; font-size: 28px; letter-spacing: 4px; text-shadow: 2px 2px #cc0000; }
+    .title p { color: #666; font-size: 12px; margin-top: 4px; }
+    .status-line { background: #1a1a2e; padding: 8px; border: 1px solid #333; margin-bottom: 8px; font-size: 13px; white-space: nowrap; overflow-x: auto; }
+    .main-area { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+    .display { flex: 1; background: #0f0f1a; border: 1px solid #333; padding: 12px; overflow-y: auto; margin-bottom: 8px; }
+    .display pre { white-space: pre-wrap; word-wrap: break-word; }
+    .prompt-line { display: flex; gap: 8px; align-items: center; }
+    .prompt-line label { color: #ffcc00; }
+    .prompt-line input { flex: 1; background: #1a1a2e; border: 1px solid #444; color: #33ff33; padding: 8px; font-family: inherit; font-size: 14px; outline: none; }
+    .prompt-line input:focus { border-color: #ffcc00; }
+    .menu-row { display: block; padding: 10px 12px; margin: 4px 0; background: #1a1a2e; border: 1px solid #333; cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent; }
+    .menu-row:hover { background: #2a2a3e; border-color: #555; }
+    .menu-row:active { background: #3a3a4e; }
+    .menu-row .num { color: #ffcc00; margin-right: 8px; }
+    .log-entry { margin: 2px 0; }
+    .log-entry.damage { color: #ff6666; }
+    .log-entry.healing { color: #66ff66; }
+    .log-entry.gold { color: #ffcc00; }
+    .log-entry.flavor { color: #66ccff; }
+    .log-entry.death { color: #ff3333; font-weight: bold; }
+    .boxed-menu { background: #1a1a2e; border: 2px solid #444; padding: 12px; margin: 8px 0; }
+    .boxed-menu .header { color: #ffcc00; text-align: center; margin-bottom: 8px; }
+    .boxed-menu .divider { border-top: 1px dashed #444; margin: 8px 0; }
+    .centered { text-align: center; }
+    .hidden { display: none; }
+    @media (max-width: 600px) {
+      .title h1 { font-size: 22px; }
+      .status-line { font-size: 12px; }
+      .display { font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="terminal">
+    <div class="title">
+      <h1>CINDER</h1>
+      <p>A BBS-style text RPG v0.13.0</p>
+    </div>
+    <div id="statusLine" class="status-line"></div>
+    <div class="main-area">
+      <div id="display" class="display"></div>
+      <div id="promptLine" class="prompt-line">
+        <label>&gt;</label>
+        <input type="text" id="promptInput" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      </div>
+    </div>
+  </div>
+
+<script>
+(function() {
+  'use strict';
+
+  // === CONSTANTS ===
+  const SAVE_KEY = 'flambeee-cinder-save';
+  const DAY_KEY = 'flambeee-cinder-day';
+  const MAX_FIGHTS_PER_DAY = 15;
+  const MAX_INN_HEALS_PER_DAY = 3;
+  const INN_HEAL_COST = 5;
+  const RUN_SUCCESS_CHANCE = 0.5;
+  const MONSTER_ENCOUNTER_RATE = 0.7;
+
+  // === GAME DATA ===
+  const LEVELS = [
+    { level: 1, xpNeeded: 0, hpGain: 10, atkGain: 2, defGain: 1 },
+    { level: 2, xpNeeded: 50, hpGain: 8, atkGain: 2, defGain: 1 },
+    { level: 3, xpNeeded: 120, hpGain: 8, atkGain: 2, defGain: 1 },
+    { level: 4, xpNeeded: 220, hpGain: 8, atkGain: 2, defGain: 1 },
+    { level: 5, xpNeeded: 350, hpGain: 8, atkGain: 2, defGain: 1 },
+    { level: 6, xpNeeded: 520, hpGain: 8, atkGain: 2, defGain: 1 },
+    { level: 7, xpNeeded: 740, hpGain: 8, atkGain: 2, defGain: 1 },
+    { level: 8, xpNeeded: 1020, hpGain: 8, atkGain: 2, defGain: 1 },
+    { level: 9, xpNeeded: 1360, hpGain: 8, atkGain: 2, defGain: 1 },
+    { level: 10, xpNeeded: 1760, hpGain: 8, atkGain: 2, defGain: 1 }
+  ];
+
+  const WEAPONS = [
+    { id: 0, name: 'Rusty Dagger', atk: 1, price: 0 },
+    { id: 1, name: 'Iron Knife', atk: 3, price: 25 },
+    { id: 2, name: 'Steel Shortsword', atk: 5, price: 60 },
+    { id: 3, name: 'Warrior Axe', atk: 8, price: 120 },
+    { id: 4, name: 'Knight Blade', atk: 12, price: 220 },
+    { id: 5, name: 'Hero Sword', atk: 17, price: 400 },
+    { id: 6, name: 'Dragon Slayer', atk: 24, price: 700 },
+    { id: 7, name: 'Godforge Edge', atk: 35, price: 1200 }
+  ];
+
+  const ARMOR = [
+    { id: 0, name: 'Cloth Tunic', def: 1, price: 0 },
+    { id: 1, name: 'Leather Vest', def: 2, price: 30 },
+    { id: 2, name: 'Studded Leather', def: 4, price: 75 },
+    { id: 3, name: 'Chain Mail', def: 7, price: 150 },
+    { id: 4, name: 'Plate Armor', def: 11, price: 280 },
+    { id: 5, name: 'Templar Plate', def: 16, price: 500 },
+    { id: 6, name: 'Dragon Scale', def: 23, price: 850 },
+    { id: 7, name: 'Godforge Mail', def: 32, price: 1400 }
+  ];
+
+  const MONSTERS = [
+    { id: 1, name: 'Mud Gremlin', hp: 12, atk: 3, def: 1, xp: 8, gold: 5, flavor: 'A small creature made of swamp muck. It smells worse than it fights.' },
+    { id: 2, name: 'Forest Rat', hp: 10, atk: 4, def: 0, xp: 7, gold: 4, flavor: 'Oversized and hungry. Probably has rabies.' },
+    { id: 3, name: 'Goblin Scout', hp: 15, atk: 4, def: 2, xp: 10, gold: 8, flavor: 'Carries a rusty blade and a grudge against civilization.' },
+    { id: 4, name: 'Wild Boar', hp: 20, atk: 5, def: 2, xp: 12, gold: 6, flavor: 'Tusks like daggers. Temperament to match.' },
+    { id: 5, name: 'Swamp Adder', hp: 14, atk: 7, def: 1, xp: 11, gold: 7, flavor: 'Venomous. The good news is you will not feel much.' },
+    { id: 6, name: 'Orc Grunt', hp: 25, atk: 6, def: 3, xp: 15, gold: 12, flavor: 'Not bright, but strong. Also not hygienic.' },
+    { id: 7, name: 'Dark Cultist', hp: 22, atk: 8, def: 2, xp: 16, gold: 15, flavor: 'Wears robes. Mumbles about ancient powers. Classic villain origin story.' },
+    { id: 8, name: 'Stone Golem', hp: 35, atk: 7, def: 6, xp: 20, gold: 10, flavor: 'Made of rock. Literally. Good luck hurting it.' },
+    { id: 9, name: 'Wraith', hp: 28, atk: 10, def: 3, xp: 22, gold: 18, flavor: 'Incorporeal. Still manages to hit you.' },
+    { id: 10, name: 'Ogre Brute', hp: 45, atk: 9, def: 5, xp: 25, gold: 20, flavor: 'Big, dumb, and angry. The unholy trinity.' },
+    { id: 11, name: 'Fire Elemental', hp: 38, atk: 11, def: 4, xp: 28, gold: 22, flavor: 'On fire. Everything else is on fire now too.' },
+    { id: 12, name: 'Frost Giant', hp: 50, atk: 12, def: 6, xp: 32, gold: 28, flavor: 'Cold enough to freeze your blood. Which it will try to do.' },
+    { id: 13, name: 'Shadow Knight', hp: 42, atk: 13, def: 8, xp: 35, gold: 30, flavor: 'Former hero. Fell to darkness. Classic tragedy.' },
+    { id: 14, name: 'Ancient Wyrm', hp: 60, atk: 14, def: 7, xp: 40, gold: 35, flavor: 'Old, wise, and wants to eat you. Standard dragon behavior.' },
+    { id: 15, name: 'Void Horror', hp: 70, atk: 16, def: 9, xp: 50, gold: 45, flavor: 'From beyond reality. Smells like regret and sulfur.' }
+  ];
+
+  const EVENTS = [
+    { id: 1, type: 'treasure', text: 'You find a pouch hidden under a rock.', goldMin: 8, goldMax: 20 },
+    { id: 2, type: 'treasure', text: 'A merchant dropped his coin purse. Finders keepers.', goldMin: 12, goldMax: 25 },
+    { id: 3, type: 'treasure', text: 'You discover a buried chest with old coins.', goldMin: 15, goldMax: 30 },
+    { id: 4, type: 'treasure', text: 'Bandit camp abandoned in a hurry. Their loss.', goldMin: 20, goldMax: 40 },
+    { id: 5, type: 'heal', text: 'You find a healing spring. Drink deeply.', healMin: 5, healMax: 12 },
+    { id: 6, type: 'heal', text: 'A wandering priest blesses you for no clear reason.', healMin: 8, healMax: 15 },
+    { id: 7, type: 'heal', text: 'Strange mushrooms. You eat them. They work.', healMin: 6, healMax: 10 },
+    { id: 8, type: 'strange', text: 'A mysterious rune glows on the path. You feel stronger.', effect: 'perm_atk', value: 1 },
+    { id: 9, type: 'strange', text: 'You step in glowing slime. Your skin hardens.', effect: 'perm_def', value: 1 },
+    { id: 10, type: 'strange', text: 'A fortune teller reads your palm. She seems worried.', effect: 'none' },
+    { id: 11, type: 'strange', text: 'You find a shrine. Leaving an offering feels right.', effect: 'gold_loss', value: 10 },
+    { id: 12, type: 'gag', text: 'Nothing happened. Absolutely nothing. Exciting stuff.' },
+    { id: 13, type: 'gag', text: 'You walk for a bit. Scenery was nice.' },
+    { id: 14, type: 'gag', text: 'A butterfly lands on your nose. Then leaves.' },
+    { id: 15, type: 'gag', text: 'You hear a strange noise. It was just wind.' },
+    { id: 16, type: 'treasure', text: 'Old adventurer skeleton. Taking their gear would be rude. Gold though...', goldMin: 10, goldMax: 22 },
+    { id: 17, type: 'heal', text: 'Resting under a tree restores some energy.', healMin: 4, healMax: 8 },
+    { id: 18, type: 'strange', text: 'A trickster spirit offers a deal. You decline. Smart.', effect: 'none' },
+    { id: 19, type: 'gag', text: 'You trip over nothing. Embarrassing but harmless.' },
+    { id: 20, type: 'treasure', text: 'Monster lair cleared by someone else. Leftover loot.', goldMin: 18, goldMax: 35 }
+  ];
+
+  const RUMORS = [
+    'The barkeep swears the Wilderness gets weirder after midnight. He also swears he once wrestled a bear.',
+    'Someone claims they saw a monster with three heads. Or it was a guy with two friends. Hard to tell when drunk.',
+    'The Trainer used to fight here. Retired after something looked at him wrong.',
+    'Bank vault has never been robbed. Either great security or nothing worth stealing.',
+    'Old legend says the Godforge weapons were made by actual gods. Or really good blacksmiths.',
+    'Heard there is a merchant who sells armor made from dragon scales. Probably a scam.',
+    'The Inn keeper says the same thing every day: "No fighting inside." Ironically.',
+    'Someone left a diary in the Tavern bathroom. Pages 3 through 7 are concerning.',
+    'The Void Horror apparently speaks in riddles. Or it just has bad breath.',
+    'Local kids dare each other to punch a Stone Golem. No one has won yet.',
+    'There is a cult that worships the Ancient Wyrm. They throw very dull parties.',
+    'The Weapon Shop owner once fought an Ogre bare-handed. Lost an eyebrow.',
+    'Rumor says if you deposit exactly 1000 gold, something special happens. Nothing happens.',
+    'A bard wrote a song about the Shadow Knight. It is terrible. The knight agrees.',
+    'The Frost Giant collects hats. Do not ask how you know this.'
+  ];
+
+  // === STATE ===
+  let character = null;
+  let dayState = null;
+  let location = 'town';
+  let inCombat = false;
+  let currentMonster = null;
+  let logBuffer = [];
+
+  // === STORAGE HELPERS ===
+  function loadSave() {
+    try {
+      const data = localStorage.getItem(SAVE_KEY);
+      return data ? JSON.parse(data) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function saveCharacter() {
+    try {
+      localStorage.setItem(SAVE_KEY, JSON.stringify(character));
+    } catch (e) {}
+  }
+
+  function loadDayState() {
+    try {
+      const data = localStorage.getItem(DAY_KEY);
+      return data ? JSON.parse(data) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function saveDayState() {
+    try {
+      localStorage.setItem(DAY_KEY, JSON.stringify(dayState));
+    } catch (e) {}
+  }
+
+  function getDayIndex() {
+    return Math.floor(Date.now() / 86400000);
+  }
+
+  function checkDailyReset() {
+    const today = getDayIndex();
+    if (!dayState || dayState.dayIndex !== today) {
+      dayState = { dayIndex: today, fightsUsed: 0, innHealsUsed: 0 };
+      saveDayState();
+      addLog('New day begins. Fights reset to ' + MAX_FIGHTS_PER_DAY + '.', 'flavor');
+    }
+  }
+
+  // === CHARACTER HELPERS ===
+  function getBaseStats(level) {
+    let hp = 0, atk = 0, def = 0;
+    for (let i = 0; i < level && i < LEVELS.length; i++) {
+      hp += LEVELS[i].hpGain;
+      atk += LEVELS[i].atkGain;
+      def += LEVELS[i].defGain;
+    }
+    return { hp, atk, def };
+  }
+
+  function getTotalAttack() {
+    const base = getBaseStats(character.level).atk;
+    const weapon = WEAPONS.find(w => w.id === character.weapon)?.atk || 0;
+    return base + weapon;
+  }
+
+  function getTotalDefense() {
+    const base = getBaseStats(character.level).def;
+    const armor = ARMOR.find(a => a.id === character.armor)?.def || 0;
+    return base + armor;
+  }
+
+  function getMaxHp() {
+    return getBaseStats(character.level).hp;
+  }
+
+  function getXpForLevel(level) {
+    if (level >= LEVELS.length) return Infinity;
+    return LEVELS[level].xpNeeded;
+  }
+
+  function canLevelUp() {
+    if (character.level >= 10) return false;
+    return character.xp >= getXpForLevel(character.level);
+  }
+
+  function levelUp() {
+    if (character.level >= 10) return false;
+    character.level++;
+    const gains = LEVELS[character.level - 1];
+    character.maxHp = getMaxHp();
+    character.hp = character.maxHp;
+    addLog('Level up! You are now level ' + character.level + '.', 'healing');
+    addLog('HP +' + gains.hpGain + ', ATK +' + gains.atkGain + ', DEF +' + gains.defGain, 'healing');
+    saveCharacter();
+    return true;
+  }
+
+  // === UI FUNCTIONS ===
+  function renderStatus() {
+    if (!character) return;
+    const status = document.getElementById('statusLine');
+    const fightsLeft = MAX_FIGHTS_PER_DAY - dayState.fightsUsed;
+    status.textContent = character.name + ' | Lv.' + character.level + ' | HP ' + character.hp + '/' + character.maxHp + ' | ATK ' + getTotalAttack() + ' | DEF ' + getTotalDefense() + ' | Gold ' + character.gold + ' | Bank ' + character.bank + ' | Fights: ' + fightsLeft;
+  }
+
+  function addLog(text, type) {
+    logBuffer.push({ text, type });
+    if (logBuffer.length > 50) logBuffer.shift();
+    renderLog();
+  }
+
+  function renderLog() {
+    const display = document.getElementById('display');
+    display.innerHTML = logBuffer.map(entry => {
+      const cls = entry.type ? ' class="' + entry.type + '"' : '';
+      return '<div class="log-entry' + cls + '">' + escapeHtml(entry.text) + '</div>';
+    }).join('');
+    display.scrollTop = display.scrollHeight;
+  }
+
+  function clearLog() {
+    logBuffer = [];
+    renderLog();
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function renderTownMenu() {
+    clearLog();
+    const display = document.getElementById('display');
+    display.innerHTML = '<div class="boxed-menu">' +
+      '<div class="header">=== TOWN SQUARE ===</div>' +
+      '<div class="menu-row" onclick="handleMenuClick(1)"><span class="num">1.</span>Wilderness</div>' +
+      '<div class="menu-row" onclick="handleMenuClick(2)"><span class="num">2.</span>Weapon Shop</div>' +
+      '<div class="menu-row" onclick="handleMenuClick(3)"><span class="num">3.</span>Armor Shop</div>' +
+      '<div class="menu-row" onclick="handleMenuClick(4)"><span class="num">4.</span>Bank</div>' +
+      '<div class="menu-row" onclick="handleMenuClick(5)"><span class="num">5.</span>Inn</div>' +
+      '<div class="menu-row" onclick="handleMenuClick(6)"><span class="num">6.</span>Trainer</div>' +
+      '<div class="menu-row" onclick="handleMenuClick(7)"><span class="num">7.</span>Tavern</div>' +
+      '<div class="divider"></div>' +
+      '<div class="centered" style="color:#666;">Press number or tap option</div>' +
+      '</div>';
+    document.getElementById('promptInput').value = '';
+    document.getElementById('promptInput').focus();
+  }
+
+  function renderWeaponShop() {
+    clearLog();
+    const current = WEAPONS.find(w => w.id === character.weapon) || WEAPONS[0];
+    const nextIdx = Math.min(current.id + 1, WEAPONS.length - 1);
+    const next = WEAPONS[nextIdx];
+    const canAfford = character.gold >= next.price;
+    const display = document.getElementById('display');
+    display.innerHTML = '<div class="boxed-menu">' +
+      '<div class="header">=== WEAPON SHOP ===</div>' +
+      '<div>Current: ' + current.name + ' (ATK +' + current.atk + ')</div>' +
+      '<div class="divider"></div>';
+    if (current.id === WEAPONS.length - 1) {
+      display.innerHTML += '<div class="centered">You have the best weapon available.</div>';
+    } else {
+      display.innerHTML += '<div>Next: ' + next.name + ' (ATK +' + next.atk + ')</div>' +
+        '<div>Price: ' + next.price + ' gold</div>' +
+        '<div class="' + (canAfford ? 'gold' : '') + '">You have ' + character.gold + ' gold. ' + (canAfford ? 'Can afford.' : 'Cannot afford.') + '</div>' +
+        '<div class="divider"></div>' +
+        '<div class="menu-row" onclick="handleMenuClick(' + (canAfford ? 1 : 3) + ')"><span class="num">1.</span>Buy ' + next.name + '</div>' +
+        '<div class="menu-row" onclick="handleMenuClick(2)"><span class="num">2.</span>Leave</div>';
+    }
+    display.innerHTML += '</div>';
+    document.getElementById('promptInput').value = '';
+    document.getElementById('promptInput').focus();
+  }
+
+  function renderArmorShop() {
+    clearLog();
+    const current = ARMOR.find(a => a.id === character.armor) || ARMOR[0];
+    const nextIdx = Math.min(current.id + 1, ARMOR.length - 1);
+    const next = ARMOR[nextIdx];
+    const canAfford = character.gold >= next.price;
+    const display = document.getElementById('display');
+    display.innerHTML = '<div class="boxed-menu">' +
+      '<div class="header">=== ARMOR SHOP ===</div>' +
+      '<div>Current: ' + current.name + ' (DEF +' + current.def + ')</div>' +
+      '<div class="divider"></div>';
+    if (current.id === ARMOR.length - 1) {
+      display.innerHTML += '<div class="centered">You have the best armor available.</div>';
+    } else {
+      display.innerHTML += '<div>Next: ' + next.name + ' (DEF +' + next.def + ')</div>' +
+        '<div>Price: ' + next.price + ' gold</div>' +
+        '<div class="' + (canAfford ? 'gold' : '') + '">You have ' + character.gold + ' gold. ' + (canAfford ? 'Can afford.' : 'Cannot afford.') + '</div>' +
+        '<div class="divider"></div>' +
+        '<div class="menu-row" onclick="handleMenuClick(' + (canAfford ? 1 : 3) + ')"><span class="num">1.</span>Buy ' + next.name + '</div>' +
+        '<div class="menu-row" onclick="handleMenuClick(2)"><span class="num">2.</span>Leave</div>';
+    }
+    display.innerHTML += '</div>';
+    document.getElementById('promptInput').value = '';
+    document.getElementById('promptInput').focus();
+  }
+
+  function renderBank() {
+    clearLog();
+    const display = document.getElementById('display');
+    display.innerHTML = '<div class="boxed-menu">' +
+      '<div class="header">=== BANK ===</div>' +
+      '<div>Carried Gold: ' + character.gold + '</div>' +
+      '<div>Bank Balance: ' + character.bank + '</div>' +
+      '<div class="divider"></div>' +
+      '<div class="menu-row" onclick="handleMenuClick(1)"><span class="num">1.</span>Deposit All</div>' +
+      '<div class="menu-row" onclick="handleMenuClick(2)"><span class="num">2.</span>Withdraw All</div>' +
+      '<div class="menu-row" onclick="handleMenuClick(3)"><span class="num">3.</span>Leave</div>' +
+      '</div>';
+    document.getElementById('promptInput').value = '';
+    document.getElementById('promptInput').focus();
+  }
+
+  function renderInn() {
+    clearLog();
+    const needsHealing = character.hp < character.maxHp;
+    const healsLeft = MAX_INN_HEALS_PER_DAY - dayState.innHealsUsed;
+    const canAfford = character.gold >= INN_HEAL_COST;
+    const display = document.getElementById('display');
+    display.innerHTML = '<div class="boxed-menu">' +
+      '<div class="header">=== THE RESTING INN ===</div>' +
+      '<div>Your HP: ' + character.hp + '/' + character.maxHp + '</div>' +
+      '<div>Healing Cost: ' + INN_HEAL_COST + ' gold</div>' +
+      '<div>Heals Available Today: ' + healsLeft + '</div>' +
+      '<div class="divider"></div>';
+    if (character.hp <= 0) {
+      display.innerHTML += '<div class="death">You are dead.</div><div>Reviving...</div>';
+      setTimeout(() => {
+        character.hp = character.maxHp;
+        addLog('You revive at the Inn, full of new determination.', 'healing');
+        saveCharacter();
+        renderInn();
+      }, 1000);
+    } else if (!needsHealing) {
+      display.innerHTML += '<div class="centered">You are already at full health.</div>' +
+        '<div class="divider"></div>' +
+        '<div class="menu-row" onclick="handleMenuClick(1)"><span class="num">1.</span>Leave</div>';
+    } else if (healsLeft <= 0) {
+      display.innerHTML += '<div class="centered">You have used all your heals today.</div>' +
+        '<div class="divider"></div>' +
+        '<div class="menu-row" onclick="handleMenuClick(1)"><span class="num">1.</span>Leave</div>';
+    } else {
+      display.innerHTML += '<div class="' + (canAfford ? 'gold' : '') + '">You have ' + character.gold + ' gold. ' + (canAfford ? 'Can afford.' : 'Cannot afford.') + '</div>' +
+        '<div class="divider"></div>' +
+        '<div class="menu-row" onclick="handleMenuClick(' + (canAfford ? 1 : 3) + ')"><span class="num">1.</span>Rest (' + INN_HEAL_COST + ' gold)</div>' +
+        '<div class="menu-row" onclick="handleMenuClick(2)"><span class="num">2.</span>Leave</div>';
+    }
+    display.innerHTML += '</div>';
+    document.getElementById('promptInput').value = '';
+    document.getElementById('promptInput').focus();
+  }
+
+  function renderTrainer() {
+    clearLog();
+    const display = document.getElementById('display');
+    if (character.level >= 10) {
+      display.innerHTML = '<div class="boxed-menu">' +
+        '<div class="header">=== THE TRAINER ===</div>' +
+        '<div>"You have reached the pinnacle of power."</div>' +
+        '<div class="divider"></div>' +
+        '<div class="menu-row" onclick="handleMenuClick(1)"><span class="num">1.</span>Leave</div>' +
+        '</div>';
+    } else if (canLevelUp()) {
+      display.innerHTML = '<div class="boxed-menu">' +
+        '<div class="header">=== THE TRAINER ===</div>' +
+        '<div class="healing">"I can train you to the next level!"</div>' +
+        '<div class="divider"></div>' +
+        '<div class="menu-row" onclick="handleMenuClick(1)"><span class="num">1.</span>Train to Level ' + (character.level + 1) + '</div>' +
+        '<div class="menu-row" onclick="handleMenuClick(2)"><span class="num">2.</span>Leave</div>' +
+        '</div>';
+    } else {
+      const nextXp = getXpForLevel(character.level);
+      display.innerHTML = '<div class="boxed-menu">' +
+        '<div class="header">=== THE TRAINER ===</div>' +
+        '<div>"Come back when you have more experience."</div>' +
+        '<div>Current XP: ' + character.xp + '</div>' +
+        '<div>XP Needed: ' + nextXp + '</div>' +
+        '<div class="divider"></div>' +
+        '<div class="menu-row" onclick="handleMenuClick(1)"><span class="num">1.</span>Leave</div>' +
+        '</div>';
+    }
+    document.getElementById('promptInput').value = '';
+    document.getElementById('promptInput').focus();
+  }
+
+  function renderTavern() {
+    clearLog();
+    const rumor = RUMORS[Math.floor(Math.random() * RUMORS.length)];
+    const display = document.getElementById('display');
+    display.innerHTML = '<div class="boxed-menu">' +
+      '<div class="header">=== THE RUSTY TANKARD TAVERN ===</div>' +
+      '<div class="flavor">"' + rumor + '"</div>' +
+      '<div class="divider"></div>' +
+      '<div class="menu-row" onclick="handleMenuClick(1)"><span class="num">1.</span>Hear Another Rumor</div>' +
+      '<div class="menu-row" onclick="handleMenuClick(2)"><span class="num">2.</span>Leave</div>' +
+      '</div>';
+    document.getElementById('promptInput').value = '';
+    document.getElementById('promptInput').focus();
+  }
+
+  function enterWilderness() {
+    if (dayState.fightsUsed >= MAX_FIGHTS_PER_DAY) {
+      addLog('You are out of fights for today. Come back tomorrow.', 'damage');
+      setTimeout(() => renderTownMenu(), 1500);
+      return;
+    }
+    clearLog();
+    addLog('You venture into the Wilderness...', 'flavor');
+    setTimeout(encounter, 800);
+  }
+
+  function encounter() {
+    if (Math.random() < MONSTER_ENCOUNTER_RATE) {
+      startCombat();
+    } else {
+      triggerEvent();
+    }
+  }
+
+  function triggerEvent() {
+    const event = EVENTS[Math.floor(Math.random() * EVENTS.length)];
+    addLog(event.text, 'flavor');
+    switch (event.type) {
+      case 'treasure':
+        const gold = Math.floor(Math.random() * (event.goldMax - event.goldMin + 1)) + event.goldMin;
+        character.gold += gold;
+        addLog('Found ' + gold + ' gold!', 'gold');
+        saveCharacter();
+        break;
+      case 'heal':
+        const heal = Math.floor(Math.random() * (event.healMax - event.healMin + 1)) + event.healMin;
+        character.hp = Math.min(character.maxHp, character.hp + heal);
+        addLog('Healed ' + heal + ' HP.', 'healing');
+        saveCharacter();
+        break;
+      case 'strange':
+        if (event.effect === 'perm_atk') {
+          addLog('Your attack increases permanently!', 'healing');
+        } else if (event.effect === 'perm_def') {
+          addLog('Your defense increases permanently!', 'healing');
+        } else if (event.effect === 'gold_loss') {
+          const loss = Math.min(character.gold, event.value);
+          character.gold -= loss;
+          addLog('You lose ' + loss + ' gold as an offering.', 'damage');
+          saveCharacter();
+        }
+        break;
+    }
+    setTimeout(() => wildernessMenu(), 1200);
+  }
+
+  function wildernessMenu() {
+    const display = document.getElementById('display');
+    display.innerHTML = '<div class="boxed-menu">' +
+      '<div class="header">=== WILDERNESS ===</div>' +
+      '<div class="menu-row" onclick="handleMenuClick(1)"><span class="num">1.</span>Continue Exploring</div>' +
+      '<div class="menu-row" onclick="handleMenuClick(2)"><span class="num">2.</span>Return to Town</div>' +
+      '</div>';
+    document.getElementById('promptInput').value = '';
+    document.getElementById('promptInput').focus();
+  }
+
+  function startCombat() {
+    const pool = MONSTERS.filter((m, i) => {
+      const playerStr = character.level + getTotalAttack() + getTotalDefense();
+      const monsterStr = m.hp + m.atk + m.def;
+      return monsterStr <= playerStr * 2.5;
+    });
+    const monster = pool.length > 0 ? pool[Math.floor(Math.random() * pool.length)] : MONSTERS[Math.floor(Math.random() * MONSTERS.length)];
+    currentMonster = { ...monster, maxHp: monster.hp };
+    inCombat = true;
+    clearLog();
+    addLog('A ' + currentMonster.name + ' appears!', 'damage');
+    addLog('"' + currentMonster.flavor + '"', 'flavor');
+    renderCombat();
+  }
+
+  function renderCombat() {
+    const display = document.getElementById('display');
+    display.innerHTML = '<div class="boxed-menu">' +
+      '<div class="header">=== COMBAT ===</div>' +
+      '<div>' + currentMonster.name + ' HP: ' + currentMonster.hp + '/' + currentMonster.maxHp + '</div>' +
+      '<div>Your HP: ' + character.hp + '/' + character.maxHp + '</div>' +
+      '<div class="divider"></div>' +
+      '<div class="menu-row" onclick="handleMenuClick(1)"><span class="num">1.</span>Attack</div>' +
+      '<div class="menu-row" onclick="handleMenuClick(2)"><span class="num">2.</span>Run</div>' +
+      '</div>';
+    document.getElementById('promptInput').value = '';
+    document.getElementById('promptInput').focus();
+  }
+
+  function combatAttack() {
+    const playerAtk = getTotalAttack();
+    const monsterDef = currentMonster.def;
+    const variance = Math.floor(Math.random() * 3);
+    const damage = Math.max(1, playerAtk - monsterDef + variance);
+    currentMonster.hp -= damage;
+    addLog('You hit the ' + currentMonster.name + ' for ' + damage + ' damage.', 'damage');
+    if (currentMonster.hp <= 0) {
+      winCombat();
+      return;
+    }
+    setTimeout(() => monsterTurn(), 400);
+  }
+
+  function combatRun() {
+    if (Math.random() < RUN_SUCCESS_CHANCE) {
+      addLog('You escaped successfully!', 'healing');
+      inCombat = false;
+      currentMonster = null;
+      setTimeout(() => wildernessMenu(), 1000);
+    } else {
+      addLog('Failed to escape!', 'damage');
+      setTimeout(() => monsterTurn(), 400);
+    }
+  }
+
+  function monsterTurn() {
+    if (!inCombat || !currentMonster) return;
+    const monsterAtk = currentMonster.atk;
+    const playerDef = getTotalDefense();
+    const variance = Math.floor(Math.random() * 3);
+    const damage = Math.max(1, monsterAtk - playerDef + variance);
+    character.hp -= damage;
+    addLog('The ' + currentMonster.name + ' hits you for ' + damage + ' damage.', 'damage');
+    if (character.hp <= 0) {
+      loseCombat();
+      return;
+    }
+    renderCombat();
+  }
+
+  function winCombat() {
+    inCombat = false;
+    const xp = currentMonster.xp;
+    const gold = currentMonster.gold;
+    character.xp += xp;
+    character.gold += gold;
+    character.wins++;
+    dayState.fightsUsed++;
+    addLog('Victory! Gained ' + xp + ' XP and ' + gold + ' gold.', 'gold');
+    saveCharacter();
+    saveDayState();
+    currentMonster = null;
+    setTimeout(() => {
+      if (canLevelUp()) {
+        addLog('You feel ready for training!', 'healing');
+      }
+      wildernessMenu();
+    }, 1000);
+  }
+
+  function loseCombat() {
+    inCombat = false;
+    character.hp = 0;
+    character.deaths++;
+    character.gold = 0;
+    dayState.fightsUsed = MAX_FIGHTS_PER_DAY;
+    addLog('You have been defeated...', 'death');
+    addLog('You lose all carried gold. Bank is safe.', 'damage');
+    saveCharacter();
+    saveDayState();
+    currentMonster = null;
+    setTimeout(() => {
+      addLog('Dragged to the Inn...', 'flavor');
+      location = 'inn';
+      renderInn();
+    }, 1500);
+  }
+
+  // === INPUT HANDLING ===
+  function handleMenuClick(num) {
+    handleInput(num.toString());
+  }
+
+  function handleInput(input) {
+    const n = parseInt(input, 10);
+    if (isNaN(n)) return;
+
+    switch (location) {
+      case 'town':
+        handleTownInput(n);
+        break;
+      case 'weaponshop':
+        handleWeaponShopInput(n);
+        break;
+      case 'armorshop':
+        handleArmorShopInput(n);
+        break;
+      case 'bank':
+        handleBankInput(n);
+        break;
+      case 'inn':
+        handleInnInput(n);
+        break;
+      case 'trainer':
+        handleTrainerInput(n);
+        break;
+      case 'tavern':
+        handleTavernInput(n);
+        break;
+      case 'wilderness':
+        handleWildernessInput(n);
+        break;
+      case 'combat':
+        handleCombatInput(n);
+        break;
+    }
+  }
+
+  function handleTownInput(n) {
+    switch (n) {
+      case 1: enterWilderness(); location = 'wilderness'; break;
+      case 2: location = 'weaponshop'; renderWeaponShop(); break;
+      case 3: location = 'armorshop'; renderArmorShop(); break;
+      case 4: location = 'bank'; renderBank(); break;
+      case 5: location = 'inn'; renderInn(); break;
+      case 6: location = 'trainer'; renderTrainer(); break;
+      case 7: location = 'tavern'; renderTavern(); break;
+    }
+  }
+
+  function handleWeaponShopInput(n) {
+    const current = WEAPONS.find(w => w.id === character.weapon) || WEAPONS[0];
+    const nextIdx = Math.min(current.id + 1, WEAPONS.length - 1);
+    const next = WEAPONS[nextIdx];
+    if (n === 1 && current.id < WEAPONS.length - 1 && character.gold >= next.price) {
+      character.gold -= next.price;
+      character.weapon = next.id;
+      addLog('Bought ' + next.name + '!', 'gold');
+      saveCharacter();
+      renderWeaponShop();
+    } else {
+      location = 'town';
+      renderTownMenu();
+    }
+  }
+
+  function handleArmorShopInput(n) {
+    const current = ARMOR.find(a => a.id === character.armor) || ARMOR[0];
+    const nextIdx = Math.min(current.id + 1, ARMOR.length - 1);
+    const next = ARMOR[nextIdx];
+    if (n === 1 && current.id < ARMOR.length - 1 && character.gold >= next.price) {
+      character.gold -= next.price;
+      character.armor = next.id;
+      addLog('Bought ' + next.name + '!', 'gold');
+      saveCharacter();
+      renderArmorShop();
+    } else {
+      location = 'town';
+      renderTownMenu();
+    }
+  }
+
+  function handleBankInput(n) {
+    if (n === 1) {
+      character.bank += character.gold;
+      character.gold = 0;
+      addLog('Deposited all gold.', 'gold');
+      saveCharacter();
+      renderBank();
+    } else if (n === 2 && character.bank > 0) {
+      character.gold += character.bank;
+      character.bank = 0;
+      addLog('Withdrew all gold.', 'gold');
+      saveCharacter();
+      renderBank();
+    } else {
+      location = 'town';
+      renderTownMenu();
+    }
+  }
+
+  function handleInnInput(n) {
+    if (character.hp <= 0) return;
+    const healsLeft = MAX_INN_HEALS_PER_DAY - dayState.innHealsUsed;
+    if (n === 1 && character.hp < character.maxHp && healsLeft > 0 && character.gold >= INN_HEAL_COST) {
+      character.gold -= INN_HEAL_COST;
+      character.hp = character.maxHp;
+      dayState.innHealsUsed++;
+      addLog('Rested and restored to full HP.', 'healing');
+      saveCharacter();
+      saveDayState();
+      renderInn();
+    } else {
+      location = 'town';
+      renderTownMenu();
+    }
+  }
+
+  function handleTrainerInput(n) {
+    if (n === 1 && canLevelUp()) {
+      levelUp();
+      renderTrainer();
+    } else {
+      location = 'town';
+      renderTownMenu();
+    }
+  }
+
+  function handleTavernInput(n) {
+    if (n === 1) {
+      renderTavern();
+    } else {
+      location = 'town';
+      renderTownMenu();
+    }
+  }
+
+  function handleWildernessInput(n) {
+    if (n === 1) {
+      encounter();
+    } else {
+      location = 'town';
+      renderTownMenu();
+    }
+  }
+
+  function handleCombatInput(n) {
+    if (n === 1) {
+      combatAttack();
+    } else if (n === 2) {
+      combatRun();
+    }
+  }
+
+  // === INITIALIZATION ===
+  function init() {
+    character = loadSave();
+    dayState = loadDayState();
+    checkDailyReset();
+
+    if (!character) {
+      showCharacterCreation();
+    } else {
+      location = 'town';
+      renderTownMenu();
+      renderStatus();
+    }
+
+    const input = document.getElementById('promptInput');
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const val = input.value.trim();
+        if (val) {
+          handleInput(val);
+          input.value = '';
+        }
+      }
+    });
+
+    setInterval(renderStatus, 1000);
+  }
+
+  function showCharacterCreation() {
+    clearLog();
+    const display = document.getElementById('display');
+    display.innerHTML = '<div class="boxed-menu">' +
+      '<div class="header">=== CHARACTER CREATION ===</div>' +
+      '<div>Enter your name to begin your adventure.</div>' +
+      '<div class="divider"></div>' +
+      '<div>Type your name and press Enter</div>' +
+      '</div>';
+    document.getElementById('promptInput').value = '';
+    document.getElementById('promptInput').focus();
+
+    const input = document.getElementById('promptInput');
+    const handler = (e) => {
+      if (e.key === 'Enter') {
+        const name = input.value.trim();
+        if (name) {
+          input.removeEventListener('keydown', handler);
+          createCharacter(name);
+        }
+      }
+    };
+    input.addEventListener('keydown', handler);
+  }
+
+  function createCharacter(name) {
+    character = {
+      name: name.substring(0, 20),
+      level: 1,
+      xp: 0,
+      hp: 10,
+      maxHp: 10,
+      attack: 2,
+      defense: 1,
+      gold: 20,
+      bank: 0,
+      weapon: 0,
+      armor: 0,
+      wins: 0,
+      losses: 0,
+      deaths: 0
+    };
+    dayState = { dayIndex: getDayIndex(), fightsUsed: 0, innHealsUsed: 0 };
+    saveCharacter();
+    saveDayState();
+    addLog('Welcome, ' + character.name + '!', 'flavor');
+    addLog('Your adventure begins in the Town Square.', 'flavor');
+    location = 'town';
+    renderTownMenu();
+    renderStatus();
+  }
+
+  // Start the game
+  init();
+})();
+</script>
+</body>
+</html>
