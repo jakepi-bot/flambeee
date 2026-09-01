@@ -53,7 +53,7 @@ Features:
 - 🎉 Win and game-over overlays
 - 📱 Mobile-friendly with swipe support
 
-### Wordfire
+### Wordfire 🔥
 
 One word a day. Guess it, keep your streak alive, or hit Practice mode for unlimited rounds.
 
@@ -65,7 +65,7 @@ Features:
 - Colorblind mode with shape symbols
 - Mobile-friendly
 
-### Cinder
+### Cinder 🐉
 
 A BBS-style text RPG in the spirit of the old dial-up door games. Explore a small town, spend your daily fights in the Wilderness, and bank your gold before something out there takes it from you.
 
