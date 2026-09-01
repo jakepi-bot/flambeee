@@ -1,4 +1,4 @@
-# Story 021 — Cinder: Fix Menu Tap/Click Interaction (Issue #46)
+# Story 021 - Cinder: Fix Menu Tap/Click Interaction (Issue #46)
 
 **Status:** Ready for development (Session 14, v0.13.1)
 **Author:** Quinn (Business Analyst)

@@ -1,4 +1,4 @@
-# Story 022 — Repo Presence: Cinder in README + flambeee.com Links (Issue #45)
+# Story 022 - Repo Presence: Cinder in README + flambeee.com Links (Issue #45)
 
 **Status:** Ready for development (Session 14, v0.13.1)
 **Author:** Quinn (Business Analyst)
