@@ -303,13 +303,13 @@
     const display = document.getElementById('display');
     display.innerHTML = '<div class="boxed-menu">' +
       '<div class="header">=== TOWN SQUARE ===</div>' +
-      '<div class="menu-row" onclick="handleMenuClick(1)"><span class="num">1.</span>Wilderness</div>' +
-      '<div class="menu-row" onclick="handleMenuClick(2)"><span class="num">2.</span>Weapon Shop</div>' +
-      '<div class="menu-row" onclick="handleMenuClick(3)"><span class="num">3.</span>Armor Shop</div>' +
-      '<div class="menu-row" onclick="handleMenuClick(4)"><span class="num">4.</span>Bank</div>' +
-      '<div class="menu-row" onclick="handleMenuClick(5)"><span class="num">5.</span>Inn</div>' +
-      '<div class="menu-row" onclick="handleMenuClick(6)"><span class="num">6.</span>Trainer</div>' +
-      '<div class="menu-row" onclick="handleMenuClick(7)"><span class="num">7.</span>Tavern</div>' +
+      '<div class="menu-row" data-action="1"><span class="num">1.</span>Wilderness</div>' +
+      '<div class="menu-row" data-action="2"><span class="num">2.</span>Weapon Shop</div>' +
+      '<div class="menu-row" data-action="3"><span class="num">3.</span>Armor Shop</div>' +
+      '<div class="menu-row" data-action="4"><span class="num">4.</span>Bank</div>' +
+      '<div class="menu-row" data-action="5"><span class="num">5.</span>Inn</div>' +
+      '<div class="menu-row" data-action="6"><span class="num">6.</span>Trainer</div>' +
+      '<div class="menu-row" data-action="7"><span class="num">7.</span>Tavern</div>' +
       '<div class="divider"></div>' +
       '<div class="centered" style="color:#666;">Press number or tap option</div>' +
       '</div>';
@@ -335,8 +335,8 @@
         '<div>Price: ' + next.price + ' gold</div>' +
         '<div class="' + (canAfford ? 'gold' : '') + '">You have ' + character.gold + ' gold. ' + (canAfford ? 'Can afford.' : 'Cannot afford.') + '</div>' +
         '<div class="divider"></div>' +
-        '<div class="menu-row" onclick="handleMenuClick(' + (canAfford ? 1 : 3) + ')"><span class="num">1.</span>Buy ' + next.name + '</div>' +
-        '<div class="menu-row" onclick="handleMenuClick(2)"><span class="num">2.</span>Leave</div>';
+        '<div class="menu-row" data-action="' + (canAfford ? 1 : 3) + '"><span class="num">1.</span>Buy ' + next.name + '</div>' +
+        '<div class="menu-row" data-action="2"><span class="num">2.</span>Leave</div>';
     }
     display.innerHTML += '</div>';
     document.getElementById('promptInput').value = '';
@@ -361,8 +361,8 @@
         '<div>Price: ' + next.price + ' gold</div>' +
         '<div class="' + (canAfford ? 'gold' : '') + '">You have ' + character.gold + ' gold. ' + (canAfford ? 'Can afford.' : 'Cannot afford.') + '</div>' +
         '<div class="divider"></div>' +
-        '<div class="menu-row" onclick="handleMenuClick(' + (canAfford ? 1 : 3) + ')"><span class="num">1.</span>Buy ' + next.name + '</div>' +
-        '<div class="menu-row" onclick="handleMenuClick(2)"><span class="num">2.</span>Leave</div>';
+        '<div class="menu-row" data-action="' + (canAfford ? 1 : 3) + '"><span class="num">1.</span>Buy ' + next.name + '</div>' +
+        '<div class="menu-row" data-action="2"><span class="num">2.</span>Leave</div>';
     }
     display.innerHTML += '</div>';
     document.getElementById('promptInput').value = '';
@@ -377,9 +377,9 @@
       '<div>Carried Gold: ' + character.gold + '</div>' +
       '<div>Bank Balance: ' + character.bank + '</div>' +
       '<div class="divider"></div>' +
-      '<div class="menu-row" onclick="handleMenuClick(1)"><span class="num">1.</span>Deposit All</div>' +
-      '<div class="menu-row" onclick="handleMenuClick(2)"><span class="num">2.</span>Withdraw All</div>' +
-      '<div class="menu-row" onclick="handleMenuClick(3)"><span class="num">3.</span>Leave</div>' +
+      '<div class="menu-row" data-action="1"><span class="num">1.</span>Deposit All</div>' +
+      '<div class="menu-row" data-action="2"><span class="num">2.</span>Withdraw All</div>' +
+      '<div class="menu-row" data-action="3"><span class="num">3.</span>Leave</div>' +
       '</div>';
     document.getElementById('promptInput').value = '';
     document.getElementById('promptInput').focus();
@@ -408,16 +408,16 @@
     } else if (!needsHealing) {
       display.innerHTML += '<div class="centered">You are already at full health.</div>' +
         '<div class="divider"></div>' +
-        '<div class="menu-row" onclick="handleMenuClick(1)"><span class="num">1.</span>Leave</div>';
+        '<div class="menu-row" data-action="1"><span class="num">1.</span>Leave</div>';
     } else if (healsLeft <= 0) {
       display.innerHTML += '<div class="centered">You have used all your heals today.</div>' +
         '<div class="divider"></div>' +
-        '<div class="menu-row" onclick="handleMenuClick(1)"><span class="num">1.</span>Leave</div>';
+        '<div class="menu-row" data-action="1"><span class="num">1.</span>Leave</div>';
     } else {
       display.innerHTML += '<div class="' + (canAfford ? 'gold' : '') + '">You have ' + character.gold + ' gold. ' + (canAfford ? 'Can afford.' : 'Cannot afford.') + '</div>' +
         '<div class="divider"></div>' +
-        '<div class="menu-row" onclick="handleMenuClick(' + (canAfford ? 1 : 3) + ')"><span class="num">1.</span>Rest (' + INN_HEAL_COST + ' gold)</div>' +
-        '<div class="menu-row" onclick="handleMenuClick(2)"><span class="num">2.</span>Leave</div>';
+        '<div class="menu-row" data-action="' + (canAfford ? 1 : 3) + '"><span class="num">1.</span>Rest (' + INN_HEAL_COST + ' gold)</div>' +
+        '<div class="menu-row" data-action="2"><span class="num">2.</span>Leave</div>';
     }
     display.innerHTML += '</div>';
     document.getElementById('promptInput').value = '';
@@ -432,15 +432,15 @@
         '<div class="header">=== THE TRAINER ===</div>' +
         '<div>"You have reached the pinnacle of power."</div>' +
         '<div class="divider"></div>' +
-        '<div class="menu-row" onclick="handleMenuClick(1)"><span class="num">1.</span>Leave</div>' +
+        '<div class="menu-row" data-action="1"><span class="num">1.</span>Leave</div>' +
         '</div>';
     } else if (canLevelUp()) {
       display.innerHTML = '<div class="boxed-menu">' +
         '<div class="header">=== THE TRAINER ===</div>' +
         '<div class="healing">"I can train you to the next level!"</div>' +
         '<div class="divider"></div>' +
-        '<div class="menu-row" onclick="handleMenuClick(1)"><span class="num">1.</span>Train to Level ' + (character.level + 1) + '</div>' +
-        '<div class="menu-row" onclick="handleMenuClick(2)"><span class="num">2.</span>Leave</div>' +
+        '<div class="menu-row" data-action="1"><span class="num">1.</span>Train to Level ' + (character.level + 1) + '</div>' +
+        '<div class="menu-row" data-action="2"><span class="num">2.</span>Leave</div>' +
         '</div>';
     } else {
       const nextXp = getXpForLevel(character.level);
@@ -450,7 +450,7 @@
         '<div>Current XP: ' + character.xp + '</div>' +
         '<div>XP Needed: ' + nextXp + '</div>' +
         '<div class="divider"></div>' +
-        '<div class="menu-row" onclick="handleMenuClick(1)"><span class="num">1.</span>Leave</div>' +
+        '<div class="menu-row" data-action="1"><span class="num">1.</span>Leave</div>' +
         '</div>';
     }
     document.getElementById('promptInput').value = '';
@@ -465,8 +465,8 @@
       '<div class="header">=== THE RUSTY TANKARD TAVERN ===</div>' +
       '<div class="flavor">"' + rumor + '"</div>' +
       '<div class="divider"></div>' +
-      '<div class="menu-row" onclick="handleMenuClick(1)"><span class="num">1.</span>Hear Another Rumor</div>' +
-      '<div class="menu-row" onclick="handleMenuClick(2)"><span class="num">2.</span>Leave</div>' +
+      '<div class="menu-row" data-action="1"><span class="num">1.</span>Hear Another Rumor</div>' +
+      '<div class="menu-row" data-action="2"><span class="num">2.</span>Leave</div>' +
       '</div>';
     document.getElementById('promptInput').value = '';
     document.getElementById('promptInput').focus();
@@ -527,8 +527,8 @@
     const display = document.getElementById('display');
     display.innerHTML = '<div class="boxed-menu">' +
       '<div class="header">=== WILDERNESS ===</div>' +
-      '<div class="menu-row" onclick="handleMenuClick(1)"><span class="num">1.</span>Continue Exploring</div>' +
-      '<div class="menu-row" onclick="handleMenuClick(2)"><span class="num">2.</span>Return to Town</div>' +
+      '<div class="menu-row" data-action="1"><span class="num">1.</span>Continue Exploring</div>' +
+      '<div class="menu-row" data-action="2"><span class="num">2.</span>Return to Town</div>' +
       '</div>';
     document.getElementById('promptInput').value = '';
     document.getElementById('promptInput').focus();
@@ -543,6 +543,7 @@
     const monster = pool.length > 0 ? pool[Math.floor(Math.random() * pool.length)] : MONSTERS[Math.floor(Math.random() * MONSTERS.length)];
     currentMonster = { ...monster, maxHp: monster.hp };
     inCombat = true;
+    location = 'combat'; // route combat-menu inputs to handleCombatInput (was stuck on 'wilderness')
     clearLog();
     addLog('A ' + currentMonster.name + ' appears!', 'damage');
     addLog('"' + currentMonster.flavor + '"', 'flavor');
@@ -556,14 +557,15 @@
       '<div>' + currentMonster.name + ' HP: ' + currentMonster.hp + '/' + currentMonster.maxHp + '</div>' +
       '<div>Your HP: ' + character.hp + '/' + character.maxHp + '</div>' +
       '<div class="divider"></div>' +
-      '<div class="menu-row" onclick="handleMenuClick(1)"><span class="num">1.</span>Attack</div>' +
-      '<div class="menu-row" onclick="handleMenuClick(2)"><span class="num">2.</span>Run</div>' +
+      '<div class="menu-row" data-action="1"><span class="num">1.</span>Attack</div>' +
+      '<div class="menu-row" data-action="2"><span class="num">2.</span>Run</div>' +
       '</div>';
     document.getElementById('promptInput').value = '';
     document.getElementById('promptInput').focus();
   }
 
   function combatAttack() {
+    if (!inCombat || !currentMonster) return; // same guard as monsterTurn
     const playerAtk = getTotalAttack();
     const monsterDef = currentMonster.def;
     const variance = Math.floor(Math.random() * 3);
@@ -578,11 +580,15 @@
   }
 
   function combatRun() {
+    if (!inCombat || !currentMonster) return; // same guard as monsterTurn
     if (Math.random() < RUN_SUCCESS_CHANCE) {
       addLog('You escaped successfully!', 'healing');
       inCombat = false;
       currentMonster = null;
-      setTimeout(() => wildernessMenu(), 1000);
+      setTimeout(() => {
+        location = 'wilderness';
+        wildernessMenu();
+      }, 1000);
     } else {
       addLog('Failed to escape!', 'damage');
       setTimeout(() => monsterTurn(), 400);
@@ -620,6 +626,7 @@
       if (canLevelUp()) {
         addLog('You feel ready for training!', 'healing');
       }
+      location = 'wilderness';
       wildernessMenu();
     }, 1000);
   }
@@ -821,6 +828,18 @@
           input.value = '';
         }
       }
+    });
+
+    // Menu tap/click: menu rows carry data-action="N". Inline onclick attributes
+    // cannot reach functions inside this IIFE (ReferenceError on every tap, issue #46),
+    // so one delegated listener on the display container maps every rendered row,
+    // including dynamic shop/inn/trainer rows, to handleMenuClick.
+    const display = document.getElementById('display');
+    display.addEventListener('click', (e) => {
+      const row = e.target.closest('.menu-row');
+      if (!row) return;
+      const action = row.getAttribute('data-action');
+      if (action) handleMenuClick(parseInt(action, 10));
     });
 
     setInterval(renderStatus, 1000);
