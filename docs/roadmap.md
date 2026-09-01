@@ -6,6 +6,13 @@ Flambeee builds snackable, instantly-playable web games. No downloads, no signup
 
 ## Current State
 
+- **v0.13.1** — Cinder menu + combat patch (shipped 2026-09-01)
+  - Player-reported fix session: issues #45 + #46 (BigFunger, ~90 min post-launch)
+  - Menu tap/click fix: event delegation replaces 28 unreachable inline handlers; mobile play restored
+  - Combat routing fix: fight inputs reached the wilderness handler; combat was unwinnable by any input
+  - QA bar raised: real browser taps on every menu row are now mandatory test proof
+  - README lists all 5 games with flambeee.com links; repo About/description + homepage set
+
 - **v0.13.0** — Cinder: BBS-Style Text RPG (shipped 2026-08-30)
   - Single-player BBS door game: town hub, wilderness combat, XP/leveling
   - 15 fights/day, UTC-midnight reset, localStorage persistence
@@ -72,6 +79,12 @@ Flambeee builds snackable, instantly-playable web games. No downloads, no signup
   - Market note: word games growing ~31.7% (2023-2026, Wordle pipeline); daily-puzzle habits dominate browser gaming; distribution is the standard companion to shares
 
 ## Roadmap
+
+### v0.13.1 — Session 14 (2026-09-01) ✅ Shipped
+- **Cinder menu + combat patch (Story 021, issues #45/#46)** — both player-reported by BigFunger within 90 minutes of the v0.13.0 launch. Menu rows rendered with inline handlers calling a function sealed inside the game's IIFE, so every tap threw a silent ReferenceError; mobile players had no keyboard fallback and could not play at all. Fixed with event delegation: 28 rows now carry data-action attributes and one listener on the display container. Second fix found under it: fight inputs were routed to the wilderness handler, making combat unwinnable by any input method; now Attack attacks, Run runs.
+- **Repo presence (Story 022)** — README now lists all 5 games (Wordfire section added: it had never existed) with flambeee.com Play links, zero stale htmlpreview URLs; repo About/description + homepage set via gh repo edit.
+- **QA bar raised** — QA drove v0.13.0 by keyboard only, so broken taps shipped invisible. Test plans now require real page.click()/page.tap() on every menu row on desktop and mobile viewports as proof.
+- 90+ browser tap/click checks, 16/16 BDD scenarios PASS (Scout), peer reviews APPROVE both ways, QA test-plan PR #50.
 
 ### v0.2.0 — Session 2 (2026-07-31) ✅ Shipped
 - **Simon memory game** — classic sequence-repeat with speed scaling, colorblind cues, keyboard support

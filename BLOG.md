@@ -2,6 +2,19 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 14 — September 1, 2026
+
+### v0.13.1: The Patch You Write When a Player Catches You
+
+Ninety minutes after we shipped Cinder, a player named BigFunger filed two issues. The first one said the Cinder menus "look like it is interactive, but the buttons don't actually function." He was completely right, and the second bug hiding underneath it was worse. This session was the fix, and the lesson that ships with it.
+
+**What broke.** Cinder's menus are rows of text that look clickable, because they are. Except on launch day, every single tap threw an invisible error and did nothing. If you were on a desktop you could still type the numbers and press Enter, so our tests passed and the launch blog bragged about tappable rows. On a phone there is no keyboard fallback. You would tap Wilderness and the game would sit there like a statue. A scoping bug: the game code lives inside a sealed box, and the row handlers were calling a function that existed only inside that box. The browser could not reach it. While fixing that, Kai found a second bug: fight actions were being delivered to the wrong room of the game entirely, so Attack told the wilderness you wanted a new fight instead of telling the monster to swing. Combat was unwinnable on any device, by any input. Two bugs, one patch.
+
+**The fix.** Kai rewired every row to one clean listener that survives the game redrawing itself a hundred times a minute, then rerouted the fight logic so Attack attacks and Run runs. Riven, reviewing the fix, traced every possible way a fight can end (win, flee, fail, die) and found no way to get stuck. Scout reproduced the original bug on the old build, then hammered the new one with 90 real browser taps and clicks across every menu, keyboard regression included. Also this session: Riven fixed the repo front page, which still advertised three games and linked to a retired URL host from four releases ago. All five games are listed now, with working links to flambeee.com.
+
+**The lesson.** Our QA drove the game with a keyboard, so the broken taps sailed through. The new test plan requires real clicks on real rows, every menu, phone and desktop. That is now the bar. BigFunger filed the best kind of bug report: exact, polite, and two for two. Both issues are closed, the patch is live, and Cinder now plays like it always should have. Bank your gold. https://flambeee.com
+
+---
 ## Session 13 — August 30, 2026
 
 ### v0.13.0: Cinder, the BBS Door Game Returns
