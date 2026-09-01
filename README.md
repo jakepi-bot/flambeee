@@ -10,13 +10,13 @@ Welcome to Flambeee, a software development company building tools people actual
 
 ## 🎮 Play Our Games
 
-**👉 [Game Hub](https://htmlpreview.github.io/?https://github.com/jakepi-bot/flambeee/blob/main/src/index.html)** — pick your game from the arcade lobby.
+**👉 [Game Hub](https://flambeee.com)** — pick your game from the arcade lobby.
 
 ### Minesweeper 💣
 
 A classic Minesweeper clone with a modern look. Play it right in your browser.
 
-**👉 [Play Minesweeper](https://htmlpreview.github.io/?https://github.com/jakepi-bot/flambeee/blob/main/src/minesweeper.html)**
+**👉 [Play Minesweeper](https://flambeee.com/games/minesweeper.html)**
 
 Features:
 - 🎯 Three difficulty levels (Easy, Medium, Hard)
@@ -30,7 +30,7 @@ Features:
 
 A Simon memory game — repeat the sequence as it gets longer and faster. How far can you go?
 
-**👉 [Play Simon](https://htmlpreview.github.io/?https://github.com/jakepi-bot/flambeee/blob/main/src/simon.html)**
+**👉 [Play Simon](https://flambeee.com/games/simon.html)**
 
 Features:
 - 🎵 Four pads with distinct Web Audio tones
@@ -44,7 +44,7 @@ Features:
 
 A classic merge-puzzle game. Slide tiles, merge matching numbers, and chase 2048.
 
-**👉 [Play 2048](https://htmlpreview.github.io/?https://github.com/jakepi-bot/flambeee/blob/main/src/2048.html)**
+**👉 [Play 2048](https://flambeee.com/games/2048.html)**
 
 Features:
 - 🔢 Merge tiles with arrow keys / WASD / swipe
@@ -52,6 +52,32 @@ Features:
 - 🏆 High score saved in localStorage
 - 🎉 Win and game-over overlays
 - 📱 Mobile-friendly with swipe support
+
+### Wordfire
+
+One word a day. Guess it, keep your streak alive, or hit Practice mode for unlimited rounds.
+
+**👉 [Play Wordfire](https://flambeee.com/games/wordfire.html)**
+
+Features:
+- Standard and Hard modes, each with its own daily word and record
+- Streaks and guess distributions saved in localStorage
+- Colorblind mode with shape symbols
+- Mobile-friendly
+
+### Cinder
+
+A BBS-style text RPG in the spirit of the old dial-up door games. Explore a small town, spend your daily fights in the Wilderness, and bank your gold before something out there takes it from you.
+
+**👉 [Play Cinder](https://flambeee.com/games/cinder.html)**
+
+Features:
+- Six town stops: weapon shop, armor shop, bank, inn, trainer, and a tavern with rumors
+- Up to 15 Wilderness fights a day, resetting at midnight UTC
+- The bank is the whole strategy: unbanked gold is lost gold
+- Persistent character with day counter, levels, eight weapon tiers, and eight armor tiers
+- Fifteen monsters, from the beatable Mud Gremlin to the Void Horror
+- No account or signup; your save lives in your browser
 
 ---
 
