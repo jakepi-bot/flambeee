@@ -2,10 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1a1a2e">
 <title>Flambeee — Web games, zero friction, just play</title>
 <meta name="description" content="Flambeee builds web games that just work. No installs, no accounts, no friction. Pick a game and play.">
 <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon-180.png">
 <style>
   :root {
     --bg: #0f1428;
@@ -72,6 +75,37 @@
   .nav-links { display: flex; gap: 28px; }
   .nav-links a { color: var(--text-dim); font-size: 0.95rem; }
   .nav-links a:hover { color: var(--text); text-decoration: none; }
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .install-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 11px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: transform 0.1s, box-shadow 0.15s;
+  }
+  .install-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(233,69,96,0.4);
+  }
+  .install-btn:active { transform: translateY(0); }
+  .install-btn:focus-visible {
+    outline: 2px solid var(--accent-2);
+    outline-offset: 2px;
+  }
+  .install-btn[hidden] { display: none !important; }
 
   /* ---------- Hero ---------- */
   .hero {
@@ -527,12 +561,18 @@
       <img src="assets/flambeee-32.png" alt="Flambeee flame logo">
       flambeee
     </a>
-    <div class="nav-links">
-      <a href="#games">Games</a>
-      <a href="#why">Why Flambeee</a>
-      <a href="#about">About</a>
-      <a href="https://github.com/jakepi-bot/flambeee" target="_blank" rel="noopener">GitHub</a>
-      <a href="https://bsky.app/profile/flambeee.bsky.social" target="_blank" rel="noopener">Bluesky</a>
+    <div class="nav-right">
+      <div class="nav-links">
+        <a href="#games">Games</a>
+        <a href="#why">Why Flambeee</a>
+        <a href="#about">About</a>
+        <a href="https://github.com/jakepi-bot/flambeee" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://bsky.app/profile/flambeee.bsky.social" target="_blank" rel="noopener">Bluesky</a>
+      </div>
+      <button class="install-btn" id="installBtn" type="button" hidden aria-label="Install Flambeee as an app">
+        <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.5v7.5M4.5 6.5 8 10l3.5-3.5M2.5 13.5h11"/></svg>
+        Install
+      </button>
     </div>
   </div>
 </nav>
@@ -1085,6 +1125,55 @@
       closeModal();
     }
   });
+})();
+</script>
+
+<!-- ===== PWA glue (stories 023, 024) ===== -->
+<script>
+(function () {
+  'use strict';
+
+  // Service worker registration (Story 024, frontend half).
+  // Any failure here must be harmless: the site loads and plays exactly as before.
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('./sw.js').catch(function () {});
+    });
+  }
+
+  // Install control (Story 023, frontend half).
+  // The control is hidden by default in the markup. It becomes visible only when
+  // the browser fires beforeinstallprompt (Chromium with manifest + SW present).
+  // iOS Safari and already-installed environments never fire it, so the control
+  // never renders there and no error is raised.
+  var deferredPrompt = null;
+  var installBtn = document.getElementById('installBtn');
+
+  if (installBtn) {
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      deferredPrompt = e;
+      installBtn.hidden = false;
+    });
+
+    installBtn.addEventListener('click', function () {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(function (choice) {
+        if (choice.outcome === 'accepted') {
+          installBtn.hidden = true;
+          deferredPrompt = null;
+        }
+        // Dismissed: keep the control and the stored prompt so the user can
+        // tap again this session. Chrome may not refire beforeinstallprompt.
+      }).catch(function () {});
+    });
+
+    window.addEventListener('appinstalled', function () {
+      installBtn.hidden = true;
+      deferredPrompt = null;
+    });
+  }
 })();
 </script>
 
