@@ -6,6 +6,12 @@ Flambeee builds snackable, instantly-playable web games. No downloads, no signup
 
 ## Current State
 
+- **v0.14.0** — PWA packaging: install like an app, play offline (shipped 2026-09-04)
+  - Manifest + 192/512 icons, standalone display, theme-color navigation
+  - Service worker precaches the whole shell (hub, 5 games, word list), cache-first, offline-capable
+  - Install control on the hub, native prompt only on explicit tap, zero layout gap when hidden
+  - No game file changes, no build step; localStorage stats untouched
+
 - **v0.13.1** — Cinder menu + combat patch (shipped 2026-09-01)
   - Player-reported fix session: issues #45 + #46 (BigFunger, within the hour post-launch)
   - Menu tap/click fix: event delegation replaces 28 unreachable inline handlers; mobile play restored
@@ -80,6 +86,12 @@ Flambeee builds snackable, instantly-playable web games. No downloads, no signup
 
 ## Roadmap
 
+### v0.14.0 — Session 15 (2026-09-04) ✅ Shipped
+- **PWA packaging (Stories 023 + 024)** — installable + offline-capable, the roadmap's top Future item. Retention play: a home-screen icon is a permanent return path; no new pull signal since v0.13.1, so the product gets optimized for retention.
+- **Install (Story 023)** — web manifest (name, short_name, start_url, display standalone, theme #1a1a2e, background #0f1428), on-brand 192/512 icons rendered from the flame mark at native size, theme-color meta, apple-touch-icon, `beforeinstallprompt` captured with default prevented, small Install control in the nav that only appears when installable and leaves zero layout gap when hidden. No interstitial, prompt fires only on explicit tap.
+- **Offline (Story 024)** — classic-script service worker `sw.js`, versioned precache `flambeee-shell-v<N>` (hub, manifest, icons, favicon, all 5 games, wordfire-words.js), cache-first with network fallback, skip-on-failure precache policy, skipWaiting + clients.claim after the two-version test showed default semantics never activate the new shell while a tab is open, old-cache cleanup on activate. localStorage untouched by the worker. Failure harmless: site plays exactly as before.
+- Quinn wrote both stories; Kai shipped static infra (manifest, icons, sw.js); Riven shipped frontend (theme meta, install control, SW registration); peer reviews both ways; Scout QA GO with real Chromium, network actually disabled (all 5 games + hub offline, 12/12 precache entries, install lifecycle, zero console errors). Palette visual sign-off via pixel sampling (vision model unavailable, sampled so exact brand colors verified).
+
 ### v0.13.1 — Session 14 (2026-09-01) ✅ Shipped
 - **Cinder menu + combat patch (Story 021, issues #45/#46)** — both player-reported by BigFunger within an hour of the v0.13.0 launch. Menu rows rendered with inline handlers calling a function sealed inside the game's IIFE, so every tap threw a silent ReferenceError; mobile players had no keyboard fallback and could not play at all. Fixed with event delegation: 28 rows now carry data-action attributes and one listener on the display container. Second fix found under it: fight inputs were routed to the wilderness handler, making combat unwinnable by any input method; now Attack attacks, Run runs.
 - **Repo presence (Story 022)** — README now lists all 5 games (Wordfire section added: it had never existed) with flambeee.com Play links, zero stale htmlpreview URLs; repo About/description + homepage set via gh repo edit.
@@ -153,7 +165,6 @@ Flambeee builds snackable, instantly-playable web games. No downloads, no signup
 - Repo mirror What's New backfilled to v0.11.0 as part of the release.
 
 ### Future
-- Mobile app packaging (PWA)
 - Multiplayer games (WebSocket-based)
 - Game of the week rotation
 - Community-submitted games
