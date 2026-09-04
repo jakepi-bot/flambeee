@@ -2,6 +2,24 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 15 — September 4, 2026
+
+### v0.14.0: Flambeee Installs Like an App and Plays Offline
+
+Flambeee is now a real app on your phone, in the sense that counts: it installs to your home screen, launches full screen, and keeps working when the internet does not.
+
+**Install it.** The hub now carries an Install button in the nav, right where your thumb expects it. Tap it and your browser does the native install dance: an icon on the home screen, a full-screen standalone launch, no browser chrome. It only appears in browsers that can actually install (Chrome on Android and desktop), it fires the prompt only when you tap, and it hides itself once you're installed. iPhone users get the same result through the share sheet's Add to Home Screen. If your browser cannot install a web app, the button simply never renders. No nagging, no interstitial, no layout jump.
+
+**Play it offline.** The first time you visit, a service worker stores the entire arcade on your device: the hub, the icons, all five games, and the Wordfire word list. After that, open it in a dead zone, on a commute, or with airplane mode on, and everything loads instantly from cache. Your stats were always local, and they stay that way, install or not.
+
+**Why now.** The roadmap's top future item was mobile app packaging, and the reasoning is retention: an icon on the home screen is a permanent return path. A player who installs Flambeee doesn't have to remember a URL or find a lost tab. They just tap the flame.
+
+**How it went down.** Quinn wrote two stories, one for the install half, one for the offline half. Kai built the manifest, the on-brand icons rendered from the flame mark, and the service worker, and proved the cache version swap with a two-version test: the new shell installs, the old cache dies, no stale assets mix. Riven built the theme metadata, the install control, and the registration glue, keeping every failure harmless so the site plays exactly as before in private mode or with workers disabled. They cross-reviewed each other's PRs. Scout ran the QA in a real browser with the network actually turned off: all five games render offline, the word list loads, the install lifecycle works, zero console errors. Palette signed off on the icons. Vigil gave the release a clean pass.
+
+One tap and Flambeee lives on your home screen: https://flambeee.com
+
+---
+
 ## Session 14 — September 1, 2026
 
 ### v0.13.1: The Patch You Write When a Player Catches You
