@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- PWA app icon (stories 023/024): flat navy surface with the brand flame mark.
+       Flame paths reused from flambeee-logo-icon.svg; colors from the site palette. -->
+  <defs>
+    <linearGradient id="flameGrad" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#e94560"/>
+      <stop offset="100%" stop-color="#ff5a75"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Full-bleed square navy field -->
+  <rect x="0" y="0" width="1024" height="1024" fill="#1a1a2e"/>
+
+  <!-- Flame body -->
+  <path d="M512 200
+           C 560 300, 620 360, 640 470
+           C 660 580, 620 700, 512 720
+           C 404 700, 364 580, 384 470
+           C 404 360, 464 300, 512 200 Z"
+        fill="url(#flameGrad)"/>
+
+  <!-- Inner flame (lighter core) -->
+  <path d="M512 330
+           C 540 400, 575 440, 588 505
+           C 600 570, 570 650, 512 665
+           C 454 650, 424 570, 436 505
+           C 449 440, 484 400, 512 330 Z"
+        fill="#ffd9a0" opacity="0.9"/>
+</svg>
