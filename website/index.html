@@ -198,6 +198,34 @@
   }
 
   /* ---------- Game grid ---------- */
+  .gotw {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    background: linear-gradient(135deg, var(--surface), var(--surface-2));
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 22px 26px;
+    margin-bottom: 28px;
+    box-shadow: var(--shadow);
+  }
+  .gotw-body { flex: 1; min-width: 0; }
+  .gotw-eyebrow {
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent-2);
+    margin-bottom: 6px;
+  }
+  .gotw-name { font-size: 1.5rem; font-weight: 800; margin-bottom: 4px; }
+  .gotw-desc { color: var(--text-dim); font-size: 0.95rem; line-height: 1.5; }
+  .gotw-play { flex-shrink: 0; }
+  @media (max-width: 720px) {
+    .gotw { flex-direction: column; align-items: stretch; gap: 14px; padding: 18px 16px; }
+    .gotw-play .btn-primary { display: block; width: 100%; text-align: center; }
+  }
   .game-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -599,6 +627,7 @@
       <h2>Pick your poison</h2>
       <p>Five games, one arcade. All free, all in your browser.</p>
     </div>
+    <div class="gotw" id="gotw" hidden></div>
     <div class="game-grid">
       <div class="game-card">
         <img class="game-shot" src="assets/game-wordfire.png" alt="Wordfire word game board with colored letter tiles">
@@ -981,6 +1010,40 @@
       }
     }
   };
+
+  // --- Game of the Week (Story 026) ---
+  // Deterministic weekly rotation: the ISO week number (1-52/53) of the current
+  // UTC date indexes into a fixed document-order list of the five games, so
+  // every visitor that week sees the same featured game and all five rotate
+  // over any five consecutive weeks. Resolves client-side; no server, no state.
+  var GAME_ORDER = ['cinder', 'wordfire', 'minesweeper', 'simon', '2048'];
+  function isoWeekNumber(d) {
+    var date = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+    var dayNum = (date.getUTCDay() + 6) % 7; // Monday = 0
+    date.setUTCDate(date.getUTCDate() - dayNum + 3); // Thursday of the ISO week
+    var firstThursday = new Date(Date.UTC(date.getUTCFullYear(), 0, 4));
+    firstThursday.setUTCDate(firstThursday.getUTCDate() - (((firstThursday.getUTCDay() + 6) % 7)) + 3);
+    return 1 + Math.round((date - firstThursday) / (7 * 24 * 3600 * 1000));
+  }
+  function renderGameOfTheWeek() {
+    var el = document.getElementById('gotw');
+    if (!el) return;
+    var week = isoWeekNumber(new Date());
+    var key = GAME_ORDER[(week - 1) % GAME_ORDER.length];
+    var game = GAMES[key];
+    // Graceful degrade: missing/invalid featured game hides the card, never
+    // breaks the page, never throws.
+    if (!game || !game.playLink || !game.name) { el.hidden = true; return; }
+    el.innerHTML =
+      '<div class="gotw-body">' +
+        '<div class="gotw-eyebrow">Game of the Week</div>' +
+        '<div class="gotw-name">' + game.name + '</div>' +
+        '<div class="gotw-desc">' + game.desc + '</div>' +
+      '</div>' +
+      '<div class="gotw-play"><a class="btn btn-primary" href="' + game.playLink + '">Play ' + game.name + '</a></div>';
+    el.hidden = false;
+  }
+  renderGameOfTheWeek();
 
   // --- Modal state ---
   let currentGame = null;
