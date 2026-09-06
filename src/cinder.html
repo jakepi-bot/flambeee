@@ -69,6 +69,7 @@
   const INN_HEAL_COST = 5;
   const RUN_SUCCESS_CHANCE = 0.5;
   const MONSTER_ENCOUNTER_RATE = 0.7;
+  const BOSS_TIER = 13; // monsters with id >= 13 count as bosses (Shadow Knight, Ancient Wyrm, Void Horror)
 
   // === GAME DATA ===
   const LEVELS = [
@@ -165,6 +166,167 @@
     'The Frost Giant collects hats. Do not ask how you know this.'
   ];
 
+  // === DAILY QUEST SYSTEM (Story 025) ===
+  // One deterministic quest per UTC day, seeded from the same day index that
+  // anchors the daily fights/Inn reset. Every player sees the same quest that
+  // UTC day. Quest state lives on the flambeee-cinder-day day-state object
+  // (dayState.quest) so it resets for free at UTC along with fights/Inn heals.
+  //
+  // UI call-outs for Riven (Story 025 frontend):
+  //  - getActiveQuest() -> the day's quest template (label, target, rewardXp/
+  //    rewardGold, kind). Same for all players that UTC day.
+  //  - getQuestState()  -> live dayState.quest: { progress, completed, rewarded }.
+  //    Reads are always safe; ensureQuestState() backfills a missing object.
+  //  - A town menu row 8 "Today's quest" and renderQuest() are provided as a
+  //    working provisional UI following the v0.13.1 data-action delegation
+  //    pattern; Riven owns final presentation and the mobile tap polish.
+  //
+  // Quest templates. `kind` is the objective type the rotation guard keys on:
+  // no player sees the same kind of quest two UTC days in a row. `target` is the
+  // progress needed to complete; rewards are flat bonuses paid exactly once.
+  // Balance: roughly one to two fights' worth of XP/gold, meaningful without
+  // trivializing progression. The boss quest pays more because it is harder
+  // (requires defeating a high-tier monster).
+  const QUEST_TYPES = [
+    { id: 'slay3',   kind: 'slay', target: 3,   rewardXp: 70,  rewardGold: 35, label: 'Defeat 3 monsters', objective: 'Defeat 3 monsters' },
+    { id: 'slay5',   kind: 'slay', target: 5,   rewardXp: 90,  rewardGold: 40, label: 'Defeat 5 monsters', objective: 'Defeat 5 monsters' },
+    { id: 'gold100', kind: 'gold', target: 100, rewardXp: 50,  rewardGold: 25, label: 'Earn 100 gold', objective: 'Earn 100 gold from combat' },
+    { id: 'gold150', kind: 'gold', target: 150, rewardXp: 60,  rewardGold: 25, label: 'Earn 150 gold', objective: 'Earn 150 gold from combat' },
+    { id: 'boss1',   kind: 'boss', target: 1,   rewardXp: 120, rewardGold: 60, label: 'Defeat a boss', objective: 'Defeat a boss (Shadow Knight or stronger)' }
+  ];
+
+  const KIND_CYCLE = ['slay', 'gold', 'boss'];
+
+  // Kind rotation. A fully closed-form O(1) function of the day index that
+  // provably never assigns the same kind on consecutive days: within a 3-day
+  // block the index advances by exactly 1 (never two equal in a row), and at
+  // block boundaries floor(block) advances by 1 while the remainder resets to 0,
+  // so the neighboring values differ mod 3 as well. It needs no recursion down
+  // the day history, and it cycles through all three kinds with variety.
+  // Hash-driven variety is applied within a kind via template selection below.
+  function kindIndexForDay(dayIdx) {
+    const block = Math.floor(dayIdx / 3);
+    const pos = dayIdx % 3;
+    return (block + pos) % 3;
+  }
+
+  // Deterministic 32-bit FNV-1a hash of an integer. A pure function with no
+  // randomness, stable across browsers and restarts, so the same UTC day always
+  // yields the same quest.
+  function dayIndexHash(n) {
+    n = n >>> 0;
+    let h = 0x811c9dc5;
+    for (let i = 0; i < 4; i++) {
+      const byte = (n >>> (i * 8)) & 0xff;
+      h ^= byte;
+      h = Math.imul(h, 0x01000193) >>> 0;
+    }
+    return h >>> 0;
+  }
+
+  // Choose the quest template for a given UTC day index.
+  //  - kindIndexForDay picks the objective kind (slay/gold/boss) with a
+  //    guaranteed no-consecutive-repeat rotation.
+  //  - Within that kind, the hash picks the specific template, so the two slay
+  //    and two gold variants alternate deterministically over time.
+  // Every player sees the same quest on a given UTC day.
+  function determineQuestForDay(dayIdx) {
+    const kind = KIND_CYCLE[kindIndexForDay(dayIdx)];
+    const pool = QUEST_TYPES.filter(function (t) { return t.kind === kind; });
+    return pool[dayIndexHash(dayIdx) % pool.length];
+  }
+
+  function getActiveQuest() {
+    return determineQuestForDay(getDayIndex());
+  }
+
+  // Ensure dayState.quest exists. New and existing saves both get a clean slate:
+  // the quest shows as available today with 0 progress. No crash, no corrupt data.
+  function ensureQuestState() {
+    if (!dayState) return;
+    if (!dayState.quest) {
+      dayState.quest = { progress: 0, completed: false, rewarded: false };
+      saveDayState();
+    }
+  }
+
+  function getQuestState() {
+    ensureQuestState();
+    return dayState.quest;
+  }
+
+  // Mark today's quest complete and pay the bonus exactly once. Guarded so a
+  // completed quest never re-pays, even across reloads, and progress is clamped
+  // at the target so it cannot drift past the objective.
+  function completeQuest() {
+    const q = getQuestState();
+    const quest = getActiveQuest();
+    if (q.completed) return;
+    q.completed = true;
+    if (q.progress > quest.target) q.progress = quest.target;
+    if (!q.rewarded) {
+      character.xp += quest.rewardXp;
+      character.gold += quest.rewardGold;
+      q.rewarded = true;
+      addLog('Quest complete: ' + quest.label, 'gold');
+      addLog('Reward: +' + quest.rewardXp + ' XP, +' + quest.rewardGold + ' gold.', 'gold');
+    }
+    saveCharacter();
+    saveDayState();
+  }
+
+  // Apply a real combat outcome to today's quest progress. Called from
+  // winCombat() with the gold won and the defeated monster's id. Only progresses
+  // an incomplete quest; slays/gold are counted from the actual fight, never from
+  // a separate guess. A boss quest only advances on a BOSS_TIER+ monster kill.
+  function applyQuestProgress(quest, q, goldWon, monsterId) {
+    if (!quest || !q || q.completed) return;
+    if (quest.kind === 'slay') {
+      q.progress += 1;
+    } else if (quest.kind === 'gold') {
+      q.progress += goldWon;
+    } else if (quest.kind === 'boss') {
+      if (monsterId >= BOSS_TIER) q.progress += 1;
+    }
+    if (q.progress > quest.target) q.progress = quest.target;
+    if (q.progress >= quest.target) {
+      completeQuest();
+    } else {
+      saveDayState();
+    }
+  }
+
+  // Right-aligned live progress tail for the town menu row (provisional UI).
+  function questTail() {
+    if (!character || !dayState) return '';
+    const q = getQuestState();
+    const quest = getActiveQuest();
+    const status = q.completed ? 'COMPLETE' : (q.progress + '/' + quest.target);
+    return ' <span style="float:right;color:#ffcc00;">' + escapeHtml(quest.label) + ' [' + status + ']</span>';
+  }
+
+  function renderQuest() {
+    clearLog();
+    const q = getQuestState();
+    const quest = getActiveQuest();
+    const display = document.getElementById('display');
+    const statusText = q.completed ? 'COMPLETE - reward collected' : 'In progress';
+    const statusClass = q.completed ? ' class="gold"' : '';
+    display.innerHTML = '<div class="boxed-menu">' +
+      '<div class="header">=== TODAY\'S QUEST ===</div>' +
+      '<div class="divider"></div>' +
+      '<div>Objective: ' + escapeHtml(quest.objective || quest.label) + '</div>' +
+      '<div>Progress:  ' + q.progress + ' / ' + quest.target + '</div>' +
+      '<div class="gold">Reward:    +' + quest.rewardXp + ' XP, +' + quest.rewardGold + ' gold</div>' +
+      '<div class="divider"></div>' +
+      '<div' + statusClass + '>[ Status: ' + statusText + ' ]</div>' +
+      '<div class="divider"></div>' +
+      '<div class="menu-row" data-action="1"><span class="num">1.</span>Back to Town</div>' +
+      '</div>';
+    document.getElementById('promptInput').value = '';
+    document.getElementById('promptInput').focus();
+  }
+
   // === STATE ===
   let character = null;
   let dayState = null;
@@ -211,9 +373,11 @@
   function checkDailyReset() {
     const today = getDayIndex();
     if (!dayState || dayState.dayIndex !== today) {
-      dayState = { dayIndex: today, fightsUsed: 0, innHealsUsed: 0 };
+      dayState = { dayIndex: today, fightsUsed: 0, innHealsUsed: 0, quest: { progress: 0, completed: false, rewarded: false } };
       saveDayState();
       addLog('New day begins. Fights reset to ' + MAX_FIGHTS_PER_DAY + '.', 'flavor');
+    } else {
+      ensureQuestState(); // existing same-day save with no quest state (grace)
     }
   }
 
@@ -310,6 +474,7 @@
       '<div class="menu-row" data-action="5"><span class="num">5.</span>Inn</div>' +
       '<div class="menu-row" data-action="6"><span class="num">6.</span>Trainer</div>' +
       '<div class="menu-row" data-action="7"><span class="num">7.</span>Tavern</div>' +
+      '<div class="menu-row" data-action="8"><span class="num">8.</span>Today\'s quest' + questTail() + '</div>' +
       '<div class="divider"></div>' +
       '<div class="centered" style="color:#666;">Press number or tap option</div>' +
       '</div>';
@@ -618,6 +783,7 @@
     character.gold += gold;
     character.wins++;
     dayState.fightsUsed++;
+    applyQuestProgress(getActiveQuest(), getQuestState(), gold, currentMonster.id);
     addLog('Victory! Gained ' + xp + ' XP and ' + gold + ' gold.', 'gold');
     saveCharacter();
     saveDayState();
@@ -680,6 +846,9 @@
       case 'tavern':
         handleTavernInput(n);
         break;
+      case 'quest':
+        handleQuestInput(n);
+        break;
       case 'wilderness':
         handleWildernessInput(n);
         break;
@@ -698,6 +867,7 @@
       case 5: location = 'inn'; renderInn(); break;
       case 6: location = 'trainer'; renderTrainer(); break;
       case 7: location = 'tavern'; renderTavern(); break;
+      case 8: location = 'quest'; renderQuest(); break;
     }
   }
 
@@ -779,6 +949,11 @@
     }
   }
 
+  function handleQuestInput(n) {
+    location = 'town';
+    renderTownMenu();
+  }
+
   function handleTavernInput(n) {
     if (n === 1) {
       renderTavern();
@@ -810,6 +985,7 @@
     character = loadSave();
     dayState = loadDayState();
     checkDailyReset();
+    ensureQuestState();
 
     if (!character) {
       showCharacterCreation();
@@ -887,7 +1063,7 @@
       losses: 0,
       deaths: 0
     };
-    dayState = { dayIndex: getDayIndex(), fightsUsed: 0, innHealsUsed: 0 };
+    dayState = { dayIndex: getDayIndex(), fightsUsed: 0, innHealsUsed: 0, quest: { progress: 0, completed: false, rewarded: false } };
     saveCharacter();
     saveDayState();
     addLog('Welcome, ' + character.name + '!', 'flavor');
