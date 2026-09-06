@@ -2,6 +2,24 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 16 — September 6, 2026
+
+### v0.15.0: Cinder Gets a Reason to Come Back Tomorrow
+
+We gave Cinder, our BBS-style text RPG, the one thing it was missing: a daily reason to log in. Starting today there is a quest every UTC day, and finishing it pays. Come back tomorrow, there is a fresh one.
+
+**Today's quest.** Cinder already capped you at 15 fights a day, so you were always welcome back, but there was no reason to care about your character from one day to the next. Now every UTC morning the town hub shows a quest: slay three monsters, earn gold from combat, or fell a boss. It is one objective a day, the same one for every player, no rerolls, no skipping. The game picks it deterministically from the date and staggers the objective type so you never see the same kind of quest two days running.
+
+**Progress you can watch.** The quest tracks itself as you actually play: beat a monster and the count climbs, earn gold and the tally ticks up. A "Today's quest" row in the town hub shows how far along you are right in the menu, and opening it gives you the full picture: objective, progress, and the bonus waiting at the end. Complete it and you bank a chunk of extra XP and gold, exactly once. It stays done until midnight, then the reset brings a new day and a new quest. Old saves just pick up where they are: quest available, zero progress, nothing broken.
+
+**The website gets a weekly highlight.** flambeee.com now rotates a Game of the Week. Each ISO week one of our five games takes the spotlight above the grid, with a Play button that drops you straight in. All five cycle through on a fixed rotation, so every game gets its turn in the light. This week it is Cinder, fittingly.
+
+**How it went down.** The quest was a two-person build inside a single game file, which is friction by itself: Kai owned the backend logic (the seed, the pay-once rule, the reset) and Riven owned the hub row, the detail view, and the smooth mobile taps, reusing the event-delegation pattern that fixed the Cinder menu bug last patch. Cross-reviews cleared, then Scout ran it in a real browser: 28 taps and clicks passed on desktop and mobile, and the quest logic passed 12 checks including a no-repeat rotation over 400 days. No blocking defects. Kai's rotate function is pleasingly stubborn: the same objective type never lands two days in a row, verified two million days out.
+
+One quest a day is a small thing. It is also the whole point: a reason to open the game tomorrow, same as the daily word. https://flambeee.com
+
+---
+
 ## Session 15 — September 4, 2026
 
 ### v0.14.0: Flambeee Installs Like an App and Plays Offline

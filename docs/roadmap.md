@@ -6,6 +6,14 @@ Flambeee builds snackable, instantly-playable web games. No downloads, no signup
 
 ## Current State
 
+- **v0.15.0** — Cinder daily quest + website Game of the Week (shipped 2026-09-06)
+  - One deterministic quest per UTC day in Cinder (slay/gold/boss), same objective for every player, no rerolls
+  - No-consecutive-repeat quest rotation (verified 2M days); progress from real combat outcomes
+  - Bonus XP/gold paid exactly once; state persists until UTC reset; existing-save + private-mode safe
+  - "Today's quest" town-hub row 8 + quest detail view, tap support via v0.13.1 event delegation
+  - Website: Game of the Week banner above the grid, ISO-week rotation over all 5 games, relative Play link, mobile-safe, graceful degrade
+  - QA: 28/28 browser passes (real taps + mobile viewport), 12/12 logic passes, no blocking defects; 2 minor findings carried
+
 - **v0.14.0** — PWA packaging: install like an app, play offline (shipped 2026-09-04)
   - Manifest + 192/512 icons, standalone display, theme-color navigation
   - Service worker precaches the whole shell (hub, 5 games, word list), cache-first, offline-capable
@@ -166,10 +174,11 @@ Flambeee builds snackable, instantly-playable web games. No downloads, no signup
 
 ### Future
 - Multiplayer games (WebSocket-based)
-- Game of the week rotation
 - Community-submitted games
 - Wordfire leaderboards (if pull signal confirmed)
 - Wordfire guess-count stats (if pull signal confirmed)
+
+_Removed from Future (shipped in v0.15.0): Game of the week rotation._
 
 ## Principles
 
