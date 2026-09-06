@@ -23,6 +23,10 @@
     .menu-row:hover { background: #2a2a3e; border-color: #555; }
     .menu-row:active { background: #3a3a4e; }
     .menu-row .num { color: #ffcc00; margin-right: 8px; }
+    .menu-row .quest-tail { float: right; color: #ffcc00; font-size: 0.9em; }
+    .menu-row .quest-tail.done { color: #66ff66; }
+    .quest-status { color: #ffcc00; }
+    .quest-status.done { color: #66ff66; font-weight: bold; }
     .log-entry { margin: 2px 0; }
     .log-entry.damage { color: #ff6666; }
     .log-entry.healing { color: #66ff66; }
@@ -45,7 +49,7 @@
   <div class="terminal">
     <div class="title">
       <h1>CINDER</h1>
-      <p>A BBS-style text RPG v0.13.0</p>
+      <p>A BBS-style text RPG v0.15.0</p>
     </div>
     <div id="statusLine" class="status-line"></div>
     <div class="main-area">
@@ -69,6 +73,29 @@
   const INN_HEAL_COST = 5;
   const RUN_SUCCESS_CHANCE = 0.5;
   const MONSTER_ENCOUNTER_RATE = 0.7;
+
+  // Daily quest templates (Story 025). The active template is chosen
+  // deterministically from the UTC day index so every player sees the same
+  // quest that UTC day (scenario 1). dayState.quest holds { progress,
+  // completed, rewardClaimed } only; the template itself is derived from the
+  // day index so a save never has to store objective numbers and stays
+  // deterministic even if the pool is edited later.
+  //
+  // Kai owns the backend seed/validation per the handoff; these templates and
+  // the seeded pick live here as the frontend contract. To swap in Kai's
+  // backend, keep the dayState.quest shape ({progress, completed,
+  // rewardClaimed}) and the getActiveQuest()/onCombatWin()/onGoldEarned() entry
+  // points below.
+  const QUEST_POOL = [
+    { type: 'monsters', label: 'Monsters slain', target: 3, objective: 'Defeat 3 monsters', rewardXp: 40, rewardGold: 25 },
+    { type: 'gold', label: 'Gold earned', target: 150, objective: 'Earn 150 gold', rewardXp: 30, rewardGold: 30 },
+    { type: 'monsters', label: 'Monsters slain', target: 5, objective: 'Defeat 5 monsters', rewardXp: 60, rewardGold: 45 },
+    { type: 'boss', label: 'Bosses felled', target: 1, objective: 'Defeat a boss monster (Ancient Wyrm or Void Horror)', rewardXp: 80, rewardGold: 60 },
+    { type: 'gold', label: 'Gold earned', target: 250, objective: 'Earn 250 gold', rewardXp: 50, rewardGold: 50 }
+  ];
+  // Boss tier for the 'boss' objective maps to monster ids 14 (Ancient Wyrm)
+  // and 15 (Void Horror) from the MONSTERS table. Documented in the PR.
+  const BOSS_TIER_START = 14;
 
   // === GAME DATA ===
   const LEVELS = [
@@ -212,8 +239,13 @@
     const today = getDayIndex();
     if (!dayState || dayState.dayIndex !== today) {
       dayState = { dayIndex: today, fightsUsed: 0, innHealsUsed: 0 };
+      initQuest();
       saveDayState();
       addLog('New day begins. Fights reset to ' + MAX_FIGHTS_PER_DAY + '.', 'flavor');
+    } else {
+      // Same UTC day but possibly a pre-quest save (scenario 9): give a
+      // graceful default with no progress, no crash.
+      ensureQuest();
     }
   }
 
@@ -238,6 +270,116 @@
     const base = getBaseStats(character.level).def;
     const armor = ARMOR.find(a => a.id === character.armor)?.def || 0;
     return base + armor;
+  }
+
+  // === DAILY QUEST (Story 025) ===
+  // Deterministic pick over QUEST_POOL seeded from the UTC day index, so the
+  // same UTC day always yields the same quest for every player.
+  function questSeedIndex(dayIndex) {
+    // Knuth multiplicative hash: stable across browsers, no Math.random.
+    const a = ((dayIndex * 2654435761) >>> 0) % QUEST_POOL.length;
+    return a;
+  }
+
+  function initQuest() {
+    dayState.quest = { progress: 0, completed: false, rewardClaimed: false };
+  }
+
+  function ensureQuest() {
+    if (!dayState.quest) initQuest();
+  }
+
+  // Active quest definition merged with live state. progress is clamped to
+  // target so a completed quest reads cleanly on reload (scenario 6).
+  function getActiveQuest() {
+    const template = QUEST_POOL[questSeedIndex(dayState.dayIndex)];
+    const q = dayState.quest || { progress: 0, completed: false, rewardClaimed: false };
+    return {
+      type: template.type,
+      label: template.label,
+      target: template.target,
+      progress: Math.min(q.progress || 0, template.target),
+      completed: !!q.completed,
+      rewardClaimed: !!q.rewardClaimed,
+      objective: template.objective,
+      rewardXp: template.rewardXp,
+      rewardGold: template.rewardGold
+    };
+  }
+
+  // Called from the real combat outcome (winCombat) so progress is always
+  // consistent with actual play (story technical note).
+  function onCombatWin(monster) {
+    if (!dayState.quest || dayState.quest.completed) return;
+    const template = QUEST_POOL[questSeedIndex(dayState.dayIndex)];
+    if (template.type === 'monsters') {
+      dayState.quest.progress++;
+    } else if (template.type === 'boss') {
+      if (monster && monster.id >= BOSS_TIER_START) dayState.quest.progress++;
+    } else if (template.type === 'gold') {
+      if (monster) dayState.quest.progress += monster.gold;
+    }
+    settleQuest(template);
+  }
+
+  // Gold earned from wander events also counts toward a gold objective.
+  function onGoldEarned(amount) {
+    if (!dayState.quest || dayState.quest.completed) return;
+    const template = QUEST_POOL[questSeedIndex(dayState.dayIndex)];
+    if (template.type === 'gold' && amount > 0) {
+      dayState.quest.progress += amount;
+      settleQuest(template);
+    }
+  }
+
+  // Applies the reward exactly once at the completion transition and persists.
+  function settleQuest(template) {
+    if (dayState.quest.progress >= template.target && !dayState.quest.completed) {
+      dayState.quest.progress = template.target;
+      dayState.quest.completed = true;
+      dayState.quest.rewardClaimed = true;
+      character.xp += template.rewardXp;
+      if (template.rewardGold) character.gold += template.rewardGold;
+      addLog('Quest complete! +' + template.rewardXp + ' XP' + (template.rewardGold ? ' and +' + template.rewardGold + ' gold' : '') + ' collected.', 'gold');
+      saveCharacter();
+      saveDayState();
+    } else {
+      saveDayState();
+    }
+  }
+
+  // Text tail for the town-hub menu row (right-aligned, live).
+  function getQuestTail() {
+    const q = getActiveQuest();
+    if (q.completed) {
+      return '<span class="quest-tail done">[Done]</span>';
+    }
+    return '<span class="quest-tail">[' + q.label + ' ' + q.progress + '/' + q.target + ']</span>';
+  }
+
+  function renderQuest() {
+    clearLog();
+    const q = getActiveQuest();
+    const display = document.getElementById('display');
+    const statusText = q.completed ? 'COMPLETE - reward collected' : 'In progress';
+    const statusClass = q.completed ? 'quest-status done' : 'quest-status';
+    display.innerHTML = '<div class="boxed-menu">' +
+      '<div class="header">============ TODAY\'S QUEST ============</div>' +
+      '<div>Objective: ' + escapeHtml(q.objective) + '</div>' +
+      '<div>Progress:  ' + q.progress + ' / ' + q.target + '</div>' +
+      '<div>Reward:    +' + q.rewardXp + ' XP' + (q.rewardGold ? ', +' + q.rewardGold + ' gold' : '') + '</div>' +
+      '<div class="divider"></div>' +
+      '<div class="' + statusClass + '">[ Status: ' + statusText + ' ]</div>' +
+      '<div class="divider"></div>' +
+      '<div class="menu-row" data-action="1"><span class="num">1.</span>Back to Town</div>' +
+      '</div>';
+    document.getElementById('promptInput').value = '';
+    document.getElementById('promptInput').focus();
+  }
+
+  function handleQuestInput(n) {
+    location = 'town';
+    renderTownMenu();
   }
 
   function getMaxHp() {
@@ -310,6 +452,7 @@
       '<div class="menu-row" data-action="5"><span class="num">5.</span>Inn</div>' +
       '<div class="menu-row" data-action="6"><span class="num">6.</span>Trainer</div>' +
       '<div class="menu-row" data-action="7"><span class="num">7.</span>Tavern</div>' +
+      '<div class="menu-row" data-action="8"><span class="num">8.</span>Today\'s quest ' + getQuestTail() + '</div>' +
       '<div class="divider"></div>' +
       '<div class="centered" style="color:#666;">Press number or tap option</div>' +
       '</div>';
@@ -500,6 +643,7 @@
         character.gold += gold;
         addLog('Found ' + gold + ' gold!', 'gold');
         saveCharacter();
+        onGoldEarned(gold);
         break;
       case 'heal':
         const heal = Math.floor(Math.random() * (event.healMax - event.healMin + 1)) + event.healMin;
@@ -621,6 +765,7 @@
     addLog('Victory! Gained ' + xp + ' XP and ' + gold + ' gold.', 'gold');
     saveCharacter();
     saveDayState();
+    onCombatWin(currentMonster); // quest progress from a real win (may complete + pay once)
     currentMonster = null;
     setTimeout(() => {
       if (canLevelUp()) {
@@ -683,6 +828,9 @@
       case 'wilderness':
         handleWildernessInput(n);
         break;
+      case 'quest':
+        handleQuestInput(n);
+        break;
       case 'combat':
         handleCombatInput(n);
         break;
@@ -698,6 +846,7 @@
       case 5: location = 'inn'; renderInn(); break;
       case 6: location = 'trainer'; renderTrainer(); break;
       case 7: location = 'tavern'; renderTavern(); break;
+      case 8: location = 'quest'; renderQuest(); break;
     }
   }
 
@@ -888,6 +1037,7 @@
       deaths: 0
     };
     dayState = { dayIndex: getDayIndex(), fightsUsed: 0, innHealsUsed: 0 };
+    initQuest();
     saveCharacter();
     saveDayState();
     addLog('Welcome, ' + character.name + '!', 'flavor');
