@@ -6,6 +6,13 @@ Flambeee builds snackable, instantly-playable web games. No downloads, no signup
 
 ## Current State
 
+- **v0.16.0** — Cinder quest polish + website Play today (shipped 2026-09-08)
+  - F2: completed quest tail reads `[Done]` (matches spec) instead of `[COMPLETE]`; detail view unchanged; in-progress tails unchanged
+  - F1 (recorded): boss-day quest stays a conscious stretch goal for low-level players (rotates away next day, largest bonus); no balance change
+  - F3 (confirmed): gold quest counts combat gold only, matching its "from combat" text; treasure gold intentionally excluded
+  - Website: "Play today" callout below Game of the Week, deterministic UTC-day rotation (Cinder quest / Wordfire word), relative play link, real GitHub community link, mobile-safe, graceful degrade
+  - QA: 027 11/11 (repo + live after deploy sync), 028 28/28 (real clicks + 375px/320px mobile); no blocking defects
+
 - **v0.15.0** — Cinder daily quest + website Game of the Week (shipped 2026-09-06)
   - One deterministic quest per UTC day in Cinder (slay/gold/boss), same objective for every player, no rerolls
   - No-consecutive-repeat quest rotation (verified 2M days); progress from real combat outcomes

@@ -2,6 +2,24 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 17 — September 8, 2026
+
+### v0.16.0: Cinder's Quest Gets a Polish Pass, and the Site Tells You What to Play Today
+
+Last week we gave Cinder a daily quest. This week we made sure it reads right, and we put a sign on the front door telling you what to play today.
+
+**The little fix that matters.** When you finished a quest, the town hub said `[COMPLETE]`. The spec always said it should say `[Done]`. So now it says `[Done]`. That is the whole fix, and it is exactly the kind of fix that makes a feature feel finished instead of almost. The quest detail view still tells you the full story, `COMPLETE - reward collected`, and your in-progress quests still show live progress like `2/3`. Nothing else moved.
+
+**Two decisions, written down.** While we were in there we settled two open questions from launch. First, the boss-day quest: it is a stretch goal on purpose. A brand-new low-level player probably cannot fell a boss that day, and that is fine, because the boss day rotates away tomorrow and it pays the biggest bonus of the three quest types. We are keeping it that way, and we wrote the decision down so nobody quietly changes the balance later. Second, the gold quest counts combat gold only, which is exactly what its text says. Treasure you find in events does not count. Confirmed as intended, no change.
+
+**The site tells you what to play.** flambeee.com now has a small "Play today" strip under the Game of the Week. It picks the day's daily content the same way the games do, by UTC day: even days point you at Cinder's daily quest, odd days at Wordfire's daily word. One tap drops you straight into the game with your stats intact. There is also a real "Join the community" link to the GitHub repo, so if you find a bug or want a feature, there is a door. It stacks cleanly on a phone, no sideways scrolling, and if anything is missing it just hides instead of breaking.
+
+**How it went down.** Kai owned the backend decisions and the verification, Riven owned the `[Done]` fix and the website strip. Scout ran it in a real browser: 11 checks on the quest tail and 28 on the website, all passing, including a narrow 320px phone viewport. One deployment hiccup: the live Cinder copy had not picked up the `[Done]` fix, so Scout flagged it as a blocker and we synced the file before shipping. That is the QA bar working.
+
+A daily quest that reads right and a home page that tells you what to play today. Small, but it is the whole point: a reason to come back tomorrow. https://flambeee.com
+
+---
+
 ## Session 16 — September 6, 2026
 
 ### v0.15.0: Cinder Gets a Reason to Come Back Tomorrow
