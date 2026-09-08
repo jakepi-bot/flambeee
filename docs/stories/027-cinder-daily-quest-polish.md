@@ -64,30 +64,3 @@ So that the daily-quest loop feels finished and consistent, and no player is sil
 
 1. **F1 decision (required):** Keep the boss-day quest as a conscious stretch goal for low-level players (rotates away next day, largest bonus), or soften it (e.g. lower the boss tier threshold, or add a low-level fallback objective)? This is the only balance change in this story and must be an explicit CEO call.
 2. **F3 confirmation (required):** Is "combat gold only" the intended behavior for the `gold` quest, or should treasure-event gold also count? The current text says "from combat", so behavior matches text; confirm intent.
-
-## Decisions (recorded by Kai, backend, 2026-09-08)
-
-### F1 — Boss-day reachability: KEEP as a conscious stretch goal (no balance change)
-
-No CEO decision to soften the boss-day quest was given. Per the story's explicit rule ("Do NOT silently change balance"), the boss-day quest is **kept as a conscious stretch goal** for low-level players. Current behavior is unchanged:
-
-- A `boss` quest only advances on a boss-tier monster kill (`monsterId >= BOSS_TIER`, where `BOSS_TIER = 13`; the boss-tier monsters are Shadow Knight id 13, Ancient Wyrm id 14, Void Horror id 15).
-- The boss day rotates away the next UTC day (the kind cycle `['slay','gold','boss']` with `kindIndexForDay` guarantees no consecutive-day repeat and cycles through all three kinds).
-- The boss quest pays the largest bonus of the three kinds (`rewardXp: 120, rewardGold: 60`).
-
-**No balance numbers were changed.** This is a conscious, documented stretch-goal framing, not a silent balance change. If the CEO later decides to soften it (lower the boss tier threshold or add a low-level fallback objective), that is a separate, explicit decision and change.
-
-### F3 — Gold quest counts combat gold only: CONFIRMED as intended (no code change)
-
-Verified in `src/cinder.html`:
-
-- `applyQuestProgress()` is called **only** from `winCombat()` (line ~786), passing `gold = currentMonster.gold` (combat gold).
-- The treasure-event handler (`triggerEvent()`, `case 'treasure'`) adds gold directly to `character.gold` and calls `saveCharacter()`; it does **not** call `applyQuestProgress()`. Treasure-event gold therefore never feeds the quest counter.
-- The `gold` quest objective text is "Earn N gold **from combat**" (templates `gold100`/`gold150`).
-
-Behavior matches the displayed text. **Confirmed as intended. No code change needed.** If total-gold (combat + treasure) were ever the intent, the counter and the objective text would need to be updated together; that is not the case here.
-
-### Verification notes (Kai, backend)
-
-- Boss quests only spawn/advance on boss-tier monsters: `applyQuestProgress` boss branch requires `monsterId >= BOSS_TIER` (13+). Confirmed against monster table (ids 13-15 are the boss tier).
-- Quest kind cycle works as documented: `KIND_CYCLE = ['slay','gold','boss']` with `kindIndexForDay(dayIdx) = (floor(dayIdx/3) + dayIdx%3) % 3`, which provably never assigns the same kind on consecutive days and cycles through all three kinds. Within a kind, `dayIndexHash` (FNV-1a) deterministically picks the specific template, so every player sees the same quest on a given UTC day.
