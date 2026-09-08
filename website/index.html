@@ -226,6 +226,52 @@
     .gotw { flex-direction: column; align-items: stretch; gap: 14px; padding: 18px 16px; }
     .gotw-play .btn-primary { display: block; width: 100%; text-align: center; }
   }
+
+  /* ---------- Play today (Story 028) ---------- */
+  .play-today {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    background: linear-gradient(135deg, var(--surface), var(--surface-2));
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 18px 22px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+  }
+  .play-today-body { flex: 1; min-width: 0; }
+  .play-today-eyebrow {
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent-2);
+    margin-bottom: 4px;
+  }
+  .play-today-name { font-size: 1.2rem; font-weight: 800; margin-bottom: 2px; }
+  .play-today-desc { color: var(--text-dim); font-size: 0.9rem; line-height: 1.5; }
+  .play-today-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+  .play-today-community {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+  .play-today-community:hover { color: var(--accent-2); }
+  .play-today-play { flex-shrink: 0; }
+  @media (max-width: 720px) {
+    .play-today { flex-direction: column; align-items: stretch; gap: 14px; padding: 16px; }
+    .play-today-actions { flex-direction: column; align-items: stretch; gap: 10px; }
+    .play-today-community { text-align: center; }
+    .play-today-play .btn-primary { display: block; width: 100%; text-align: center; }
+  }
   .game-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -628,6 +674,7 @@
       <p>Five games, one arcade. All free, all in your browser.</p>
     </div>
     <div class="gotw" id="gotw" hidden></div>
+    <div class="play-today" id="playToday" hidden></div>
     <div class="game-grid">
       <div class="game-card">
         <img class="game-shot" src="assets/game-wordfire.png" alt="Wordfire word game board with colored letter tiles">
@@ -1044,6 +1091,35 @@
     el.hidden = false;
   }
   renderGameOfTheWeek();
+
+  // --- Play today (Story 028) ---
+  // Deterministic UTC-day rotation: even UTC day index -> Cinder's daily quest,
+  // odd -> Wordfire's daily word. Same for every visitor that UTC day. Resolves
+  // client-side; no server, no state. Graceful degrade: missing/invalid content
+  // hides the strip, never breaks the page, never throws.
+  var DAILY_ORDER = [
+    { key: 'cinder', name: 'Cinder daily quest', desc: 'A new quest every UTC day. Fight, earn, and bank the bonus.', playLink: 'games/cinder.html' },
+    { key: 'wordfire', name: 'Wordfire daily word', desc: 'One word a day. Guess it and keep your streak alive.', playLink: 'games/wordfire.html' }
+  ];
+  function renderPlayToday() {
+    var el = document.getElementById('playToday');
+    if (!el) return;
+    var dayIdx = Math.floor(Date.now() / 86400000);
+    var item = DAILY_ORDER[dayIdx % DAILY_ORDER.length];
+    if (!item || !item.playLink || !item.name) { el.hidden = true; return; }
+    el.innerHTML =
+      '<div class="play-today-body">' +
+        '<div class="play-today-eyebrow">Play today</div>' +
+        '<div class="play-today-name">' + item.name + '</div>' +
+        '<div class="play-today-desc">' + item.desc + '</div>' +
+      '</div>' +
+      '<div class="play-today-actions">' +
+        '<a class="play-today-community" href="https://github.com/jakepi-bot/flambeee" target="_blank" rel="noopener">Join the community</a>' +
+        '<div class="play-today-play"><a class="btn btn-primary" href="' + item.playLink + '">Play</a></div>' +
+      '</div>';
+    el.hidden = false;
+  }
+  renderPlayToday();
 
   // --- Modal state ---
   let currentGame = null;

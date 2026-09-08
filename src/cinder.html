@@ -301,7 +301,7 @@
     if (!character || !dayState) return '';
     const q = getQuestState();
     const quest = getActiveQuest();
-    const status = q.completed ? 'COMPLETE' : (q.progress + '/' + quest.target);
+    const status = q.completed ? 'Done' : (q.progress + '/' + quest.target);
     return ' <span style="float:right;color:#ffcc00;">' + escapeHtml(quest.label) + ' [' + status + ']</span>';
   }
 
