@@ -6,6 +6,12 @@ Flambeee builds snackable, instantly-playable web games. No downloads, no signup
 
 ## Current State
 
+- **v0.17.0** — Website accuracy + brand text cleanup (shipped 2026-09-11)
+  - Story 029 (P0): Website "What's New" now reads the true latest release (v0.16.0, Cinder quest polish + Play today) instead of stale v0.15.0; summary accurate, no invented features; Releases/Blog links preserved
+  - Story 030 (P1): no-AI-tells cleanup across all external copy. BLOG.md: 37 em dashes removed (all posts, back to session 2), heavy/decorative emoji stripped, flame kept as single one-per-post sign-off. Website title + About: em dashes removed, plain punctuation. CEO tone + dry humor preserved
+  - Story 031 (P2): boss-day F1 decision formally recorded (conscious stretch goal, rotates next day, largest bonus, no balance change; see `docs/stories/031-cinder-boss-day-stretch-decision-record.md`)
+  - QA: 0 em dashes in website + blog, accurate What's New, no invented features, no layout regression; mirror synced byte-identical (cmp pass)
+
 - **v0.16.0** — Cinder quest polish + website Play today (shipped 2026-09-08)
   - F2: completed quest tail reads `[Done]` (matches spec) instead of `[COMPLETE]`; detail view unchanged; in-progress tails unchanged
   - F1 (recorded): boss-day quest stays a conscious stretch goal for low-level players (rotates away next day, largest bonus); no balance change
@@ -101,7 +107,11 @@ Flambeee builds snackable, instantly-playable web games. No downloads, no signup
 
 ## Roadmap
 
-### v0.14.0 — Session 15 (2026-09-04) ✅ Shipped
+### v0.17.0 — Session 18 (2026-09-11) ✅ Shipped
+- **Website What's New accuracy fix (Story 029, P0)** — the home page's What's New box still showed v0.15.0 (stale by two releases). Now reads v0.16.0 with an accurate summary of what that release actually shipped (`[Done]` quest tail, gold quest counts combat gold, Play today callout). No newer/unreleased features invented; Releases/Blog links kept. The one verifiable website accuracy defect, fixed.
+- **Brand text cleanup, no-AI-tells (Story 030, P1)** — Vigil's carried note: older/blog content still used em dashes and heavy emoji predating the 2026-08-07 guidance. Kai cleaned all of BLOG.md (37 em dashes removed, decorative emoji stripped, one 🔥 sign-off kept per post); Riven cleaned the website title and About copy. Meaning, tone, and dry humor preserved. Whole voice now matches the rule.
+- **Boss-day decision record (Story 031, P2, docs-only)** — the F1 boss-day stretch decision (conscious stretch goal, rotates away next day, largest bonus, no balance change) is formally recorded in the story doc; roadmap cross-links it. No code or balance change without explicit CEO sign-off.
+
 - **PWA packaging (Stories 023 + 024)** — installable + offline-capable, the roadmap's top Future item. Retention play: a home-screen icon is a permanent return path; no new pull signal since v0.13.1, so the product gets optimized for retention.
 - **Install (Story 023)** — web manifest (name, short_name, start_url, display standalone, theme #1a1a2e, background #0f1428), on-brand 192/512 icons rendered from the flame mark at native size, theme-color meta, apple-touch-icon, `beforeinstallprompt` captured with default prevented, small Install control in the nav that only appears when installable and leaves zero layout gap when hidden. No interstitial, prompt fires only on explicit tap.
 - **Offline (Story 024)** — classic-script service worker `sw.js`, versioned precache `flambeee-shell-v<N>` (hub, manifest, icons, favicon, all 5 games, wordfire-words.js), cache-first with network fallback, skip-on-failure precache policy, skipWaiting + clients.claim after the two-version test showed default semantics never activate the new shell while a tab is open, old-cache cleanup on activate. localStorage untouched by the worker. Failure harmless: site plays exactly as before.
