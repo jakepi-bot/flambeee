@@ -700,12 +700,32 @@
   }
 
   function startCombat() {
-    const pool = MONSTERS.filter((m, i) => {
+    // Boss day (Story 032, CEO-authorized 2026-09-11): the wilderness offers
+    // boss-tier encounters only, so the boss quest is reachable. Previously
+    // the random pool could exclude every boss, making a boss day a coin
+    // flip on the all-monster fallback. Reward stays the largest bonus; the
+    // fight itself is the difficulty.
+    const activeQuest = getActiveQuest();
+    const isBossDay = !!(activeQuest && activeQuest.kind === 'boss');
+    const pool = MONSTERS.filter((m) => {
+      if (isBossDay && m.id < BOSS_TIER) return false;
       const playerStr = character.level + getTotalAttack() + getTotalDefense();
       const monsterStr = m.hp + m.atk + m.def;
       return monsterStr <= playerStr * 2.5;
     });
-    const monster = pool.length > 0 ? pool[Math.floor(Math.random() * pool.length)] : MONSTERS[Math.floor(Math.random() * MONSTERS.length)];
+    let monster;
+    if (pool.length > 0) {
+      monster = pool[Math.floor(Math.random() * pool.length)];
+    } else if (isBossDay) {
+      // Too weak to clear any boss by the cap: still offer the weakest boss
+      // as a stretch fight (Run stays available), rather than an unrelated
+      // monster that cannot advance the quest.
+      const bosses = MONSTERS.filter((m) => m.id >= BOSS_TIER)
+        .sort((a, b) => (a.hp + a.atk + a.def) - (b.hp + b.atk + b.def));
+      monster = bosses[0] || MONSTERS[Math.floor(Math.random() * MONSTERS.length)];
+    } else {
+      monster = MONSTERS[Math.floor(Math.random() * MONSTERS.length)];
+    }
     currentMonster = { ...monster, maxHp: monster.hp };
     inCombat = true;
     location = 'combat'; // route combat-menu inputs to handleCombatInput (was stuck on 'wilderness')
