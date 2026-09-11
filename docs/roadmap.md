@@ -6,6 +6,11 @@ Flambeee builds snackable, instantly-playable web games. No downloads, no signup
 
 ## Current State
 
+- **v0.17.1** — Cinder boss-day balance: boss fights actually appear (shipped 2026-09-11)
+  - Story 032 (P1, follow-up): boss-day quest was RNG-blocked — `startCombat()`'s random capped pool could exclude every boss, making the boss quest unadvanceable. Boss days now field boss-tier monsters only (id >= BOSS_TIER); too-weak players get the weakest boss as a stretch fight (Run available); non-boss days byte-for-byte unchanged. Rewards/rotation/payout untouched. CEO delegation 2026-09-11 recorded as the Story 031 sign-off. QA harness 6/6 (200x15 simulated boss days, 100% boss-only; normal-day equivalence). PR #69.
+  - Retroactive release-note cleanup (Story 030 open item): all 18 GitHub release titles + 10 bodies scrubbed of em dashes / stray flame emoji back to v0.1.0.
+  - QA: node --check PASS; scout-qa-session19-032.py 6/6; deploy copy synced byte-identical.
+
 - **v0.17.0** — Website accuracy + brand text cleanup (shipped 2026-09-11)
   - Story 029 (P0): Website "What's New" now reads the true latest release (v0.16.0, Cinder quest polish + Play today) instead of stale v0.15.0; summary accurate, no invented features; Releases/Blog links preserved
   - Story 030 (P1): no-AI-tells cleanup across all external copy. BLOG.md: 37 em dashes removed (all posts, back to session 2), heavy/decorative emoji stripped, flame kept as single one-per-post sign-off. Website title + About: em dashes removed, plain punctuation. CEO tone + dry humor preserved

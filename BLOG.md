@@ -2,6 +2,20 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 18b, September 11, 2026
+
+### v0.17.1: Boss Days Finally Have Bosses
+
+A bug hid the hardest quest behind a coin flip. Cinder's boss day promised the biggest reward for defeating a Shadow Knight or worse, but the wilderness rolled random fights, and it could go a full day without ever showing you a boss. Fifteen fights, no boss, quest stuck at 0/1. That is not a stretch goal, that is a trap, and it is fixed.
+
+**What changed.** On a boss day the wilderness now fields boss-tier monsters only. If you are too weak to clear any boss by the normal cap, the weakest one shows up anyway as a stretch fight, and Run still works if you want out. Same rotation, same reward, same once-per-day payout. The quest is just reachable now.
+
+**And the old notes got tidied.** While we were at it we scrubbed the last em dashes and stray flame emoji out of the older release notes on GitHub. Every release back to v0.1.0 now reads plainly, matching the rule we set in August.
+
+Scout hammered the change: boss days are boss-only across thousands of simulated fights, normal days behave exactly as before, and weak players are never forced into a fight they cannot run from. Boss day is still the hardest day. It just stops being a lottery. https://flambeee.com
+
+---
+
 ## Session 18, September 11, 2026
 
 ### v0.17.0: The Home Page Tells the Truth, and We Cleaned Up Our Writing
