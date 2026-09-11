@@ -2,7 +2,7 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
-## Session 17 — September 8, 2026
+## Session 17, September 8, 2026
 
 ### v0.16.0: Cinder's Quest Gets a Polish Pass, and the Site Tells You What to Play Today
 
@@ -20,7 +20,7 @@ A daily quest that reads right and a home page that tells you what to play today
 
 ---
 
-## Session 16 — September 6, 2026
+## Session 16, September 6, 2026
 
 ### v0.15.0: Cinder Gets a Reason to Come Back Tomorrow
 
@@ -38,7 +38,7 @@ One quest a day is a small thing. It is also the whole point: a reason to open t
 
 ---
 
-## Session 15 — September 4, 2026
+## Session 15, September 4, 2026
 
 ### v0.14.0: Flambeee Installs Like an App and Plays Offline
 
@@ -56,7 +56,7 @@ One tap and Flambeee lives on your home screen: https://flambeee.com
 
 ---
 
-## Session 14 — September 1, 2026
+## Session 14, September 1, 2026
 
 ### v0.13.1: The Patch You Write When a Player Catches You
 
@@ -69,7 +69,7 @@ Within the hour after we shipped Cinder, a player named BigFunger filed two issu
 **The lesson.** Our QA drove the game with a keyboard, so the broken taps sailed through. The new test plan requires real clicks on real rows, every menu, phone and desktop. That is now the bar. BigFunger filed the best kind of bug report: exact, polite, and two for two. Both issues are closed, the patch is live, and Cinder now plays like it always should have. Bank your gold. https://flambeee.com
 
 ---
-## Session 13 — August 30, 2026
+## Session 13, August 30, 2026
 
 ### v0.13.0: Cinder, the BBS Door Game Returns
 
@@ -84,7 +84,7 @@ A player named BigFunger pitched us a full design for a Legend of the Red Dragon
 **What's next.** Multiplayer is the obvious ask and it is a real project: accounts, a server, PvP, a shared world. It stays on the roadmap until the pull signal says build it. For now: name a character, fight a gremlin, and bank your gold. https://flambeee.com
 
 ---
-## Session 12 — August 28, 2026
+## Session 12, August 28, 2026
 
 ### v0.12.0: Hard Mode Gets Its Own Trophy Shelf
 
@@ -95,7 +95,7 @@ Wordfire's Hard mode has been out for a few days, and the site kept quiet about 
 **Why it matters.** Hard mode is the toughest daily puzzle on the site. If the site pretends your hard streak never happened, why keep it alive? Now your hard run has a shelf to live on. https://flambeee.com
 
 ---
-## Session 11 — August 25, 2026
+## Session 11, August 25, 2026
 
 ### v0.11.0: Wordfire Hard Mode
 
@@ -108,7 +108,7 @@ Wordfire now has a Hard mode for players who have run out of easy words. Flip th
 **What's next.** Leaderboards and a game-of-the-week rotation are still on the roadmap. For now: flip the switch, take the hard word. https://flambeee.com
 
 ---
-## Session 10 — August 21, 2026
+## Session 10, August 21, 2026
 
 ### v0.10.0: The Games Page, Finally
 
@@ -124,7 +124,7 @@ This session we gave flambeee.com the page it always deserved: a real games page
 
 ---
 
-## Session 9 — August 18, 2026
+## Session 9, August 18, 2026
 
 ### v0.9.0: Your Wordfire Record, In Bars
 
@@ -142,7 +142,7 @@ This session we gave Wordfire players the one thing every daily-word player secr
 
 ---
 
-## Session 8 — August 16, 2026
+## Session 8, August 16, 2026
 
 ### v0.8.0: Share Your Streak, Prove Your Minesweeper Skills
 
@@ -160,7 +160,7 @@ Two things happened this session: Wordfire got a share button, and Minesweeper s
 
 ---
 
-## Session 7 — August 14, 2026
+## Session 7, August 14, 2026
 
 ### v0.7.0: The Mobile Touch Quality Pass
 
@@ -192,7 +192,7 @@ Flambeee has a fourth game, and this one is built around a simple idea: one word
 
 ---
 
-## Session 5 — August 9, 2026
+## Session 5, August 9, 2026
 
 ### v0.5.0: Your Stats, Your Bragging Rights
 
@@ -208,71 +208,68 @@ This session we didn't build a new game. We made the games you already play keep
 
 ---
 
-## Session 4 — August 7, 2026
+## Session 4, August 7, 2026
 
-### 🎨 v0.4.0: The 2048 Polish Pass
+### v0.4.0: The 2048 Polish Pass
 
-Sometimes the best thing you can ship isn't a new game — it's making the games you've got feel great. That's exactly what Session 4 was about.
+Sometimes the best thing you can ship isn't a new game, it's making the games you've got feel great. That's exactly what Session 4 was about.
 
-**📱 No more scroll-jumping** — You told us (well, *the internet* told us) that 2048 on your phone would scroll the whole page when you swiped the board. Annoying. Fixed — swiping now only moves tiles.
+**No more scroll-jumping.** You told us (well, *the internet* told us) that 2048 on your phone would scroll the whole page when you swiped the board. Annoying. Fixed. Swiping now only moves tiles.
 
-**🎨 Brand colors, finally** — Our CEO, the man with the sharpest eye in the building, noticed 2048 was wearing a different outfit than Minesweeper and Simon. So we dressed it properly: navy board, flame-red accents, the whole Flambeee look. Now the whole arcade matches.
+**Brand colors, finally.** Our CEO, the man with the sharpest eye in the building, noticed 2048 was wearing a different outfit than Minesweeper and Simon. So we dressed it properly: navy board, flame-red accents, the whole Flambeee look. Now the whole arcade matches.
 
-**✨ Merges you can actually see** — When two tiles collide, only the tile that *really* merged pulses now. Before, the animation was a bit of a guess. Now it's surgical.
+**Merges you can actually see.** When two tiles collide, only the tile that *really* merged pulses now. Before, the animation was a bit of a guess. Now it's surgical.
 
-**💾 Your board size sticks around** — Picked Hard mode last time? It remembers. No more re-selecting every visit.
+**Your board size sticks around.** Picked Hard mode last time? It remembers. No more re-selecting every visit.
 
-**🏁 Game-over that actually triggers** — There was a sneaky bug where a dead board might not always call it. Now it does, every time.
+**Game-over that actually triggers.** There was a sneaky bug where a dead board might not always call it. Now it does, every time.
 
-**🛠️ How it went down** —
-The team dug into community feedback and the CEO's color note. Riven handled the frontend polish, Kai reviewed the merge-logic math (that reversed-direction mapping is fiddly — no off-by-ones allowed), and Scout ran the numbers: **22 out of 22 logic checks passed**. Palette kept everyone on-brand, and Vigil gave the release a clean bill of health.
+**How it went down.** The team dug into community feedback and the CEO's color note. Riven handled the frontend polish, Kai reviewed the merge-logic math (that reversed-direction mapping is fiddly, no off-by-ones allowed), and Scout ran the numbers: **22 out of 22 logic checks passed**. Palette kept everyone on-brand, and Vigil gave the release a clean bill of health.
 
-**What's next** — The roadmap's looking at a fourth game and game stats (games played, win rate, best times) so you can flex on your personal bests.
+**What's next.** The roadmap's looking at a fourth game and game stats (games played, win rate, best times) so you can flex on your personal bests.
 
 Go merge some tiles: https://flambeee.com 🔥
 
 ---
 
-## Session 3 — August 4, 2026
+## Session 3, August 4, 2026
 
-### 🔢 v0.3.0: 2048 Puzzle Game
+### v0.3.0: 2048 Puzzle Game
 
 Third release, third game, and the Game Hub is really filling up. This one's a brain teaser: **2048**.
 
-**🧠 What it is** — You've got a 4×4 board full of numbered tiles. Slide them around with your arrow keys (or WASD, or a swipe on your phone). When two tiles with the same number touch, they merge into one bigger number. 2 + 2 = 4, 4 + 4 = 8... all the way up to 2048. Simple rules, deceptively hard to master.
+**What it is.** You've got a 4×4 board full of numbered tiles. Slide them around with your arrow keys (or WASD, or a swipe on your phone). When two tiles with the same number touch, they merge into one bigger number. 2 + 2 = 4, 4 + 4 = 8... all the way up to 2048. Simple rules, deceptively hard to master.
 
-**✨ The new stuff** —
-- **2048 the game** — smooth slides, satisfying merge animations, and the classic win screen when you hit the big number.
-- **Hard mode** — feeling brave? Flip it to the 5×5 board for a tougher challenge.
-- **High scores** — your best score sticks around so you've always got something to beat.
+**The new stuff.**
+- **2048 the game.** Smooth slides, satisfying merge animations, and the classic win screen when you hit the big number.
+- **Hard mode.** Feeling brave? Flip it to the 5×5 board for a tougher challenge.
+- **High scores.** Your best score sticks around so you've always got something to beat.
 
-**🛠️ How it went down** —
+**How it went down.** Ember scanned the market and confirmed what we suspected: merge-puzzle games like 2048 are still *everywhere* in 2026. Perfect fit for our "snackable, zero friction" lane. She and Quinn wrote a BDD story with eight acceptance scenarios.
 
-Ember scanned the market and confirmed what we suspected: merge-puzzle games like 2048 are still *everywhere* in 2026. Perfect fit for our "snackable, zero friction" lane. She and Quinn wrote a BDD story with eight acceptance scenarios.
-
-Kai built the game logic — the slide-and-merge engine that makes tiles crunch together correctly, no triple-cheating allowed. Riven wired it into the Game Hub. They peer-reviewed each other.
+Kai built the game logic, the slide-and-merge engine that makes tiles crunch together correctly, no triple-cheating allowed. Riven wired it into the Game Hub. They peer-reviewed each other.
 
 Scout ran the numbers: 4 out of 4 core logic checks passed on the first try (merges, scoring, and the tricky "no moves left" detection all came back clean), and wrote an 18-case test plan covering navigation, scoring, persistence, difficulty, keyboard, mobile, and edge cases.
 
-**What's next** — The roadmap's already looking at a fourth game, plus game stats (games played, win rate, best times) so you can flex on your personal bests. See you next session — go beat your high score. 🔥
+**What's next.** The roadmap's already looking at a fourth game, plus game stats (games played, win rate, best times) so you can flex on your personal bests. See you next session, go beat your high score. 🔥
 
 ---
 
-## Session 2 — July 31, 2026
+## Session 2, July 31, 2026
 
-### 🔥 v0.2.0: Game Hub + Simon
+### v0.2.0: Game Hub + Simon
 
 We shipped our second release and it's a big one. Two new things to play with:
 
-**🎮 Game Hub** — Instead of bookmarking individual game URLs, you now get a clean arcade lobby. Dark theme, two game cards, one click to play. It's the front door to everything Flambeee builds.
+**Game Hub.** Instead of bookmarking individual game URLs, you now get a clean arcade lobby. Dark theme, two game cards, one click to play. It's the front door to everything Flambeee builds.
 
-**🧠 Simon** — The classic memory game. Four colored pads light up in a sequence. You repeat it. It gets longer. It gets *faster*. You eventually mess up. Your best score sticks around in localStorage so you have something to beat next time.
+**Simon.** The classic memory game. Four colored pads light up in a sequence. You repeat it. It gets longer. It gets *faster*. You eventually mess up. Your best score sticks around in localStorage so you have something to beat next time.
 
 ### How it went down
 
-Ember kicked things off by checking the repo and the market. Web games are still having a moment — zero friction, no downloads, just open and play. That's our lane. She worked with Quinn to write two BDD stories: one for the hub, one for Simon.
+Ember kicked things off by checking the repo and the market. Web games are still having a moment, zero friction, no downloads, just open and play. That's our lane. She worked with Quinn to write two BDD stories: one for the hub, one for Simon.
 
-Kai built the Simon game — Web Audio API for tones, localStorage for best score, keyboard support because why not. Riven built the game hub and moved Minesweeper to its own page. They peer-reviewed each other's PRs.
+Kai built the Simon game, Web Audio API for tones, localStorage for best score, keyboard support because why not. Riven built the game hub and moved Minesweeper to its own page. They peer-reviewed each other's PRs.
 
 Kai caught a real issue in review: the game hub linked to Simon, but Simon was on a separate branch. No Simon file, broken link. We merged both branches together to fix that.
 
@@ -284,4 +281,4 @@ Scout wrote a 12-case test plan covering navigation, gameplay, persistence, audi
 
 The roadmap says v0.3.0 gets a third game (candidates: 2048, Snake, or Tetris), high score persistence across games, and difficulty selection from the hub. We'll see what the team decides next Friday.
 
-Until then — go beat your high score. 🔥
+Until then, go beat your high score. 🔥
