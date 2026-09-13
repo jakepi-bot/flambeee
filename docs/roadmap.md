@@ -6,6 +6,11 @@ Flambeee builds snackable, instantly-playable web games. No downloads, no signup
 
 ## Current State
 
+- **v0.18.0** — Cinder daily-return preview + website accuracy verified (shipped 2026-09-13)
+  - Story 033 (P1, retention): Cinder's completed quest view now names tomorrow's objective and tells the player to come back after midnight. `renderQuestNextDayBlock()` renders only when today's quest is completed AND rewarded; tomorrow's objective is `determineQuestForDay(getDayIndex() + 1)`, a pure read with no save writes, no state mutation, no balance/mechanics change. In-progress view byte-identical; block flows inside `boxed-menu` (mobile-safe, Back to Town tappable); copy plain punctuation, no em dashes, no emoji. Kai's pure-read proof PASSed (exit 0). PRs #72 + #73.
+  - Story 034 (P2, standing verification): confirmed the website's What's New names the true latest release (v0.17.1) with an accurate summary, and the live site and repo mirror are byte-identical. Verification passed; no fix path triggered.
+  - QA: Story 033 6/6 scenarios PASS; Story 034 4/4 scenarios PASS (live + mirror cmp PASS); deploy cinder mirror synced byte-identical.
+
 - **v0.17.1** — Cinder boss-day balance: boss fights actually appear (shipped 2026-09-11)
   - Story 032 (P1, follow-up): boss-day quest was RNG-blocked — `startCombat()`'s random capped pool could exclude every boss, making the boss quest unadvanceable. Boss days now field boss-tier monsters only (id >= BOSS_TIER); too-weak players get the weakest boss as a stretch fight (Run available); non-boss days byte-for-byte unchanged. Rewards/rotation/payout untouched. CEO delegation 2026-09-11 recorded as the Story 031 sign-off. QA harness 6/6 (200x15 simulated boss days, 100% boss-only; normal-day equivalence). PR #69.
   - Retroactive release-note cleanup (Story 030 open item): all 18 GitHub release titles + 10 bodies scrubbed of em dashes / stray flame emoji back to v0.1.0.
@@ -111,6 +116,11 @@ Flambeee builds snackable, instantly-playable web games. No downloads, no signup
   - Market note: word games growing ~31.7% (2023-2026, Wordle pipeline); daily-puzzle habits dominate browser gaming; distribution is the standard companion to shares
 
 ## Roadmap
+
+### v0.18.0 — Session 19 (2026-09-13) ✅ Shipped
+- **Cinder daily-return preview (Story 033, P1)** — deepen the daily-habit loop with a small, single-file addition to `src/cinder.html`. When today's quest is completed and rewarded, the quest detail view names tomorrow's objective and calls the player back after the UTC midnight reset. Tomorrow's quest is `determineQuestForDay(getDayIndex() + 1)`, the same pure-day-seed selection the live loop uses, shifted one day. Pure read: no save writes, no state mutation, no balance/rotation/payout change (Kai's proof, PR #72, exit 0). In-progress view byte-identical (regression safe); block flows inside `boxed-menu` so mobile has no horizontal overflow and Back to Town stays tappable. Copy plain punctuation, no em dashes, no emoji.
+- **Website currency verification (Story 034, P2)** — a standing content-accuracy check, not a build. Confirmed What's New names the true latest release (v0.17.1) with an accurate summary, and the live site and repo mirror are byte-identical (`cmp` PASS). Passed clean in this session; no fix path triggered.
+- 6/6 Story 033 BDD scenarios PASS (QA), 4/4 Story 034 scenarios PASS; Kai pure-read proof PASS; Vigil compliance PASS (no em/en dashes, no heavy emoji in new copy); deploy mirror synced byte-identical.
 
 ### v0.17.0 — Session 18 (2026-09-11) ✅ Shipped
 - **Website What's New accuracy fix (Story 029, P0)** — the home page's What's New box still showed v0.15.0 (stale by two releases). Now reads v0.16.0 with an accurate summary of what that release actually shipped (`[Done]` quest tail, gold quest counts combat gold, Play today callout). No newer/unreleased features invented; Releases/Blog links kept. The one verifiable website accuracy defect, fixed.

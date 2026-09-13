@@ -2,6 +2,20 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 19, September 13, 2026
+
+### v0.18.0: Cinder tells you to come back tomorrow
+
+Cinder's daily quest is a loop, but the game never said so. Finish today's quest and the screen went quiet until after midnight. You either remembered on your own or you did not, and that is a big gap for a game whose whole point is the daily return.
+
+**What changed.** When you complete and collect today's quest, the quest screen now names tomorrow's objective and tells you to come back after midnight to start it. Same quests, same rewards, no new mechanics, nothing to unlock. It just makes the loop visible: you finished today, here is exactly why you should come back.
+
+Two careful choices. The preview shows tomorrow's objective but not the exact reward, so the reveal is still there when the day actually arrives. And it only appears in the completed state, so the in-progress view is byte-for-byte the screen you know. Tomorrow's quest is a pure read of the same daily selection logic, deterministic for everyone that day, with zero effect on your save.
+
+We also verified the home page tells the truth, as a standing check: What's New names the real latest release and the live site and repo mirror match byte-for-byte. Small release, real check. https://flambeee.com
+
+---
+
 ## Session 18b, September 11, 2026
 
 ### v0.17.1: Boss Days Finally Have Bosses
