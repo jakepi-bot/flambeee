@@ -32,6 +32,7 @@
     .boxed-menu { background: #1a1a2e; border: 2px solid #444; padding: 12px; margin: 8px 0; }
     .boxed-menu .header { color: #ffcc00; text-align: center; margin-bottom: 8px; }
     .boxed-menu .divider { border-top: 1px dashed #444; margin: 8px 0; }
+    .muted { color: #888; }
     .centered { text-align: center; }
     .hidden { display: none; }
     @media (max-width: 600px) {
@@ -305,6 +306,19 @@
     return ' <span style="float:right;color:#ffcc00;">' + escapeHtml(quest.label) + ' [' + status + ']</span>';
   }
 
+  // Story 033: today's quest completed and rewarded shows a daily-return summary.
+  // Built only in the completed (rewarded) state so the in-progress view stays
+  // byte-for-byte the same and the Back to Town row is never pushed off-screen
+  // on a narrow viewport. Tomorrow's quest is a pure read of the day after
+  // today via the same deterministic selection the live loop uses; only the
+  // objective is named, never the exact reward figure, to keep the daily hook.
+  function renderQuestNextDayBlock() {
+    const next = determineQuestForDay(getDayIndex() + 1);
+    return '<div class="divider"></div>' +
+      '<div>Tomorrow: ' + escapeHtml(next.objective || next.label) + '</div>' +
+      '<div class="muted">Come back after midnight to start it.</div>';
+  }
+
   function renderQuest() {
     clearLog();
     const q = getQuestState();
@@ -312,6 +326,10 @@
     const display = document.getElementById('display');
     const statusText = q.completed ? 'COMPLETE - reward collected' : 'In progress';
     const statusClass = q.completed ? ' class="gold"' : '';
+    let nextBlock = '';
+    if (q.completed && q.rewarded) {
+      nextBlock = renderQuestNextDayBlock();
+    }
     display.innerHTML = '<div class="boxed-menu">' +
       '<div class="header">=== TODAY\'S QUEST ===</div>' +
       '<div class="divider"></div>' +
@@ -320,6 +338,7 @@
       '<div class="gold">Reward:    +' + quest.rewardXp + ' XP, +' + quest.rewardGold + ' gold</div>' +
       '<div class="divider"></div>' +
       '<div' + statusClass + '>[ Status: ' + statusText + ' ]</div>' +
+      nextBlock +
       '<div class="divider"></div>' +
       '<div class="menu-row" data-action="1"><span class="num">1.</span>Back to Town</div>' +
       '</div>';
