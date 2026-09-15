@@ -241,12 +241,19 @@
     return determineQuestForDay(getDayIndex());
   }
 
-  // Ensure dayState.quest exists. New and existing saves both get a clean slate:
-  // the quest shows as available today with 0 progress. No crash, no corrupt data.
+  // Ensure dayState.quest and dayState.completedQuests exist. New and existing
+  // saves both get a clean slate: the quest shows as available today with 0
+  // progress. completedQuests (Story 035) is an additive history field, so a
+  // save predating it loads with an empty history and no loss of any existing
+  // state. No crash, no corrupt data.
   function ensureQuestState() {
     if (!dayState) return;
     if (!dayState.quest) {
       dayState.quest = { progress: 0, completed: false, rewarded: false };
+      saveDayState();
+    }
+    if (!Array.isArray(dayState.completedQuests)) {
+      dayState.completedQuests = [];
       saveDayState();
     }
   }
@@ -269,6 +276,15 @@
       character.xp += quest.rewardXp;
       character.gold += quest.rewardGold;
       q.rewarded = true;
+      // Story 035: record this completed-and-rewarded quest once in the shared
+      // daily log. Guarded by the same once gate above, so a reload inside the
+      // same UTC day never appends a duplicate entry.
+      if (!Array.isArray(dayState.completedQuests)) dayState.completedQuests = [];
+      dayState.completedQuests.push({
+        dayIndex: getDayIndex(),
+        label: quest.label,
+        objective: quest.objective || quest.label
+      });
       addLog('Quest complete: ' + quest.label, 'gold');
       addLog('Reward: +' + quest.rewardXp + ' XP, +' + quest.rewardGold + ' gold.', 'gold');
     }
@@ -317,6 +333,80 @@
     return '<div class="divider"></div>' +
       '<div>Tomorrow: ' + escapeHtml(next.objective || next.label) + '</div>' +
       '<div class="muted">Come back after midnight to start it.</div>';
+  }
+
+  // Story 035: derive the current consecutive-day quest streak. A pure helper
+  // with no writes and no global mutation, so Kai's proof script can extract and
+  // test it. The streak counts trailing consecutive completed UTC days ending on
+  // today (live: today completed), or through yesterday when today is not yet
+  // complete (the player has most of the day to protect it). A gap resets it.
+  function computeQuestStreak(dayStateRef) {
+    if (!dayStateRef) return 0;
+    const completed = dayStateRef.completedQuests;
+    if (!Array.isArray(completed)) return 0;
+    const todayIdx = getDayIndex();
+    const live = !!(dayStateRef.quest && dayStateRef.quest.completed);
+    // Build the set of recorded completed day indexes. Today counts as a live
+    // completion only when today's quest is actually completed; otherwise the
+    // run is anchored on yesterday and stays unbroken until today ends.
+    const done = {};
+    if (live) done[todayIdx] = true;
+    for (let i = 0; i < completed.length; i++) {
+      const entry = completed[i];
+      if (entry && typeof entry.dayIndex === 'number') done[entry.dayIndex] = true;
+    }
+    // Count trailing consecutive completed days ending at the anchor.
+    let cursor = live ? todayIdx : todayIdx - 1;
+    let streak = 0;
+    while (done[cursor]) {
+      streak += 1;
+      cursor -= 1;
+    }
+    return streak;
+  }
+
+  // Story 035: short relative label for a completed-quest day index, used in the
+  // quest-log list. today/yesterday/N days ago; oldest history falls back to a
+  // plain day number in case of an out-of-range index.
+  function dayLabelForIndex(dayIdx) {
+    const diff = getDayIndex() - dayIdx;
+    if (diff === 0) return 'today';
+    if (diff === 1) return 'yesterday';
+    if (diff > 1) return diff + ' days ago';
+    return 'day ' + dayIdx;
+  }
+
+  // Story 035: recent-quests / quest-streak view. Reachable from the town hub
+  // as row 9. A pure read: it only reads dayState and renders; it never writes
+  // any save, mutates state, or changes quest progress or rewards.
+  function renderQuestLog() {
+    clearLog();
+    const display = document.getElementById('display');
+    const completed = (dayState && Array.isArray(dayState.completedQuests))
+      ? dayState.completedQuests : [];
+    const streak = computeQuestStreak(dayState);
+    // Most recent first, capped at 5 entries.
+    const recent = completed.slice(-5).reverse();
+
+    let listHtml = '<div class="muted">No quests recorded yet. Finish today\'s quest to start your log.</div>';
+    if (recent.length > 0) {
+      listHtml = recent.map(function (entry) {
+        const title = escapeHtml(entry.objective || entry.label || '');
+        return '<div>' + dayLabelForIndex(entry.dayIndex) + ': ' + title + '</div>';
+      }).join('');
+    }
+
+    display.innerHTML = '<div class="boxed-menu">' +
+      '<div class="header">=== QUEST LOG ===</div>' +
+      '<div style="color:#ffcc00;">Current streak: ' + streak + (streak === 1 ? ' day' : ' days') + '</div>' +
+      '<div class="divider"></div>' +
+      '<div>Recent quests:</div>' +
+      listHtml +
+      '<div class="divider"></div>' +
+      '<div class="menu-row" data-action="1"><span class="num">1.</span>Back to Town</div>' +
+      '</div>';
+    document.getElementById('promptInput').value = '';
+    document.getElementById('promptInput').focus();
   }
 
   function renderQuest() {
@@ -392,7 +482,7 @@
   function checkDailyReset() {
     const today = getDayIndex();
     if (!dayState || dayState.dayIndex !== today) {
-      dayState = { dayIndex: today, fightsUsed: 0, innHealsUsed: 0, quest: { progress: 0, completed: false, rewarded: false } };
+      dayState = { dayIndex: today, fightsUsed: 0, innHealsUsed: 0, quest: { progress: 0, completed: false, rewarded: false }, completedQuests: [] };
       saveDayState();
       addLog('New day begins. Fights reset to ' + MAX_FIGHTS_PER_DAY + '.', 'flavor');
     } else {
@@ -494,6 +584,7 @@
       '<div class="menu-row" data-action="6"><span class="num">6.</span>Trainer</div>' +
       '<div class="menu-row" data-action="7"><span class="num">7.</span>Tavern</div>' +
       '<div class="menu-row" data-action="8"><span class="num">8.</span>Today\'s quest' + questTail() + '</div>' +
+      '<div class="menu-row" data-action="9"><span class="num">9.</span>Quest Log</div>' +
       '<div class="divider"></div>' +
       '<div class="centered" style="color:#666;">Press number or tap option</div>' +
       '</div>';
@@ -888,6 +979,9 @@
       case 'quest':
         handleQuestInput(n);
         break;
+      case 'questlog':
+        handleQuestLogInput(n);
+        break;
       case 'wilderness':
         handleWildernessInput(n);
         break;
@@ -907,6 +1001,7 @@
       case 6: location = 'trainer'; renderTrainer(); break;
       case 7: location = 'tavern'; renderTavern(); break;
       case 8: location = 'quest'; renderQuest(); break;
+      case 9: location = 'questlog'; renderQuestLog(); break;
     }
   }
 
@@ -989,6 +1084,11 @@
   }
 
   function handleQuestInput(n) {
+    location = 'town';
+    renderTownMenu();
+  }
+
+  function handleQuestLogInput(n) {
     location = 'town';
     renderTownMenu();
   }
@@ -1102,7 +1202,7 @@
       losses: 0,
       deaths: 0
     };
-    dayState = { dayIndex: getDayIndex(), fightsUsed: 0, innHealsUsed: 0, quest: { progress: 0, completed: false, rewarded: false } };
+    dayState = { dayIndex: getDayIndex(), fightsUsed: 0, innHealsUsed: 0, quest: { progress: 0, completed: false, rewarded: false }, completedQuests: [] };
     saveCharacter();
     saveDayState();
     addLog('Welcome, ' + character.name + '!', 'flavor');
