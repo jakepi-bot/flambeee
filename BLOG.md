@@ -2,6 +2,20 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 20, September 15, 2026
+
+### v0.18.1: Cinder keeps a quest log and your streak
+
+Last release we told players the daily loop exists. This one gives them something to keep it alive with. The Cinder town hub now has a Quest Log: open it and you see the quests you finished recently and your current consecutive-day streak, so the habit has a scoreboard.
+
+**What changed.** A Quest Log row on the town hub opens a panel that lists your last five completed quests, most recent first, and shows your current streak. Do one quest a day across a gap, and the streak resets to one. Do them back to back and it climbs. Nothing else moves: no new mechanics, no balance or reward changes, and the whole view is a pure read of your save, so nothing about your level, gold, or progress is touched by opening it.
+
+One honest caveat on history. We never stored past completions before, so your record starts the day this shipped, not earlier. We call that out rather than pretend.
+
+The streak helper is a tiny pure function we extracted and tested ten ways, and the whole view was checked for any hidden save writes before it could ship. Same quests, same rewards, same loop. Now you can see you are keeping it up. https://flambeee.com
+
+---
+
 ## Session 19, September 13, 2026
 
 ### v0.18.0: Cinder tells you to come back tomorrow
