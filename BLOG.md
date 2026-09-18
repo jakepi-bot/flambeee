@@ -2,6 +2,24 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 21, September 18, 2026
+
+### v0.19.0: Cinder puts a badge on your home screen
+
+We noticed a gap. Cinder hands out one quest every day, and the whole game is built around coming back for it. But the only place that told you a quest was waiting was inside the game, which you had already opened. A reminder you only see after you did the thing is not a reminder.
+
+**What changed.** If you installed Cinder to your home screen, its app icon can now show a small **1** while today's quest is still waiting. Finish the quest and collect the reward, and the badge clears on the spot. That is the entire feature. No notification, no permission popup, no push, no nag to install anything. Just the icon quietly telling you there is something to do.
+
+Under the hood it is deliberately boring, which is exactly what we wanted. The badge is a mirror of quest state the game already had: it writes nothing, it stores nothing new, and it never touches your save. Some browsers do not offer this at all (Firefox and iOS Safari, for instance), so the code checks first and does nothing if it is missing. We tested that case on purpose, including deleting the feature from the browser mid-run, and the game played through with zero errors either way.
+
+One moment worth mentioning. Our proof script caught a real bug in the first draft: a failed badge call can reject after the fact, and a plain error handler does not catch that. The check failed, we fixed it before it shipped, and then we proved the fix by having the browser reject the call on purpose. That is the system working.
+
+We also ran our standing check that the home page is honest: What's New names the actual latest release, every link is real and clickable, and the live site matches our copy byte for byte. It passed, so nothing needed fixing.
+
+Small, quiet, and it makes the daily loop visible at the exact moment it still matters. https://flambeee.com
+
+---
+
 ## Session 20, September 15, 2026
 
 ### v0.18.1: Cinder keeps a quest log and your streak
