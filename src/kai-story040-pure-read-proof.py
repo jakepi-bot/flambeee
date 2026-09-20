@@ -52,6 +52,20 @@ import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 RIVEN_WT = "/tmp/flambeee-wt-riven/src/cinder.html"
+REPO = "/home/jake/.openclaw/workspace/flambeee"
+RIVEN_REF = "feature/040-cinder-welcome-back-riven:src/cinder.html"
+
+
+def git_show(ref):
+    """Read a blob straight from the repo, so a moved worktree cannot stale it."""
+    try:
+        r = subprocess.run(["git", "-C", REPO, "show", ref],
+                           capture_output=True, text=True, timeout=30)
+        if r.returncode == 0 and "function computeAwayWindow(" in r.stdout:
+            return r.stdout
+    except Exception:
+        pass
+    return None
 
 # The shipped summary path this proof holds to the contract.
 PATH_FNS = [
@@ -89,8 +103,17 @@ def resolve_source():
         if c and os.path.isfile(c):
             txt = open(c, encoding="utf-8").read()
             if "function computeAwayWindow(" in txt:
-                return c, txt
-    return None, None
+                return c, txt, c
+    txt = git_show(RIVEN_REF)
+    if txt is None:
+        txt = git_show("main:src/cinder.html")
+    if txt is not None:
+        ref = RIVEN_REF if "function computeAwayWindow(" in txt else "main:src/cinder.html"
+        fd, tmp = tempfile.mkstemp(suffix="-cinder.html", prefix="story040-")
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(txt)
+        return tmp, txt, "git:%s (%s)" % (ref, REPO)
+    return None, None, None
 
 
 def strip_comments(js):
@@ -536,9 +559,34 @@ console.log('=== Behavioural proof: computeAwayWindow (extracted from shipped fi
     const w = real.computeAwayWindow(rec(TODAY - g, [TODAY - 1, TODAY - 2]), TODAY);
     if (w.shouldShow && w.streakSurvived) coOccur += 1;
   }
-  console.log('NOTE: with the shipped computeQuestStreak(), shouldShow && streakSurvived co-occurred in '
-    + coOccur + '/19 gap-return cases (gate spec section 4 records this: the reset rebuilds the '
-    + 'record, so the line is normally "broken"; both renderer branches stay verified above).');
+  check(coOccur === 0,
+        'S7 real shipped streak helper: a record whose history reaches yesterday keeps lastPlayIdx '
+        + 'at yesterday, so the window does not open (0/19 co-occurred); the gate spec records this');
+  // The survived branch is still reachable with real code: an inconsistent record
+  // whose day stamp is old while today's quest carries a live completion. The
+  // helper anchors on the live completion, so the streak reads 1 and survives.
+  const survivedRec = rec(TODAY - 4, []);
+  survivedRec.quest.completed = true;
+  const ws = real.computeAwayWindow(survivedRec, TODAY);
+  check(ws.shouldShow === true && ws.streakSurvived === true,
+        'S7 real shipped helpers reach the survived branch: shouldShow true, streakSurvived true '
+        + '[got ' + ws.shouldShow + '/' + ws.streakSurvived + ']');
+  check(real.awayStreakSentence(ws.streakSurvived) === 'Your streak survived.',
+        'S7 survived branch renders the explicit survived line end to end');
+})();
+
+// 7b. Copy thresholds land on the spec strings (Riven owns copy; contract checked).
+(function () {
+  const ctx = makeSandbox();
+  const d = ctx.awayDaysSentence, q = ctx.awayQuestsSentence;
+  check(d(1) === 'You were away for a day.', 'S7b 1 day: "' + d(1) + '"');
+  check(d(3) === 'You were away for 3 days.', 'S7b 3 days: "' + d(3) + '"');
+  check(d(13) === 'You were away for 13 days.', 'S7b 13 days: "' + d(13) + '"');
+  check(d(14) === 'You were away for a while.', 'S7b 14 days (no bare counter): "' + d(14) + '"');
+  check(d(40) === 'You were away for a while.', 'S7b 40 days stays "for a while": "' + d(40) + '"');
+  check(q(0) === '', 'S7b 0 missed quests: line omitted');
+  check(q(1) === '1 quest went uncompleted while you were gone.', 'S7b 1 missed quest: "' + q(1) + '"');
+  check(q(5) === '5 quests went uncompleted while you were gone.', 'S7b 5 missed quests: "' + q(5) + '"');
 })();
 
 // 8. Degradation: no throw, sane result.
@@ -642,14 +690,16 @@ if (failures.length === 0) {
 
 
 def main():
-    src_path, src = resolve_source()
+    src_path, src, label = resolve_source()
     if src_path is None:
         print("BLOCK: no source file containing computeAwayWindow found")
-        print("       tried argv[1], $CINDER_SRC, %s, %s" % (os.path.join(HERE, "cinder.html"), RIVEN_WT))
+        print("       tried argv[1], $CINDER_SRC, %s, %s, git:%s, git:main"
+              % (os.path.join(HERE, "cinder.html"), RIVEN_WT, RIVEN_REF))
         return 2
     digest = hashlib.sha256(src.encode("utf-8")).hexdigest()
     print("=== Story 040 pure-read proof: computeAwayWindow ===")
-    print("source under test: %s" % src_path)
+    print("source under test: %s" % label)
+    print("resolved to: %s" % src_path)
     print("sha256: %s" % digest)
     print("")
 
