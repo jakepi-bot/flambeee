@@ -4,8 +4,8 @@
 **Code under test:** `src/cinder.html`, Riven's branch `feature/040-cinder-welcome-back-riven`, pinned commit `28e5c49` (PR #83)
 **Gate contract:** `flambeee-team/state/040-gate-spec.md`
 **Harness:** `qa-story040.py` (Playwright, real Chromium, venv python at `/home/jake/.openclaw/workspace/.venv/bin/python3`)
-**Run command:** `QA_PORT=8757 /home/jake/.openclaw/workspace/.venv/bin/python3 qa-story040.py`
-**Result:** 167 checks, 0 failed, exit 0 (reproduced twice)
+**Run command:** `QA_PORT=8771 /home/jake/.openclaw/workspace/.venv/bin/python3 qa-story040.py`
+**Result:** 167 checks, 0 failed, exit 0 (run twice on 2026-09-20, identical output both runs)
 
 The artifact is extracted from the pushed commit with `git show 28e5c49:src/cinder.html`, never read from the mutable worktree, so the test cannot pass against uncommitted code.
 
