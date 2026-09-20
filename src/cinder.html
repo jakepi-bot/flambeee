@@ -404,6 +404,112 @@
     return streak;
   }
 
+  // === WELCOME-BACK RETURN SUMMARY (Story 040) ===
+  // Pure read. No writes, no mutation of any argument, no localStorage, no new
+  // field, no state change. `rawDayState` is the day record as loaded from
+  // storage BEFORE checkDailyReset() runs (it may be null, or a corrupt or
+  // partial object), because checkDailyReset() replaces dayState wholesale and
+  // would otherwise report today's index as the last play day. `todayIdx` is
+  // getDayIndex() for this render. Returns
+  // { shouldShow, daysAway, questsMissed, streakSurvived } and degrades to
+  // "show nothing" on any input it cannot trust rather than throwing.
+  function computeAwayWindow(rawDayState, todayIdx) {
+    const hidden = { shouldShow: false, daysAway: 0, questsMissed: 0, streakSurvived: false };
+    try {
+      if (!rawDayState || typeof rawDayState !== 'object') return hidden;
+      if (typeof todayIdx !== 'number' || !isFinite(todayIdx)) return hidden;
+
+      // Last play day: the stored day stamp plus every recorded completion day.
+      // Take the maximum of the valid candidates; null when there are none.
+      let lastPlayIdx = null;
+      if (typeof rawDayState.dayIndex === 'number' && isFinite(rawDayState.dayIndex)) {
+        lastPlayIdx = rawDayState.dayIndex;
+      }
+      const completed = rawDayState.completedQuests;
+      const hasHistory = Array.isArray(completed);
+      const done = {};
+      if (hasHistory) {
+        for (let i = 0; i < completed.length; i++) {
+          const entry = completed[i];
+          if (entry && typeof entry === 'object' &&
+              typeof entry.dayIndex === 'number' && isFinite(entry.dayIndex)) {
+            done[entry.dayIndex] = true;
+            if (lastPlayIdx === null || entry.dayIndex > lastPlayIdx) {
+              lastPlayIdx = entry.dayIndex;
+            }
+          }
+        }
+      }
+      if (lastPlayIdx === null) return hidden;
+
+      // A gap only exists when at least one whole UTC day was fully missed.
+      // Same-day (gapDays 0) and next-day (gapDays 1) returns both stay quiet,
+      // so the Story 033 come-back-tomorrow flow is untouched.
+      const gapDays = todayIdx - lastPlayIdx;
+      const daysAway = gapDays - 1;
+      const out = { shouldShow: false, daysAway: daysAway > 0 ? daysAway : 0, questsMissed: 0, streakSurvived: false };
+      out.shouldShow = daysAway >= 1;
+      if (!out.shouldShow) return out;
+
+      // Quests missed: whole days inside the window with no completion on record.
+      // Today is in progress, not missed, so the window is exclusive at both ends.
+      // With no readable history there is no recorded completion, so every day in
+      // the window counts, which keeps questsMissed <= daysAway.
+      let missed = 0;
+      for (let d = lastPlayIdx + 1; d < todayIdx; d++) {
+        if (!hasHistory || !done[d]) missed += 1;
+      }
+      out.questsMissed = missed;
+      out.streakSurvived = computeQuestStreak(rawDayState) > 0;
+      return out;
+    } catch (e) {
+      return { shouldShow: false, daysAway: 0, questsMissed: 0, streakSurvived: false };
+    }
+  }
+
+  // Story 040 copy. Numbers read as sentences; a long absence is phrased, never
+  // dumped as a bare counter. Plain punctuation, no em dashes, no emoji.
+  function awayDaysSentence(daysAway) {
+    if (daysAway <= 1) return 'You were away for a day.';
+    if (daysAway >= 14) return 'You were away for a while.';
+    return 'You were away for ' + daysAway + ' days.';
+  }
+
+  function awayQuestsSentence(questsMissed) {
+    if (questsMissed <= 0) return '';
+    if (questsMissed === 1) return '1 quest went uncompleted while you were gone.';
+    return questsMissed + ' quests went uncompleted while you were gone.';
+  }
+
+  // The streak line is always explicit, never implied.
+  function awayStreakSentence(streakSurvived) {
+    return streakSurvived ? 'Your streak survived.' : 'Your streak is broken.';
+  }
+
+  // Story 040: the one-time welcome-back return summary. Pure presentation: it
+  // reads the window computed at load and today's quest, and writes nothing.
+  // Back to Town is the primary row; the second row is the pointer to today's
+  // quest. Both use the v0.13.1 data-action delegation, never inline onclick.
+  function renderWelcomeBack() {
+    clearLog();
+    const display = document.getElementById('display');
+    const w = awayWindow || { daysAway: 0, questsMissed: 0, streakSurvived: false };
+    const quest = getActiveQuest();
+    display.innerHTML = '<div class="boxed-menu">' +
+      '<div class="header">=== WELCOME BACK ===</div>' +
+      '<div>' + awayDaysSentence(w.daysAway) + '</div>' +
+      awayQuestsSentence(w.questsMissed) +
+      '<div>' + awayStreakSentence(w.streakSurvived) + '</div>' +
+      '<div class="divider"></div>' +
+      '<div>Today\'s quest: ' + escapeHtml(quest.objective || quest.label || '') + '</div>' +
+      '<div class="divider"></div>' +
+      '<div class="menu-row" data-action="1"><span class="num">1.</span>Back to Town</div>' +
+      '<div class="menu-row" data-action="2"><span class="num">2.</span>Go to today\'s quest</div>' +
+      '</div>';
+    document.getElementById('promptInput').value = '';
+    document.getElementById('promptInput').focus();
+  }
+
   // Story 035: short relative label for a completed-quest day index, used in the
   // quest-log list. today/yesterday/N days ago; oldest history falls back to a
   // plain day number in case of an out-of-range index.
@@ -482,6 +588,8 @@
   let inCombat = false;
   let currentMonster = null;
   let logBuffer = [];
+  let awayWindow = null;   // Story 040: computed once at load, never persisted
+  let returnShown = false; // Story 040: in-memory one-time guard for this page
 
   // === STORAGE HELPERS ===
   function loadSave() {
@@ -1022,6 +1130,9 @@
       case 'questlog':
         handleQuestLogInput(n);
         break;
+      case 'welcomeback':
+        handleWelcomeBackInput(n);
+        break;
       case 'wilderness':
         handleWildernessInput(n);
         break;
@@ -1133,6 +1244,16 @@
     renderTownMenu();
   }
 
+  function handleWelcomeBackInput(n) {
+    if (n === 2) {
+      location = 'quest';
+      renderQuest();
+    } else {
+      location = 'town';
+      renderTownMenu();
+    }
+  }
+
   function handleTavernInput(n) {
     if (n === 1) {
       renderTavern();
@@ -1163,11 +1284,22 @@
   function init() {
     character = loadSave();
     dayState = loadDayState();
+    // Story 040: capture the loaded day record and derive the absence window
+    // BEFORE checkDailyReset(), which replaces dayState wholesale and would
+    // otherwise hand back today's index as the last play day. Pure read: the
+    // window is held in memory for this page load and is never persisted.
+    const rawDayState = dayState;
+    awayWindow = computeAwayWindow(rawDayState, getDayIndex());
     checkDailyReset();
     ensureQuestState();
 
     if (!character) {
       showCharacterCreation();
+    } else if (awayWindow.shouldShow && !returnShown) {
+      returnShown = true;
+      location = 'welcomeback';
+      renderWelcomeBack();
+      renderStatus();
     } else {
       location = 'town';
       renderTownMenu();
