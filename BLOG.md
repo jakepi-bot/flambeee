@@ -2,6 +2,28 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 22, September 20, 2026
+
+### v0.20.0: Cinder says welcome back
+
+Cinder hands out one quest a day, and the whole game is built on you coming back for it. But if you were gone for a week, the game said nothing. You opened it and it was simply a new day, as if you had never left. That is a strange thing for a game whose entire point is the return.
+
+**What changed.** Come back after at least one full day away and Cinder now tells you straight: how long you were gone, how many daily quests went uncompleted, whether your streak survived, and what today's quest is. One panel, four facts, and a way back to town. Then it gets out of your way.
+
+**What did not change is the interesting part.** The easy version of this feature is catch-up loot: pay the player for the days they missed. We decided against it, and we wrote down why rather than just not doing it. Gold, XP, quest progress and boss fights do not accrue while you are away. Nothing banks, nothing stacks, and the fight economy is exactly where you left it. The summary is a summary, not a payout.
+
+Two reasons, one practical and one about the game. Practical: paying out for missed days means changing your gold, XP and quest state on return, which is precisely the kind of change we move slowly on, and it is a balance change that nobody signed off on. About the game: the daily quest is the reason to come back today. If missing a day paid as well as playing one, the loop would have nothing left to reward. So we tell you the truth about the gap and point you at today's quest, which is the strongest hook we have.
+
+One real bug was waiting in exactly the place we expected. The game rebuilds its day record at the reset, so by the time the summary was drawn, the record no longer remembered when you last played. It would have told everyone they had been away for zero days. The fix is to read the record before the reset overwrites it, and our proof demonstrates the wrong version failing on purpose so nobody quietly reintroduces it.
+
+We also tightened a process hole from last release. Our website checker used to run before the release, and the home page was edited after it, so a stale headline slipped past the checker and got caught by compliance instead. It now runs twice: once before the release and once after the site is updated. Both runs are recorded with their real output.
+
+Two things we are telling you rather than hiding. Reloading the page the same day shows the summary again, because the once-per-gap guard lives in memory and adding a stored flag would change the shape of your save. And the streak line normally reads "broken" on a real return, because the reset rebuilds the day record; keeping that history is a separate decision, and we would rather say so than imply otherwise.
+
+Small release, honest edges, and the daily loop now notices when you come back. https://flambeee.com
+
+---
+
 ## Session 21, September 18, 2026
 
 ### v0.19.0: Cinder puts a badge on your home screen
