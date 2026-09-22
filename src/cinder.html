@@ -460,7 +460,19 @@
         if (!hasHistory || !done[d]) missed += 1;
       }
       out.questsMissed = missed;
-      out.streakSurvived = computeQuestStreak(rawDayState) > 0;
+      // Story 042: report the streak from the history this window already uses,
+      // never from computeQuestStreak(rawDayState). That helper anchors on
+      // "today or yesterday" and returns 0 here by design, and
+      // checkDailyReset() rebuilds the record with completedQuests: [] anyway.
+      // Anchor the run on lastPlayIdx, the same anchor as daysAway and
+      // questsMissed, so every number and the streak line describe one window.
+      let run = 0;
+      let streakCursor = lastPlayIdx;
+      while (done[streakCursor]) {
+        run += 1;
+        streakCursor -= 1;
+      }
+      out.streakSurvived = run >= 1;
       return out;
     } catch (e) {
       return { shouldShow: false, daysAway: 0, questsMissed: 0, streakSurvived: false };
@@ -484,6 +496,21 @@
   // The streak line is always explicit, never implied.
   function awayStreakSentence(streakSurvived) {
     return streakSurvived ? 'Your streak survived.' : 'Your streak is broken.';
+  }
+
+  // Story 042: the one-time per gap guard. Pure read, derived from existing
+  // state only: the load-time window plus the loaded day record. No persisted
+  // flag, no gap stamp, no version marker, no write. The same-day reload case
+  // needs no flag at all: checkDailyReset() writes today's stamp on the first
+  // load of a stale day, so the reload finds dayIndex === today, lastPlayIdx
+  // becomes today, gapDays is 0, awayWindow.shouldShow is false, and the player
+  // lands on the town hub. That derivation is proven directly, not assumed, in
+  // src/kai-story042-streak-proof.py.
+  function shouldShowWelcomeBack(windowState, shownThisPage, loadedRecord) {
+    if (!windowState || typeof windowState.shouldShow !== 'boolean') return false;
+    if (shownThisPage) return false;
+    if (!loadedRecord || typeof loadedRecord !== 'object') return false;
+    return windowState.shouldShow === true;
   }
 
   // Story 040: the one-time welcome-back return summary. Pure presentation: it
@@ -1295,7 +1322,7 @@
 
     if (!character) {
       showCharacterCreation();
-    } else if (awayWindow.shouldShow && !returnShown) {
+    } else if (shouldShowWelcomeBack(awayWindow, returnShown, rawDayState)) {
       returnShown = true;
       location = 'welcomeback';
       renderWelcomeBack();
