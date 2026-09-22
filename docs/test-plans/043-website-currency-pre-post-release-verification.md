@@ -72,4 +72,4 @@ Each step records: the exact command, the exit code, `origin latest tag`, `headi
 
 ## Verdict
 
-Recorded in `flambeee-team/qa-results.md`, Session 23 section: run 1 result with exit code, the mirror comparison state, and an explicit statement that run 2 is pending until the post-release step is executed. Run 2 is never claimed green before it is run.
+**Executed 2026-09-22. Run 1: exit 0, RESULT PASS, all checks green, on the entering state (`origin latest tag: v0.20.0`, heading `v0.20.0: Cinder says welcome back`, `cmp exit code: 0`, `play links checked: 5`). Run 2 is PENDING: it has not been run and is not claimed green. The Cinder deploy mirror is currently GREEN against unmerged `main` (`cmp` exit 0, both sha256 `dde7125b...`); after the Story 042 merge it is stale (`cmp` exit 1) until the parent re-syncs it.** Full output and the record format are in `flambeee-team/qa-results.md`, Session 23 section.

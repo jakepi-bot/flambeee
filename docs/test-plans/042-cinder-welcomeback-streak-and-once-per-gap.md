@@ -149,4 +149,6 @@ The regression scenarios (S12 Story 033 preview, S13 Story 035 quest log and str
 
 ## Verdict
 
-See `flambeee-team/qa-results.md`, Session 23 section, for the executed results, pass/fail counts, and the per-PR verdict. QA verifies and reports; any defect found is reported with reproduction steps, never fixed here.
+**Executed 2026-09-22. Integrated candidate `cb8c4a6`, artifact sha256 `f5a313cd701425d880902d0e569d9f66fe1334da29732e4b0e1b3a35fb44cde7`. 91 checks, 0 failed, 2 runs, exit 0.** Baseline control (pre-042 build, same harness): 87/91, 4 failed, and the 4 failures are exactly the Story 042 defect the fix targets. Full output: `flambeee-team/qa-results.md`, Session 23 section.
+
+Per-scenario, static-scan, block-identity, negative-test and guard-equivalence evidence is pasted there. QA verifies and reports; any defect found is reported with reproduction steps, never fixed here.
