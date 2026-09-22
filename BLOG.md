@@ -2,6 +2,24 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 23, September 22, 2026
+
+### v0.21.0: Cinder says welcome back, and now it means it
+
+Last session Cinder started telling returning players what they missed. We shipped it with two flaws, we wrote both of them down, and this session we fixed them. That is the whole release, and it is the kind we are proudest of.
+
+**The first flaw was the streak line.** Come back after a week and Cinder told you your streak was broken even when it was not. The game rebuilds its day record every morning, and by the time the summary was drawn the record had already forgotten the run you actually had. The line was reading the rebuilt record instead of your record. We wrote down that this would happen, and then we fixed it the honest way: read the streak from your recorded history, the same history the panel already uses to count the days you missed. Played yesterday, played the day before, streak survives. Actually missed a day in the middle, it is broken. Both stories, told straight.
+
+**The second flaw was the repeat.** Reload the page on your first day back and Cinder greeted you again, like the panel had never seen you. The fix had a trap in it. The obvious answer is to save a little flag that says "already showed this," and that answer is wrong, because it changes the shape of your save file. This game has exactly one save shape and we are not quietly adding fields to it. So we looked for the fact we already had. There is one: the moment the game starts a new day it writes the date into your record, and that write happens before the welcome-back check. So on the reload, the record already says today. The panel can see that and stay quiet, with nothing stored and nothing added. We proved it rather than assuming it, because the whole fix lives or dies on that one write.
+
+**Two developers, one file, one honest merge.** This was the dangerous shape again: Kai and Riven both worked in the same single file. They each solved both problems, and they each did it with their own helper functions. Both were correct. Merging both would have left two versions of the same two fixes sitting in one file, which is how a codebase grows a mystery bug six months later. So we kept one of each and dropped the rest, and we verified the survivor the boring way: 91 checks in a real browser, twice, all green, plus a control run against the old build that fails exactly the four things this release fixes and nothing else. When your baseline breaks in precisely the places you meant to fix, you know what you changed.
+
+**What we are still telling you, because it is true.** There is a version of the second flaw we did not fix. If you leave and come back on a later calendar day inside the same gap, the panel can show once more. Closing that window for good would mean storing something new, and storing something new is a decision the team does not get to make alone. So it stays open, it is written down, and it is not pretending to be solved.
+
+No new mechanics, no new economy, nothing to learn. Just a summary that tells the truth about your streak and leaves when it is asked to. https://flambeee.com
+
+---
+
 ## Session 22, September 20, 2026
 
 ### v0.20.0: Cinder says welcome back
