@@ -404,6 +404,66 @@
     return streak;
   }
 
+  // Story 042: derive the welcome-back streak status from the last RECORDED
+  // completion run in the loaded day record's history, anchored on the last
+  // recorded play day (the same anchor the away window uses). A pure read with
+  // no writes and no global mutation, so it can be extracted and tested.
+  // Intact run, including a single recorded day, reports survived; a genuine
+  // hole before the last recorded play day, or no recorded completion at all,
+  // reports broken. Mirrors the shape of computeQuestStreak()'s trailing-run
+  // scan but never takes its post-reset outcome as the answer.
+  function computeRecordedStreakSurvived(rawDayState) {
+    try {
+      if (!rawDayState || typeof rawDayState !== 'object') return false;
+      let lastPlayIdx = null;
+      if (typeof rawDayState.dayIndex === 'number' && isFinite(rawDayState.dayIndex)) {
+        lastPlayIdx = rawDayState.dayIndex;
+      }
+      const completed = rawDayState.completedQuests;
+      const done = {};
+      if (Array.isArray(completed)) {
+        for (let i = 0; i < completed.length; i++) {
+          const entry = completed[i];
+          if (entry && typeof entry === 'object' &&
+              typeof entry.dayIndex === 'number' && isFinite(entry.dayIndex)) {
+            done[entry.dayIndex] = true;
+            if (lastPlayIdx === null || entry.dayIndex > lastPlayIdx) {
+              lastPlayIdx = entry.dayIndex;
+            }
+          }
+        }
+      }
+      if (lastPlayIdx === null) return false;
+      let cursor = lastPlayIdx;
+      let run = 0;
+      while (done[cursor]) {
+        run += 1;
+        cursor -= 1;
+      }
+      return run >= 1;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Story 042: the one-time-per-gap guard, derived from existing state only.
+  // True when the loaded day record already carries today's day index, which
+  // means this load is not a real return (the pre-existing checkDailyReset()
+  // wrote today's stamp on the first load of the stale day, so a same-day
+  // reload never sees a stale record again). Pure read: no writes, no new
+  // field, no mutation. A partial or corrupt record returns false, which leaves
+  // the normal Story 040 gate in charge. `todayIdx` is getDayIndex().
+  function computeDayRecordSupersedesReturn(rawDayState, todayIdx) {
+    try {
+      if (!rawDayState || typeof rawDayState !== 'object') return false;
+      if (typeof todayIdx !== 'number' || !isFinite(todayIdx)) return false;
+      return typeof rawDayState.dayIndex === 'number' &&
+        isFinite(rawDayState.dayIndex) && rawDayState.dayIndex === todayIdx;
+    } catch (e) {
+      return false;
+    }
+  }
+
   // === WELCOME-BACK RETURN SUMMARY (Story 040) ===
   // Pure read. No writes, no mutation of any argument, no localStorage, no new
   // field, no state change. `rawDayState` is the day record as loaded from
@@ -460,7 +520,7 @@
         if (!hasHistory || !done[d]) missed += 1;
       }
       out.questsMissed = missed;
-      out.streakSurvived = computeQuestStreak(rawDayState) > 0;
+      out.streakSurvived = computeRecordedStreakSurvived(rawDayState);
       return out;
     } catch (e) {
       return { shouldShow: false, daysAway: 0, questsMissed: 0, streakSurvived: false };
@@ -1289,13 +1349,20 @@
     // otherwise hand back today's index as the last play day. Pure read: the
     // window is held in memory for this page load and is never persisted.
     const rawDayState = dayState;
+    // Story 042: the one-time-per-gap guard is derived from existing state
+    // only. `computeDayRecordSupersedesReturn` suppresses the summary when the
+    // loaded record is already stamped for today, which is exactly the state a
+    // same-day reload finds after the pre-existing saveDayState() call inside
+    // checkDailyReset() writes the fresh record on the first load of a stale
+    // day. Nothing is written here and no field is added.
+    const dayRecordSupersedes = computeDayRecordSupersedesReturn(rawDayState, getDayIndex());
     awayWindow = computeAwayWindow(rawDayState, getDayIndex());
     checkDailyReset();
     ensureQuestState();
 
     if (!character) {
       showCharacterCreation();
-    } else if (awayWindow.shouldShow && !returnShown) {
+    } else if (awayWindow.shouldShow && !returnShown && !dayRecordSupersedes) {
       returnShown = true;
       location = 'welcomeback';
       renderWelcomeBack();
