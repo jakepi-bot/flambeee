@@ -149,6 +149,6 @@ The regression scenarios (S12 Story 033 preview, S13 Story 035 quest log and str
 
 ## Verdict
 
-**Executed 2026-09-22. Integrated candidate `cb8c4a6`, artifact sha256 `f5a313cd701425d880902d0e569d9f66fe1334da29732e4b0e1b3a35fb44cde7`. 91 checks, 0 failed, 2 runs, exit 0.** Baseline control (pre-042 build, same harness): 87/91, 4 failed, and the 4 failures are exactly the Story 042 defect the fix targets. Full output: `flambeee-team/qa-results.md`, Session 23 section.
+**Executed 2026-09-22. Shipping candidate is PR #92 `feature/042-integration-recon` (`4c531a4`), artifact sha256 `e48a1040083013f8e153cf8262074e20115d23245200b36502054f4e9febb56e`. 91 checks, 0 failed, 2 runs, exit 0.** Kai's 47-check proof also green on the same artifact. Baseline control (pre-042 build, same harness): 87/91, 4 failed, and the 4 failures are exactly the Story 042 defect the fix targets. QA's own merge candidate (`cb8c4a6`) was tested first and is behaviourally equivalent; #92 supersedes it with a single implementation. Full output: `flambeee-team/qa-results.md`, Session 23 section.
 
 Per-scenario, static-scan, block-identity, negative-test and guard-equivalence evidence is pasted there. QA verifies and reports; any defect found is reported with reproduction steps, never fixed here.
