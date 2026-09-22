@@ -72,4 +72,8 @@ Each step records: the exact command, the exit code, `origin latest tag`, `headi
 
 ## Verdict
 
-**Executed 2026-09-22. Run 1: exit 0, RESULT PASS, all checks green, on the entering state (`origin latest tag: v0.20.0`, heading `v0.20.0: Cinder says welcome back`, `cmp exit code: 0`, `play links checked: 5`). Run 2 is PENDING: it has not been run and is not claimed green. The Cinder deploy mirror is currently GREEN against unmerged `main` (`cmp` exit 0, both sha256 `dde7125b...`); after the Story 042 merge it is stale (`cmp` exit 1) until the parent re-syncs it.** Full output and the record format are in `flambeee-team/qa-results.md`, Session 23 section.
+**Executed 2026-09-22. Run 1: exit 0, RESULT PASS, all checks green, on the entering state (`origin latest tag: v0.20.0`, heading `v0.20.0: Cinder says welcome back`, `cmp exit code: 0`, `play links checked: 5`).**
+
+**Run 2 at the current post-merge state: FAIL, exit 1.** The live What's New heading now names v0.21.0, but no v0.21.0 tag exists on `origin` (latest tag is still v0.20.0), so the checker fails the heading check with a specific FAIL line. This is the Scenario 6 drift class, caught by the checker. Fix: tag v0.21.0 on `origin`, then re-run; that re-run is the recorded run 2.
+
+The Cinder deploy mirror IS green post-merge: `cmp` exit 0, both sha256 `e48a1040083013f8e153cf8262074e20115d23245200b36502054f4e9febb56e`. Full output and the record format are in `flambeee-team/qa-results.md`, Session 23 section.
