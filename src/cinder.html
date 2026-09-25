@@ -412,7 +412,7 @@
   //
   // Why not computeQuestStreak(): that helper anchors on "today or yesterday"
   // and is therefore blind to history when a stale day record is loaded. The
-  // load path runs checkDailyReset() (src/cinder.html:656) before the quest log
+  // load path runs checkDailyReset() before the quest log
   // can be opened, and the reset rebuilds the day record wholesale with
   // completedQuests: [], so anchoring on the post-reset record reads 0 even when
   // the recorded run is intact. The welcome-back panel on the same screen says
@@ -420,15 +420,19 @@
   // contradicted each other.
   //
   // `rawDayState` is the day record as loaded from storage BEFORE
-  // checkDailyReset() runs: init() captures it at src/cinder.html:1318 and
+  // checkDailyReset() runs: init() captures it at src/cinder.html:1386 and
   // threads it here without writing anything. Null, missing or corrupt history
   // degrades to 0 rather than throwing. Returns a number.
+  //
+  // Requirement 5 is binding: the streak source is the recorded history, never
+  // a post-reset record. When `rawDayState` is unavailable the helper returns 0
+  // rather than falling back to `dayState`, which on the load path is the
+  // rebuilt record with `completedQuests: []`. There is no path on which this
+  // helper reads a post-reset record.
   function computeQuestLogStreak(dayState, rawDayState) {
     try {
-      const rec = (rawDayState && typeof rawDayState === 'object')
-        ? rawDayState
-        : ((dayState && typeof dayState === 'object') ? dayState : null);
-      if (!rec) return 0;
+      if (!rawDayState || typeof rawDayState !== 'object') return 0;
+      const rec = rawDayState;
 
       // Recorded completion days, plus the raw day stamp. The day stamp counts
       // as a candidate even with no completion on it, exactly as
