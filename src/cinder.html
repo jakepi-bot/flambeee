@@ -404,11 +404,11 @@
     return streak;
   }
 
-  // Story 044: the quest log's honest streak source. A pure read with no
-  // writes, no global mutation and no new field, so Kai's proof script can
+  // Story 044: the quest log honest streak source. A pure read with no
+  // writes, no global mutation and no new field, so the proof script can
   // extract and test it. It answers the question the quest log actually asks:
   // how long is the run of consecutive recorded play days that reaches the
-  // player's last recorded play day?
+  // last recorded play day?
   //
   // Why not computeQuestStreak(): that helper anchors on "today or yesterday"
   // and is therefore blind to history when a stale day record is loaded. The
@@ -427,8 +427,8 @@
   // Requirement 5 is binding: the streak source is the recorded history, never
   // a post-reset record. When `rawDayState` is unavailable the helper returns 0
   // rather than falling back to `dayState`, which on the load path is the
-  // rebuilt record with `completedQuests: []`. There is no path on which this
-  // helper reads a post-reset record.
+  // rebuilt record with `completedQuests: []`. No path reads a post-reset
+  // record here.
   function computeQuestLogStreak(dayState, rawDayState) {
     try {
       if (!rawDayState || typeof rawDayState !== 'object') return 0;
