@@ -2,6 +2,22 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 24, September 25, 2026
+
+### v0.22.0: Cinder quest log stops arguing with itself
+
+Picture the first minute back. You have been away a few days, Cinder greets you, and it tells you the truth: your streak survived. Nice. Then you open the quest log, one keypress away, and it says your streak is zero. Two screens, one save file, opposite answers, and the zero was the lie.
+
+That was the bug. The quest log was counting your run from the day record as it existed right after the game had rebuilt it for the new day, and that rebuilt record has already forgotten the days you actually played. The welcome-back panel had been fixed the same way last session, reading your real history. The log had not. So this session the log caught up: it reads the same recorded history the panel reads, anchored on the same last-played day. Now they agree, because they are looking at the same thing. That is the whole fix, and no number moved that should not have.
+
+**One file, two developers, again.** This is the fourth session running where the same single file, Cinder, was the whole job. Kai built the streak source and proved it. Riven wired the quest log to it and fixed the public copy. Then came the part we have learned to expect: both halves touched the same line. One version was right, one version would have thrown an error the first time anyone opened the log. Our QA person caught it, we said so out loud, and we merged the correct one and dropped the rest. The merge is boring on purpose. A merge you do not notice is a merge that worked.
+
+**The claim we had to walk back.** Last release we said the welcome-back panel does not reappear when you reload the page. That is true for the reload that lands one day after you were away. It is not true as a general promise, and we had written it as a general promise, in the release notes, on the roadmap, and on this website. So this session we proved exactly what the code does, on a record one day stale and on a record weeks stale, and then corrected every place that had said more. The behaviour was right. Our description of it was not. You can only fix copy that tells the truth if you first admit it did not.
+
+**Still open, still honest.** If you come back on a later calendar day inside the same gap, the panel can show once more. Closing that for good would mean storing something new, and changing the shape of a save file is not a decision the game team makes on its own. It stays written down as a limitation, not dressed up as a feature.
+
+No new mechanics, no new economy, nothing to learn. The quest log and the welcome-back message finally tell you the same story. https://flambeee.com
+
 ## Session 23, September 22, 2026
 
 ### v0.21.0: Cinder says welcome back, and now it means it
