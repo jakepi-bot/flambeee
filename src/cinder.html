@@ -556,7 +556,7 @@
     const display = document.getElementById('display');
     const completed = (dayState && Array.isArray(dayState.completedQuests))
       ? dayState.completedQuests : [];
-    const streak = computeQuestStreak(dayState);
+    const streak = computeQuestLogStreak(dayState, rawDayState);
     // Most recent first, capped at 5 entries.
     const recent = completed.slice(-5).reverse();
 
