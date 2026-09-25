@@ -404,6 +404,72 @@
     return streak;
   }
 
+  // Story 044: the quest log's honest streak source. A pure read with no
+  // writes, no global mutation and no new field, so Kai's proof script can
+  // extract and test it. It answers the question the quest log actually asks:
+  // how long is the run of consecutive recorded play days that reaches the
+  // player's last recorded play day?
+  //
+  // Why not computeQuestStreak(): that helper anchors on "today or yesterday"
+  // and is therefore blind to history when a stale day record is loaded. The
+  // load path runs checkDailyReset() (src/cinder.html:656) before the quest log
+  // can be opened, and the reset rebuilds the day record wholesale with
+  // completedQuests: [], so anchoring on the post-reset record reads 0 even when
+  // the recorded run is intact. The welcome-back panel on the same screen says
+  // "Your streak survived." for exactly that record, so the two surfaces
+  // contradicted each other.
+  //
+  // `rawDayState` is the day record as loaded from storage BEFORE
+  // checkDailyReset() runs: init() captures it at src/cinder.html:1318 and
+  // threads it here without writing anything. Null, missing or corrupt history
+  // degrades to 0 rather than throwing. Returns a number.
+  function computeQuestLogStreak(dayState, rawDayState) {
+    try {
+      const rec = (rawDayState && typeof rawDayState === 'object')
+        ? rawDayState
+        : ((dayState && typeof dayState === 'object') ? dayState : null);
+      if (!rec) return 0;
+
+      // Recorded completion days, plus the raw day stamp. The day stamp counts
+      // as a candidate even with no completion on it, exactly as
+      // computeAwayWindow() treats it at src/cinder.html:425-446, so the two
+      // surfaces describe one window and cannot contradict each other.
+      const done = {};
+      let lastPlayIdx = null;
+      if (typeof rec.dayIndex === 'number' && isFinite(rec.dayIndex)) {
+        lastPlayIdx = rec.dayIndex;
+      }
+      const completed = rec.completedQuests;
+      if (Array.isArray(completed)) {
+        for (let i = 0; i < completed.length; i++) {
+          const entry = completed[i];
+          if (entry && typeof entry === 'object' &&
+              typeof entry.dayIndex === 'number' && isFinite(entry.dayIndex)) {
+            done[entry.dayIndex] = true;
+            if (lastPlayIdx === null || entry.dayIndex > lastPlayIdx) {
+              lastPlayIdx = entry.dayIndex;
+            }
+          }
+        }
+      }
+      if (lastPlayIdx === null) return 0;
+
+      // Count the consecutive run ending at the last recorded play day. Same
+      // trailing-run shape as computeQuestStreak() (src/cinder.html:382-404),
+      // re-anchored. A hole ends the run here, which is the story's requirement
+      // 3 case, and it is the same run length the panel's streak line uses.
+      let cursor = lastPlayIdx;
+      let streak = 0;
+      while (done[cursor]) {
+        streak += 1;
+        cursor -= 1;
+      }
+      return streak;
+    } catch (e) {
+      return 0;
+    }
+  }
+
   // === WELCOME-BACK RETURN SUMMARY (Story 040) ===
   // Pure read. No writes, no mutation of any argument, no localStorage, no new
   // field, no state change. `rawDayState` is the day record as loaded from
@@ -556,7 +622,7 @@
     const display = document.getElementById('display');
     const completed = (dayState && Array.isArray(dayState.completedQuests))
       ? dayState.completedQuests : [];
-    const streak = computeQuestStreak(dayState);
+    const streak = computeQuestLogStreak(dayState, questLogAnchor);
     // Most recent first, capped at 5 entries.
     const recent = completed.slice(-5).reverse();
 
@@ -617,6 +683,7 @@
   let logBuffer = [];
   let awayWindow = null;   // Story 040: computed once at load, never persisted
   let returnShown = false; // Story 040: in-memory one-time guard for this page
+  let questLogAnchor = null; // Story 044: loaded pre-reset record for the log's streak, never persisted
 
   // === STORAGE HELPERS ===
   function loadSave() {
@@ -1317,6 +1384,12 @@
     // window is held in memory for this page load and is never persisted.
     const rawDayState = dayState;
     awayWindow = computeAwayWindow(rawDayState, getDayIndex());
+    // Story 044: hold the loaded (pre-reset) record for this page load. The
+    // quest log derives its streak from this record's history
+    // (computeQuestLogStreak), so the number it prints describes the same run
+    // the welcome-back panel just described. Read only: assigned in memory, and
+    // never persisted.
+    questLogAnchor = rawDayState;
     checkDailyReset();
     ensureQuestState();
 
