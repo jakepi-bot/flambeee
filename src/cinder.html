@@ -474,6 +474,42 @@
     }
   }
 
+  // Story 047: the quest log recent-quests list source. A pure read with no
+  // writes, no global mutation and no new field, so the proof script can extract
+  // and test it. It answers the same question the number answers: which run of
+  // recorded play days does this screen describe?
+  //
+  // Why the anchor and not dayState: the number reads the pre-reset record
+  // (computeQuestLogStreak(dayState, questLogAnchor)), but the list read
+  // dayState.completedQuests directly, and the load path runs
+  // checkDailyReset() before the log can be opened. The reset rebuilds the day
+  // record wholesale with completedQuests: [], so on the first load of a stale
+  // record the number printed a nonzero streak beside an empty list. Sourcing
+  // the list from the same anchor makes the two expressions describe one record,
+  // which is what requirement 2 asks for.
+  //
+  // Guarded: a null, non-object or history-less anchor falls back to the
+  // post-reset record only when that record carries a usable array. Entries that
+  // are not objects are skipped so a corrupt array cannot throw in the render.
+  // Returns an array, always, never null. No path writes.
+  function computeRecentQuestEntries(anchor, fallback) {
+    try {
+      if (anchor && typeof anchor === 'object' && Array.isArray(anchor.completedQuests)) {
+        return anchor.completedQuests.filter(function (entry) {
+          return entry && typeof entry === 'object';
+        });
+      }
+      if (fallback && typeof fallback === 'object' && Array.isArray(fallback.completedQuests)) {
+        return fallback.completedQuests.filter(function (entry) {
+          return entry && typeof entry === 'object';
+        });
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
   // === WELCOME-BACK RETURN SUMMARY (Story 040) ===
   // Pure read. No writes, no mutation of any argument, no localStorage, no new
   // field, no state change. `rawDayState` is the day record as loaded from
@@ -624,8 +660,7 @@
   function renderQuestLog() {
     clearLog();
     const display = document.getElementById('display');
-    const completed = (dayState && Array.isArray(dayState.completedQuests))
-      ? dayState.completedQuests : [];
+    const completed = computeRecentQuestEntries(questLogAnchor, dayState);
     const streak = computeQuestLogStreak(dayState, questLogAnchor);
     // Most recent first, capped at 5 entries.
     const recent = completed.slice(-5).reverse();
