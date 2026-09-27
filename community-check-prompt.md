@@ -75,10 +75,19 @@ from a non-owner user, or a new DM):
 
 ## Step 4 — Log (1 edit)
 
-Append the check results to `/home/jake/.openclaw/workspace/memory/flambeee-community.md` using `edit`.
-Follow the existing format there (timestamped `[YYYY-MM-DD HH:MM CDT]` lines). Use the current date/time
-from Step 1's `date` output or the run time. If nothing new, add short "checked, nothing new" lines for
-GitHub and Bluesky (matching the existing style), plus a Vigil line.
+PREPEND the check results to the TOP of `/home/jake/.openclaw/workspace/memory/flambeee-community.md`
+using `edit`. **The file is NEWEST-FIRST** — insert your new block immediately below the header comment
+and ABOVE the current topmost timestamped block. Never append to the bottom.
+
+Format: one block of three lines (GitHub, Bluesky, Vigil) all sharing the same `[YYYY-MM-DD HH:MM CDT]`
+timestamp, followed by a single blank line separating it from the previous block. Use the current
+date/time from Step 1's `date` output or the run time. If nothing new, add short "checked, nothing new"
+lines for GitHub and Bluesky (matching the existing style), plus a Vigil line.
+
+(Why this is explicit: the file is read newest-first, so bottom-appending produces an out-of-order file
+whose top block shows a stale date. That misordering is how the 2026-09-24/25 sessions concluded,
+incorrectly, that community logging had "stopped on 2026-09-22" — the entries were all present, just
+below the fold. Corrected 2026-09-27.)
 
 ## NOTIFICATION RULE
 
