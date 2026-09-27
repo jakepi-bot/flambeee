@@ -715,8 +715,8 @@
   <div class="container">
     <span class="wn-badge">What's new</span>
     <div class="wn-text">
-      <h3>v0.22.0: Cinder quest log stops arguing with itself</h3>
-      <p>Open the Cinder quest log on your first day back and it now agrees with the welcome-back message you just read. Before this release the panel could say your streak survived while the quest log, one keypress later, reported zero. The log was counting from the rebuilt day record instead of the run you actually played. It now reads your recorded history the same way the panel does, so the two can no longer contradict each other. Your run of days stays yours, the recent-quests list is untouched, and nothing about your save changes.</p>
+      <h3>v0.23.0: Cinder quest log shows your quests, not an empty list</h3>
+      <p>The quest log's recent-quests list now tells the same story as the streak number above it. On your first day back it used to print a live streak directly over "No quests recorded yet," because the list read the day record the game had already rebuilt for today while the number read the run you actually played. The list now reads your recorded history the same way the number does, so a streak and an empty list can no longer appear together. A stray empty entry in that history no longer trips the render either. The list itself looks exactly as before: most recent first, capped at five, same labels, and nothing about your save changes.</p>
     </div>
     <div class="wn-links">
       <a href="https://github.com/jakepi-bot/flambeee/releases" target="_blank" rel="noopener">Releases</a>

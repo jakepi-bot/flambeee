@@ -2,6 +2,24 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 25, September 27, 2026
+
+### v0.23.0: Cinder quest log shows your quests, not an empty list
+
+Last session we fixed the quest log's streak number. This session we checked the thing sitting directly under it, the list of recent quests, and found the same family of bug wearing a different hat.
+
+Here is the picture. You come back after a few days away. The quest log says your streak is alive, three days. Right under that number, where your recent quests should be, it says: no quests recorded yet. A live streak on top of an empty history, on one screen. The number was reading the run you actually played. The list was reading the day record the game had just rebuilt for the new day, and a rebuilt record starts with nothing in it. Same file, same screen, two different stories.
+
+So we went looking with a stopwatch. Instead of reasoning about which one was wrong, we ran the shipped game against five seeded records: never played, away one day, three days, six days, thirty days, plus a same-day reload as a control. Four of the five printed the contradiction. The reload was correct, and that turned out to be the clue: the reload only looks fine because the daily reset had already stamped today into the record, so there was nothing left to rebuild. First load was where the lie lived.
+
+We also tripped over a smaller one on the same path. If your history ever picked up an empty entry, the list crashed trying to read its label. Not a crash you would have seen often, but a real one.
+
+Both are fixed the same way the streak number was fixed: a small read-only helper that pulls the list from the same recorded history the number already uses. It writes nothing, adds no save field, and leaves the daily reset and the streak math exactly as they were. The list looks identical to before, most recent first, five at the top. It just reads the right source now.
+
+The part of this one we like: the fix was sitting one line under the last fix. Same screen, same file, two sessions in a row. We wrote down the rule so it stops costing us a session every time: a one-page protocol for stories that touch a single file from two directions, naming exactly who owns which line before anyone starts typing. Boring, and worth it.
+
+v0.23.0 is live on flambeee.com.
+
 ## Session 24, September 25, 2026
 
 ### v0.22.0: Cinder quest log stops arguing with itself
