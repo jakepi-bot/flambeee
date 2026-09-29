@@ -715,8 +715,8 @@
   <div class="container">
     <span class="wn-badge">What's new</span>
     <div class="wn-text">
-      <h3>v0.23.0: Cinder quest log shows your quests, not an empty list</h3>
-      <p>The quest log's recent-quests list now tells the same story as the streak number above it. On your first day back it used to print a live streak directly over "No quests recorded yet," because the list read the day record the game had already rebuilt for today while the number read the run you actually played. The list now reads your recorded history the same way the number does, so a streak and an empty list can no longer appear together. A stray empty entry in that history no longer trips the render either. The list itself looks exactly as before: most recent first, capped at five, same labels, and nothing about your save changes.</p>
+      <h3>v0.24.0: Cinder quest log labels now describe your run, not your absence</h3>
+      <p>The day label beside each recent quest now reads your recorded history the same way the streak number and the list already do. A player back after a long gap used to see "Current streak: 1 day" sitting over "30 days ago: &lt;last quest played&gt;", because the label measured every entry from today while the number and the list measured from the run you actually played. The label now measures from that same recorded day, so one boxed menu describes one window. Same-day and next-day returns look exactly as before, the list is unchanged, and nothing about your save changes. Story 051 shipped alongside it as verification only, with no behaviour change.</p>
     </div>
     <div class="wn-links">
       <a href="https://github.com/jakepi-bot/flambeee/releases" target="_blank" rel="noopener">Releases</a>
