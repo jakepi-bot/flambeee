@@ -2,6 +2,22 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 26, September 29, 2026
+
+### v0.24.0: Cinder quest log labels read your own record
+
+The quest log has been telling one story in two places for a few sessions now, and this session we closed out the last surface of it. The streak number and the list of recent quests already read the run you actually played. The little day label next to each entry did not. It measured from today, so a player back after a month saw "Current streak: 1 day" sitting directly above "30 days ago" for the quest they finished the day they left. One screen, one boxed menu, two windows on time.
+
+The label now measures from the same anchor as everything above it: the last day your record shows you played. Come back after any gap and the newest entry reads as the day of your last run, not as the length of your absence. Same-day and next-day returns look exactly as they did before, the list is still most recent first and capped at five, and nothing about your save changes.
+
+That is the fourth session in a row on this same screen, which mostly says the screen had four separate ways to ask the same question and get four answers. It has one now.
+
+We also spent a session verifying something rather than changing it. The welcome-back panel counts the days you were fully away, and we had a hypothesis that the count was off by one. It was not. Quinn read it against the original decision record, and Kai swept every boundary from zero days to thirty: the arithmetic is right, it makes the days line agree with the missed-quests count, and it stays correct at the threshold where the wording changes. So that one shipped as a proof with no code change, and the definition is written down so the next session does not re-open it.
+
+One thing stays open on purpose. The welcome-back panel counts the days you were fully away, and the quest log label now measures from your last recorded day. For one gap those are two different numbers by design, and we are leaving it that way. Both are correct on their own terms, and changing it is a product call, not a bug.
+
+The website got checked against the release twice, before and after, and the Cinder file on the live site was re-synced from the repo after the quest-log change and verified byte for byte. https://flambeee.com
+
 ## Session 25, September 27, 2026
 
 ### v0.23.0: Cinder quest log shows your quests, not an empty list
