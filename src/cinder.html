@@ -646,8 +646,43 @@
   // Story 035: short relative label for a completed-quest day index, used in the
   // quest-log list. today/yesterday/N days ago; oldest history falls back to a
   // plain day number in case of an out-of-range index.
-  function dayLabelForIndex(dayIdx) {
-    const diff = getDayIndex() - dayIdx;
+  //
+  // Story 050: the reference point is the record's own anchor, not today. The
+  // number (computeQuestLogStreak) and the list (computeRecentQuestEntries)
+  // both read the pre-reset record's last recorded play day, so the label
+  // measures its difference from that same day. Before this, the label used
+  // getDayIndex() and a 30-day-stale record printed a 1-day streak beside an
+  // entry labelled 30 days ago: the screen described two windows at once.
+  //
+  // The anchor is derived the same way computeQuestLogStreak() and
+  // computeRecentQuestEntries() derive it: the maximum valid candidate from the
+  // record's own `dayIndex` and the valid `completedQuests` entries' dayIndex
+  // values. When that cannot be derived (null, non-object, or no valid day),
+  // the label falls back to the pre-fix form measured from getDayIndex(), so a
+  // corrupt record renders as v0.23.0 did rather than throwing or labelling
+  // every entry against itself.
+  function dayLabelForIndex(dayIdx, anchor) {
+    let refIdx = getDayIndex();
+    if (typeof dayIdx === 'number' && isFinite(dayIdx) && anchor && typeof anchor === 'object') {
+      let lastPlayIdx = null;
+      if (typeof anchor.dayIndex === 'number' && isFinite(anchor.dayIndex)) {
+        lastPlayIdx = anchor.dayIndex;
+      }
+      const completed = anchor.completedQuests;
+      if (Array.isArray(completed)) {
+        for (let i = 0; i < completed.length; i++) {
+          const entry = completed[i];
+          if (entry && typeof entry === 'object' &&
+              typeof entry.dayIndex === 'number' && isFinite(entry.dayIndex)) {
+            if (lastPlayIdx === null || entry.dayIndex > lastPlayIdx) {
+              lastPlayIdx = entry.dayIndex;
+            }
+          }
+        }
+      }
+      if (lastPlayIdx !== null) refIdx = lastPlayIdx;
+    }
+    const diff = refIdx - dayIdx;
     if (diff === 0) return 'today';
     if (diff === 1) return 'yesterday';
     if (diff > 1) return diff + ' days ago';
@@ -669,7 +704,7 @@
     if (recent.length > 0) {
       listHtml = recent.map(function (entry) {
         const title = escapeHtml(entry.objective || entry.label || '');
-        return '<div>' + dayLabelForIndex(entry.dayIndex) + ': ' + title + '</div>';
+        return '<div>' + dayLabelForIndex(entry.dayIndex, questLogAnchor) + ': ' + title + '</div>';
       }).join('');
     }
 
