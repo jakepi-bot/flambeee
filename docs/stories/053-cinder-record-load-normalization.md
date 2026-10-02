@@ -96,39 +96,52 @@ place in the record where the team stores free-form data written from game state
 hand-edited or foreign-written record to carry a wrong-typed leaf. That is why requirement 2
 normalizes the entry leaves and not just the array.
 
-### Code read, verified against v0.24.0 (Quinn, Session 27 Wave 2)
+### Code read facts (Quinn, Session 27 Wave 2, verified against tagged v0.24.0)
 
-The session plan's hypothesis was **confirmed by direct read**, not merely assumed. The load path
-does no shape validation:
+The load path does no shape validation at all:
 
 - `loadDayState()` (`src/cinder.html:778-785`) is `try { JSON.parse(data) } catch { return null }`.
   The parsed value is returned as-is, whatever its shape.
 - `init()` (`src/cinder.html:1452-1468`) does `dayState = loadDayState()`, then
   `const rawDayState = dayState`, then `awayWindow = computeAwayWindow(rawDayState, getDayIndex())`,
   then `questLogAnchor = rawDayState`, then `checkDailyReset()`, then `ensureQuestState()`.
-- `checkDailyReset()` (`src/cinder.html:797-810`) branches on `dayState.dayIndex !== today`.
-- `ensureQuestState()` (`src/cinder.html:249-260`) patches only `quest` and `completedQuests`.
+- `checkDailyReset()` (`src/cinder.html:797-807`) branches on `dayState.dayIndex !== today`.
+- `ensureQuestState()` (`src/cinder.html:249-259`) patches only `quest` and `completedQuests`.
 
-Two sharpenings the plan does not state, both load-bearing for how the fix is written:
+Three sharpenings the plan does not state, each load-bearing for how the fix is written:
 
-1. **The counters are the genuinely unguarded hole, not `dayIndex`.** A corrupt `dayIndex` is
-   already safe by accident: the reset's comparison is strict `!==`, so a string, `NaN`, or `null`
-   index compares unequal and the record is rebuilt wholesale. `fightsUsed` and `innHealsUsed`
-   have **no** such guard. They are only ever read by subtraction at four sites:
-   `renderStatus()` (`:862`, `MAX_FIGHTS_PER_DAY - dayState.fightsUsed`),
-   `renderInn()` (`:982`), `enterWilderness()` (`:1067`, `>=` guard), and `handleInnInput()`
-   (`:1380`). None of them clamps. A record with `fightsUsed: -3` renders the status line as
-   "Fights: 18" on a game whose daily cap is 15, and `fightsUsed: 999` renders "Fights: -984".
-   That is the concrete user-visible defect this story closes, and it is a plain arithmetic
-   rendering bug, not a throw. The `dayIndex` half of the story is hardening, not a live defect.
-2. **`rawDayState` and `questLogAnchor` are the same object reference as `dayState`, captured
+1. **A corrupt `dayIndex` is already safe by accident; the counters and the entry leaves are not.**
+   The reset's comparison is strict `!==`, so a string, `NaN`, `null` or absent index compares
+   unequal and the record is rebuilt wholesale. The `dayIndex` half of this story is therefore
+   hardening, not a live defect, and the story says so rather than inflating it. `fightsUsed` and
+   `innHealsUsed` have **no** such guard: they are only ever read by subtraction at four sites,
+   `renderStatus()` (`:862`), `renderInn()` (`:982`), `enterWilderness()` (`:1067`, a `>=` guard)
+   and `handleInnInput()` (`:1380`). None clamps. That is defect 2 above. The entry leaves are
+   defect 1 above, and they are the sharper half of the hole.
+2. **The read guards are field-level, never entry-level.** Every guard in the family checks a
+   container (`Array.isArray`, `typeof === 'object'`, `isFinite`) and none checks a leaf value.
+   `completedQuests` entries are the only free-form data in the record, written from game state at
+   `completeQuest()` (`src/cinder.html:321-325`), which makes them both the likely site of a
+   hand-edited or foreign-written wrong-typed leaf and the place a future reader will forget to
+   guard. Hence requirement 2 normalizes entry leaves, not just the array.
+3. **`rawDayState` and `questLogAnchor` are the same object reference as `dayState`, captured
    before the reset rebinds it.** `checkDailyReset()` reassigns `dayState` to a fresh object rather
-   than mutating, which is what preserves the pre-reset anchors. Therefore the normalization must
-   run **before** the anchor capture, and the normalized object must be the single value assigned
-   to all three of `dayState`, `rawDayState` and `questLogAnchor`. If normalization were applied
-   only to `dayState` after the anchors were captured, the anchors would still hold the un-normalized
-   parse, and every read surface would keep its old input. This is a correctness requirement on
-   call-site placement, not a style preference.
+   than mutating, which is what preserves the pre-reset anchors. On the **same-day** branch it does
+   not reassign at all, so all three names alias one object. Therefore normalization must run
+   **before** the anchor capture, and the normalized object must be the single value assigned to
+   `dayState`, `rawDayState` and `questLogAnchor`. If normalization were applied only to `dayState`
+   after the anchors were captured, the anchors would still hold the un-normalized parse and every
+   read surface would keep its old input. This is a correctness requirement on call-site placement,
+   not a style preference; it is bound in requirement 1 and proven by Scenario 3b.
+
+### Corrected shape of the session plan's hypothesis
+
+The plan says the load path "has no equivalent normalization" and asks for the record to be
+"normalized once on load". That is confirmed. What the plan does not say, and what this code read
+changes about the story's shape, is that there is **one throw defect and one arithmetic defect**,
+not one undifferentiated hardening class. The throw is the priority (Scenario 1a); the counter
+clamp is the second (Scenario 3). Neither is reachable through a frozen function, so the frozen-set
+rule costs this story nothing.
 
 ## Business value
 
@@ -188,9 +201,24 @@ negative count, or letting one screen describe a different record than another.
   If present, keep the object; do not add fields.
 - `completedQuests`: an array. A missing or non-array value normalizes to `[]`. If it is an array,
   keep only entries that are objects (the same filter `computeRecentQuestEntries()` applies); a null
-  or non-object entry is dropped. Within kept entries, do not invent fields; a missing or
-  non-numeric `dayIndex` on an entry may be left as-is (the read helpers already guard it), or
-  dropped, whichever the parent names as the single rule before dev starts.
+  or non-object entry is dropped.
+- **Entry leaves (this is the reproduced throw).** For each kept entry, `objective` and `label`
+  must normalize to a **string**. A non-string, `null`, `undefined`, or missing leaf becomes `''`.
+  This rule is what prevents the `TypeError` at `src/cinder.html:706`. A record written by the game
+  always has string leaves, so this normalization is a no-op for every legitimate record.
+  It must be applied on the **load path**, not at the render call site: do not add a `String(...)`
+  wrap, a `typeof` check, or a try/catch inside `renderQuestLog()` or `escapeHtml()`. The record is
+  the thing that is malformed, so the record is where it is repaired, once.
+- An entry's `dayIndex` may be left as-is (the read helpers already guard it) or dropped, whichever
+  the parent names as the single rule before dev starts. Do not invent entry fields.
+
+### 2b. What the normalizer must not do
+
+- It must not repair the record by **writing**: no `saveDayState()`, no backfill, no migration of
+  the stored value. A corrupt record stays corrupt on disk and is repaired in memory on every load.
+- It must not drop a legitimately completed quest. For a well-formed history the normalized
+  `completedQuests` array is element-for-element equal to the input, in the same order.
+- It must not change what a **valid** record renders (requirement 3).
 
 ### 3. No behavior change for a valid record
 
@@ -225,30 +253,51 @@ If the only correct fix requires a persisted field or a change to the stored sha
 
 ## Acceptance Criteria (Given/When/Then)
 
-**Scenario 1: null or non-numeric day index**
+**Scenario 1a: a wrong-typed quest title does not throw in the quest log (P1, the headline defect)**
+- Given a stored record stamped for today whose `completedQuests` holds an entry whose `objective`
+  is a number rather than a string,
+- When the game loads and the player opens the Quest Log (town-hub row 9),
+- Then the quest log renders without an exception, the offending entry shows its label (or the
+  empty title) rather than crashing the view, and no `TypeError` appears in the console.
+- Against shipped v0.24.0 this scenario fails: the render throws
+  `TypeError: str.replace is not a function` at `src/cinder.html:706`. Scout records the before
+  render in real Chromium and the after render.
+
+**Scenario 1b: a wrong-typed title on a stale record, through the anchors**
+- Given the same entry shape in a record stamped for a **previous** day,
+- When the game loads and the player opens the Quest Log,
+- Then the list, the streak number and the day labels all render from the normalized record and
+- no read surface throws. (On a stale day the reset rebuilds `dayState`, so this case exercises the
+  path where the anchors and the live record differ; Scenario 1a exercises the same-day alias
+  case. Both are in the proof matrix.)
+
+**Scenario 2: null or non-numeric day index**
 - Given a stored record whose `dayIndex` is absent, null, a string, or `NaN`,
 - When the game loads,
 - Then `normalizeDayRecord()` returns `null` (or a record with no usable index), the existing
   `!dayState` path runs, and no read surface throws; the existing empty state renders.
+  (Record honestly: against v0.24.0 this path is already safe by accident, because the reset's
+  strict `!==` rebuilds the record. This scenario is hardening, not a fix.)
 
-**Scenario 2: missing or non-array completedQuests**
+**Scenario 3: missing or non-array completedQuests**
 - Given a stored record missing `completedQuests` or with it set to a non-array,
 - When the game loads,
 - Then the normalized record carries `[]` (or the filtered array) and the quest log renders its
   empty-state line `"No quests recorded yet. Finish today's quest to start your log."` unchanged,
   and the streak number reads 0.
 
-**Scenario 3: out-of-range or wrong-type counters (the live defect)**
+**Scenario 4: out-of-range or wrong-type counters (defect 2)**
 - Given a stored record with `fightsUsed` or `innHealsUsed` set to a negative, fractional, `NaN`, or
   over-max value,
 - When the game loads and the town hub renders,
 - Then each counter is clamped to the documented range, the status line shows a fights-left value
   within `[0, 15]` and the inn shows a heals-left value within `[0, 3]`, and no surface renders a
-  negative or over-max count. (Against v0.24.0 specifically: `fightsUsed: -3` renders "Fights: 18"
-  and `fightsUsed: 999` renders "Fights: -984". Those two renders are the before/after Scout
-  records.)
+  negative or over-max count.
+- Against shipped v0.24.0 the two seeds Scout records are: `fightsUsed: 99` renders
+  **`Fights: -84`**, and `fightsUsed: -5` renders **`Fights: 20`** on a game capped at 15. Those
+  are the before values; the after values are within `[0, 15]`.
 
-**Scenario 3b: normalized record is the one the anchors read**
+**Scenario 5: normalized record is the one the anchors read**
 - Given a stored record with a corrupt `completedQuests` (non-array) and an out-of-range
   `fightsUsed`,
 - When the game loads and the quest log opens,
@@ -257,26 +306,26 @@ If the only correct fix requires a persisted field or a change to the stored sha
   `completedQuests: "not-an-array"` and `fightsUsed: -3` produces the empty-state log line and a
   fights-left of 15, which is only reachable if the anchors hold the normalized value.
 
-**Scenario 4: valid record (control, no regression)**
+**Scenario 6: valid record (control, no regression)**
 - Given a valid v0.24.0 record,
 - When the game loads,
 - Then the normalized record equals the parsed record field by field, and every read surface
   (quest log number, quest log list, quest-log labels, welcome-back panel) renders exactly as
   v0.24.0.
 
-**Scenario 5: corrupt entries in an otherwise valid array**
+**Scenario 7: corrupt entries in an otherwise valid array**
 - Given a `completedQuests` array containing a null and a non-object entry,
 - When the game loads and the quest log opens,
 - Then the non-object entries are skipped, the remaining entries render, and the render does not
   throw.
 
-**Scenario 6: no write**
+**Scenario 8: no write**
 - Given any of the inputs above,
 - When the game loads and renders,
 - Then both localStorage keys are byte-identical before and after, and `saveDayState()` is not
   called by the normalization.
 
-**Scenario 7: frozen functions**
+**Scenario 9: frozen functions**
 - Given the merged change,
 - When the five frozen functions are extracted from the candidate and from tagged v0.24.0,
 - Then they are byte-identical.
@@ -284,27 +333,67 @@ If the only correct fix requires a persisted field or a change to the stored sha
 ## Required Proof
 
 - **Pure-function proof script:** `src/kai-story053-record-normalize-proof.py`, following Kai's
-  established pattern (extract the helper, run it against a matrix of inputs).
-- Input matrix: null record; missing `dayIndex`; string `dayIndex`; `NaN` `dayIndex`; valid
-  `dayIndex`; missing `completedQuests`; `completedQuests` as a string; `completedQuests` containing
-  null and non-object entries; negative / fractional / `NaN` / over-max counters; a fully valid
-  record.
-- The script asserts the normalized shape for each case, asserts the valid case is field-by-field
-  unchanged, and asserts a load-and-render cycle writes nothing.
-- **Call-site placement proof.** The script must also demonstrate Scenario 3b, that the anchors read
+  established pattern (extract the helper, run it against a matrix of inputs). Exit 0 on the
+  candidate.
+- **Input matrix (every case below is a named seed in the script):**
+  - `null` record; record with no `dayIndex`; string `dayIndex`; `NaN` `dayIndex`; `Infinity`
+    `dayIndex`; valid `dayIndex` (control).
+  - `completedQuests` missing; `completedQuests` a string; `completedQuests` an object;
+    `completedQuests` containing `null`, a number, and a string entry.
+  - **wrong-typed entry leaves:** an entry whose `objective` is a number (the reproduced throw),
+    whose `label` is a number, whose `objective` is `null`, and whose `objective` is missing.
+    Both same-day and stale-day record stamps.
+  - counters: negative, fractional, `NaN`, over-max, non-numeric, for both `fightsUsed` and
+    `innHealsUsed`.
+  - `quest` missing; `quest` a string; `quest` well-formed.
+  - a fully valid record (the control that must be field-by-field unchanged).
+- **Render assertion, not just shape assertion.** For the wrong-typed-leaf seeds the script must
+  drive the real render expression (`escapeHtml(entry.objective || entry.label || '')`) on the
+  normalized entries and assert it returns a string and does not throw. A shape-only assertion
+  would pass on a fix that normalized the record but left a leaf that still breaks the view, so the
+  render assertion is binding.
+- **The script must FAIL against shipped v0.24.0.** This is the pattern Kai has used since Story
+  047: a green proof that also passes against the unfixed build is a tautology, not a measurement.
+  At minimum these seeds must fail on v0.24.0 and pass on the candidate:
+  - wrong-typed `objective` leaf (throws `TypeError` on v0.24.0),
+  - `fightsUsed: 99` (renders `Fights: -84` on v0.24.0),
+  - `fightsUsed: -5` (renders `Fights: 20` on v0.24.0).
+  Kai records the v0.24.0 failure output alongside the candidate run, so the isolation is
+  auditable and not asserted.
+- **Call-site placement proof.** The script must also demonstrate Scenario 5, that the anchors read
   the normalized record. This is the requirement most likely to be implemented wrong while still
-  passing every field-shape assertion, so it gets an explicit case rather than a comment.
-- **The script must fail against shipped v0.24.0** for at least the throwing/corrupt cases (to
-  isolate that a real defect existed), and pass against the merged candidate.
-- **Real-browser isolation:** the pre-fix build must throw or render a bad count for at least one
-  corrupt input in real Chromium; Scout records the before/after.
-- Scout re-runs the proof against the merged candidate.
+  passing every field-shape assertion (normalize `dayState` after the anchors are captured and
+  every field assertion still passes), so it gets an explicit case rather than a comment.
+- **Frozen-function extraction.** The five frozen functions byte-identical to tagged v0.24.0, shown
+  by extraction against `git show v0.24.0:src/cinder.html`, not by inspection of the diff.
+- **No-write proof.** Both localStorage keys byte-identical across a load-and-render cycle with a
+  corrupt input, plus a static scan showing the helper and the load-path call site contain no
+  `saveDayState`, `localStorage.setItem`, or `saveCharacter`.
+- **Real-browser isolation (Scout):** real Chromium, the quest log opened at desktop and 375x667,
+  on a record seeded with a numeric `objective`. The v0.24.0 build must be shown **throwing** with
+  the console error captured; the merged candidate must render. Scout records both, and re-runs
+  Kai's proof against the merged candidate, not against the dev branch.
 
 ## Non-Goals (out of scope for this story)
 
-- No new persisted field, no stored-shape change, no migration.
+- No new persisted field, no stored-shape change, no migration, no backfill write.
 - No change to `checkDailyReset()`, the reset semantics, or the stored history.
+- No change to `escapeHtml()` or `renderQuestLog()`. The record is repaired, not the renderer.
+  If the fix is achieved by guarding the render path instead of the load path, it is out of scope
+  and must be re-cut.
+- No change to the character save (`flambeee-cinder-save`). This story normalizes the day record
+  only. A corrupt character save is a separate story.
 - No offline accrual, no cross-day streak mechanic, no welcome-back suppression change (all blocked
   on the Story 039 amendment plus CEO sign-off).
-- No UI or copy redesign. No new feature.
+- No UI or copy redesign. No new feature. No economy or balance change: clamping a corrupt counter
+  restores the documented cap, it does not change the cap.
+- No notification, push, permission prompt, or install nag.
 - No touching `jobs/`, `jobs-refactor-team/`, `jakebot/`, or any cron configuration.
+
+## Open questions / ambiguities (need CEO input)
+
+None that block development. The one judgement call inside the story is the entry `dayIndex` rule
+(left as-is or dropped from a kept entry), and the session plan names the parent as the decider for
+that, not the CEO, because both choices are inside the frozen-set constraints and neither changes
+a valid record. If dev finds the choice forces a frozen-function edit, that is the escalation rule
+in requirement 6, and it comes back to the CEO.
