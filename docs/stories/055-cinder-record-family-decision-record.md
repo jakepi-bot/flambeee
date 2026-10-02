@@ -77,7 +77,7 @@ State plainly:
 - **Code read confirming the candidate is real (Quinn, verified against v0.24.0):** `returnShown` is
   declared `let returnShown = false; // Story 040: in-memory one-time guard for this page`
   (`src/cinder.html:759`), so it is re-initialized to `false` on every page load.
-  `shouldShowWelcomeBack(windowState, shownThisPage, loadedRecord)` (`src/cinder.html:615-620`)
+  `shouldShowWelcomeBack(windowState, shownThisPage, loadedRecord)` (`src/cinder.html:615`)
   returns `false` only when `shownThisPage` is already `true`. `init()`
   (`src/cinder.html:1472-1477`) passes the module-level `returnShown`, which it sets to `true` only
   after showing the panel. Therefore the guard suppresses a **second show within one page load**,
