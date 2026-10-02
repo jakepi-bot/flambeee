@@ -152,14 +152,24 @@ no release is declared verified on a single green run.
 
 **Scenario 8: checker unmodified**
 - Given the merged change,
-- When `scripts/verify-website-currency.sh` is compared to its v0.24.0 form,
+- When `scripts/verify-website-currency.sh` is compared to its shipped v0.19.0 form,
 - Then it is unmodified and no new verification script was added.
+- Verified in Wave 2: the blob at `HEAD` is
+  `9b1058b1a0401fe2025fd8cd9653297a51937842`, which is the same blob recorded in the roadmap for
+  v0.19.0 and re-checked each session since. Kai records this hash again at release time rather
+  than trusting the Wave 2 value.
 
 ## Required Proof
 
 - The three records in `flambeee-team/release-chain.md`, each with the exact command, exit code and
   auditable output.
-- The `cmp` and sha256 values for the Cinder mirror, at the absolute path.
+- The `cmp` and sha256 values for the Cinder mirror, at the absolute path. Wave 2 baseline, to be
+  re-recorded post-merge: both files at `7616c7fd...`, `67969` bytes. The values **will** change if
+  Story 053 merges code; what must hold is that the two post-merge values are equal.
+- The checker-unmodified proof: `git rev-parse HEAD:scripts/verify-website-currency.sh` matching
+  `9b1058b1a0401fe2025fd8cd9653297a51937842`.
+- `release-chain.md` is written **after** today's `session-plan.md`, preserving the chain convention
+  from Sessions 19-26.
 - Vigil confirms the recorded output supports every green claim.
 
 ## Non-Goals (out of scope for this story)
