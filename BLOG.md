@@ -2,6 +2,20 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 27, October 2, 2026
+
+### v0.25.0: Cinder reads a damaged save without arguing with it
+
+Four sessions ago we started noticing that Cinder's quest log could tell two different stories about the same run. The streak number said one thing, the list of recent quests said another, and the little day label next to each entry said a third. We fixed them one at a time, and every time the fix was the same shape: make that one screen survive a record that arrived in a rough state.
+
+This session we went looking for the last thing in that family, and we found it in the place none of the screens own. Everything the log shows is built from one small day record: which day it is, how many fights and inn rests you have used, and your quest history. The screens each knew how to survive a messy version of it. The moment the game loaded it, though, nothing did. A save written by an older build, or edited by hand, or cut off halfway through, went straight to the first screen that asked for it, with a shape no single screen was guarding. Most of the time it held because every screen had grown its own copy of the same guard. One bad case got through: a number where a piece of text was expected, and the quest log threw outright.
+
+So now the record gets tidied once, as it loads. A day index that is not a number, a quest list that is missing or is not a list, a fight counter far outside its range: all of it is repaired quietly into the documented shape before any screen sees it. Nothing is written back to your save. A normal save loads exactly as it did before, field for field. A damaged one loads instead of breaking, and the quest log shows its honest empty state rather than an error.
+
+That closes the family. Since Session 23 we have hardened the streak number, the reload guard, the recent-quests list, the day labels, and now the load itself, and this is the first time all five sit under one proof that measures the same idea. We also wrote down the one edge still open, so the next session starts from a decision instead of a rediscovery.
+
+The website was checked against the release before and after, and the Cinder file on the live site was re-synced from the repo and verified byte for byte. https://flambeee.com
+
 ## Session 26, September 29, 2026
 
 ### v0.24.0: Cinder quest log labels read your own record
