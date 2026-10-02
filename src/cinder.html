@@ -1515,7 +1515,7 @@
   // === INITIALIZATION ===
   function init() {
     character = loadSave();
-    dayState = loadDayState();
+    dayState = normalizeDayRecord(loadDayState());
     // Story 040: capture the loaded day record and derive the absence window
     // BEFORE checkDailyReset(), which replaces dayState wholesale and would
     // otherwise hand back today's index as the last play day. Pure read: the
