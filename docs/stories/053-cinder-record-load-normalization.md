@@ -36,6 +36,100 @@ This is the same family, seen from the other end: the screens were taught to tol
 but the record is never checked. Story 053 normalizes the record **once, on load, in memory**, so
 every reader reads the documented shape and no reader owns a private guard for a shared problem.
 
+## Hypothesis check (Quinn, evidence)
+
+The session plan's hypothesis is **confirmed**, and the code read turns it from a plausible class
+into two **reproduced defects**. Both were executed against the shipped v0.24.0 logic before this
+story was written. Neither is inside a frozen helper.
+
+**Defect 1 (the headline, and a hard throw): a wrong-typed quest title reaches `escapeHtml()` and
+throws.** `computeRecentQuestEntries()` (`src/cinder.html:495-511`) filters entries by
+`entry && typeof entry === 'object'`. It does **not** check that `entry.objective` or `entry.label`
+is a string. `renderQuestLog()` (`src/cinder.html:706`) then calls
+`escapeHtml(entry.objective || entry.label || '')`, and `escapeHtml()` (`src/cinder.html:886-888`)
+calls `str.replace(...)`. A stored entry whose `objective` is a number reaches that call as a
+number and throws. Reproduced against v0.24.0 logic: `TypeError: str.replace is not a function`.
+The string control case renders normally.
+
+This defect is **reachable and persistent**, which is what makes it worth the session. Verified:
+
+- The record survives the load path. `checkDailyReset()` (`src/cinder.html:797-807`) rebuilds the
+  record **only when** `!dayState || dayState.dayIndex !== today`. A record stamped **today**
+  takes the `else` branch, which calls `ensureQuestState()` (`src/cinder.html:249-259`). That
+  helper patches only `quest` and `completedQuests`; it does not touch entry contents. Reproduced:
+  a same-day record with a numeric `objective` reaches the quest-log render intact, **0 writes on
+  the load path**, and the throw happens at render.
+- The anchor is an **alias**, not a copy. `init()` (`src/cinder.html:1454-1466`) sets
+  `const rawDayState = dayState` and `questLogAnchor = rawDayState`, then calls `checkDailyReset()`.
+  On the same-day branch the reset does not reassign `dayState`, so `questLogAnchor === dayState`
+  and the corrupted entry is what every read surface sees. Reproduced: `anchor === dayState` is
+  `true`.
+- It throws **inside the player's quest log**, on a screen reachable from town-hub row 9. That is
+  the "recent quests" view a returning player opens to check their history.
+
+Note the constraint this creates, which is why the requirement below places the fix in the
+normalizer and **not** in the render path: the throw site is `renderQuestLog()` line 706, which is
+**not** a frozen function, so the fix is available without touching the frozen set.
+
+**Defect 2: out-of-range daily counters render a negative or inflated count.** `fightsUsed` and
+`innHealsUsed` are never bounded at load. `renderStatus()` (`src/cinder.html:862`) computes
+`MAX_FIGHTS_PER_DAY - dayState.fightsUsed` with no guard. Reproduced against v0.24.0 logic: a
+stored `fightsUsed` of `99` renders **`Fights: -84`** on the status line. A stored `fightsUsed` of
+`-5` renders **`Fights: 20`**, which is more than the daily maximum of 15.
+
+Two honest limits on defect 2, recorded so the story is not oversold:
+
+- The **gameplay** guard is fine in both directions. `enterWilderness()`
+  (`src/cinder.html:1067`) blocks on `dayState.fightsUsed >= MAX_FIGHTS_PER_DAY`, so an inflated
+  counter locks the player out of the wilderness for the day, and a negative counter does not
+  grant extra fights through that gate. Reproduced: `99` blocks, `-5` does not block.
+- So defect 2 is a **display and progression-state** defect, not an economy exploit. The status
+  line lies, and the counters that gate progression are wrong. It is still in scope: the whole
+  point of the load path is that a record should not reach a reader in a shape no reader expects.
+
+**Sharpening, not correction:** the plan frames this as "whatever `JSON.parse` returns is handed to
+the render paths." That is accurate. The added precision is that the readers' guards are
+**field-level**, not **entry-level**: every one of them checks the container (`is an array`, `is an
+object`, `is a finite number`) and none checks the leaf. `completedQuests` entries are the only
+place in the record where the team stores free-form data written from game state
+(`completeQuest()`, `src/cinder.html:321-325`), so they are also the most likely place for a
+hand-edited or foreign-written record to carry a wrong-typed leaf. That is why requirement 2
+normalizes the entry leaves and not just the array.
+
+### Code read, verified against v0.24.0 (Quinn, Session 27 Wave 2)
+
+The session plan's hypothesis was **confirmed by direct read**, not merely assumed. The load path
+does no shape validation:
+
+- `loadDayState()` (`src/cinder.html:778-785`) is `try { JSON.parse(data) } catch { return null }`.
+  The parsed value is returned as-is, whatever its shape.
+- `init()` (`src/cinder.html:1452-1468`) does `dayState = loadDayState()`, then
+  `const rawDayState = dayState`, then `awayWindow = computeAwayWindow(rawDayState, getDayIndex())`,
+  then `questLogAnchor = rawDayState`, then `checkDailyReset()`, then `ensureQuestState()`.
+- `checkDailyReset()` (`src/cinder.html:797-810`) branches on `dayState.dayIndex !== today`.
+- `ensureQuestState()` (`src/cinder.html:249-260`) patches only `quest` and `completedQuests`.
+
+Two sharpenings the plan does not state, both load-bearing for how the fix is written:
+
+1. **The counters are the genuinely unguarded hole, not `dayIndex`.** A corrupt `dayIndex` is
+   already safe by accident: the reset's comparison is strict `!==`, so a string, `NaN`, or `null`
+   index compares unequal and the record is rebuilt wholesale. `fightsUsed` and `innHealsUsed`
+   have **no** such guard. They are only ever read by subtraction at four sites:
+   `renderStatus()` (`:862`, `MAX_FIGHTS_PER_DAY - dayState.fightsUsed`),
+   `renderInn()` (`:982`), `enterWilderness()` (`:1067`, `>=` guard), and `handleInnInput()`
+   (`:1380`). None of them clamps. A record with `fightsUsed: -3` renders the status line as
+   "Fights: 18" on a game whose daily cap is 15, and `fightsUsed: 999` renders "Fights: -984".
+   That is the concrete user-visible defect this story closes, and it is a plain arithmetic
+   rendering bug, not a throw. The `dayIndex` half of the story is hardening, not a live defect.
+2. **`rawDayState` and `questLogAnchor` are the same object reference as `dayState`, captured
+   before the reset rebinds it.** `checkDailyReset()` reassigns `dayState` to a fresh object rather
+   than mutating, which is what preserves the pre-reset anchors. Therefore the normalization must
+   run **before** the anchor capture, and the normalized object must be the single value assigned
+   to all three of `dayState`, `rawDayState` and `questLogAnchor`. If normalization were applied
+   only to `dayState` after the anchors were captured, the anchors would still hold the un-normalized
+   parse, and every read surface would keep its old input. This is a correctness requirement on
+   call-site placement, not a style preference.
+
 ## Business value
 
 - One place owns record integrity. Today each reader carries its own defensive guard; a future
@@ -66,10 +160,19 @@ negative count, or letting one screen describe a different record than another.
   `!dayState` behavior for `null`).
 - The helper takes an arbitrary parsed value and returns a record whose shape is exactly
   `{ dayIndex, fightsUsed, innHealsUsed, quest, completedQuests }`.
-- Call it once from the load path, immediately after `loadDayState()` and before
-  `checkDailyReset()` runs (the record must be normalized before the reset compares `dayIndex`).
+- Call it once from the load path. Placement is binding, for the reason given in the code read above:
+  the normalized object must be the one value assigned to `dayState`, `rawDayState` **and**
+  `questLogAnchor` in `init()` (`src/cinder.html:1452-1468`). It must therefore run after
+  `loadDayState()` returns and **before** the anchor capture, which in turn is before
+  `checkDailyReset()` (the reset compares `dayIndex`, so the record must be normalized before that
+  comparison, and the anchors must hold the normalized record or the fix does nothing).
 - The helper is pure: no reads or writes of `localStorage`, no mutation of its argument, no global
   mutation, no new persisted field.
+- The helper must not depend on `MAX_FIGHTS_PER_DAY` / `MAX_INN_HEALS_PER_DAY` being readable at
+  definition time in a way that breaks the existing pure-extraction proof pattern; the bounds are
+  either referenced at call time or inlined as literals with the constants' values
+  (`15` and `3`, `src/cinder.html:68-69`) and a comment naming the source. Kai names which in the
+  PR body.
 
 ### 2. Field rules (documented shape)
 
@@ -135,12 +238,24 @@ If the only correct fix requires a persisted field or a change to the stored sha
   empty-state line `"No quests recorded yet. Finish today's quest to start your log."` unchanged,
   and the streak number reads 0.
 
-**Scenario 3: out-of-range or wrong-type counters**
+**Scenario 3: out-of-range or wrong-type counters (the live defect)**
 - Given a stored record with `fightsUsed` or `innHealsUsed` set to a negative, fractional, `NaN`, or
   over-max value,
-- When the game loads,
-- Then each counter is clamped to the documented range and no surface renders a negative or
-  over-max count.
+- When the game loads and the town hub renders,
+- Then each counter is clamped to the documented range, the status line shows a fights-left value
+  within `[0, 15]` and the inn shows a heals-left value within `[0, 3]`, and no surface renders a
+  negative or over-max count. (Against v0.24.0 specifically: `fightsUsed: -3` renders "Fights: 18"
+  and `fightsUsed: 999` renders "Fights: -984". Those two renders are the before/after Scout
+  records.)
+
+**Scenario 3b: normalized record is the one the anchors read**
+- Given a stored record with a corrupt `completedQuests` (non-array) and an out-of-range
+  `fightsUsed`,
+- When the game loads and the quest log opens,
+- Then the streak, the recent-quests list and the day labels were all computed from the normalized
+  record, not from the raw parse. Proven by showing that a record whose raw parse holds
+  `completedQuests: "not-an-array"` and `fightsUsed: -3` produces the empty-state log line and a
+  fights-left of 15, which is only reachable if the anchors hold the normalized value.
 
 **Scenario 4: valid record (control, no regression)**
 - Given a valid v0.24.0 record,
@@ -176,6 +291,9 @@ If the only correct fix requires a persisted field or a change to the stored sha
   record.
 - The script asserts the normalized shape for each case, asserts the valid case is field-by-field
   unchanged, and asserts a load-and-render cycle writes nothing.
+- **Call-site placement proof.** The script must also demonstrate Scenario 3b, that the anchors read
+  the normalized record. This is the requirement most likely to be implemented wrong while still
+  passing every field-shape assertion, so it gets an explicit case rather than a comment.
 - **The script must fail against shipped v0.24.0** for at least the throwing/corrupt cases (to
   isolate that a real defect existed), and pass against the merged candidate.
 - **Real-browser isolation:** the pre-fix build must throw or render a bad count for at least one

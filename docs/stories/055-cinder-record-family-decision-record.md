@@ -50,7 +50,13 @@ minimum:
 | Reload guard on the welcome-back panel | 045 | The panel does not re-fire on a same-day reload |
 | Recent-quests list | 047 | The list reads the same anchor as the number |
 | Quest-log day labels | 050 | Labels are record-relative, not today-relative |
-| Day-record load normalization | 053 (this session) | The record is normalized once on load; readers read the documented shape |
+| Day-record load normalization | 053 (this session, **pending merge**) | The record is normalized once on load; readers read the documented shape |
+
+Story 053 is listed as **in-flight, not shipped**. Until its PR merges and Scout re-runs the proof
+against the merged candidate in real Chromium, the load-normalization row is a claim under test. If
+Story 053 lands no code change (its story explicitly allows a verified no-change outcome), this row
+is corrected to say so before this record merges. A decision record that claims an unmerged story's
+result is the exact defect class this family exists to prevent.
 
 Kai confirms the code read matches; if a surface's proof does not exist or does not hold, the record
 says so.
@@ -62,7 +68,17 @@ State plainly:
 - **Candidate:** welcome-back **suppression** across a later visit on a different UTC day inside the
   same gap (the Story 042 recorded limitation). Today the panel can fire again on a new UTC day
   inside one absence, because the "already shown" guard is in-memory (`returnShown`,
-  `src/cinder.html:753-756`) and is not persisted.
+  `src/cinder.html:754`) and is not persisted.
+- **Code read confirming the candidate is real (Quinn, verified against v0.24.0):** `returnShown` is
+  declared `let returnShown = false; // Story 040: in-memory one-time guard for this page`
+  (`src/cinder.html:754`), so it is re-initialized to `false` on every page load.
+  `shouldShowWelcomeBack(windowState, shownThisPage, loadedRecord)` (`src/cinder.html:615`) returns
+  `false` only when `shownThisPage` is already `true`. `init()` (`src/cinder.html:1472-1477`) passes
+  the module-level `returnShown`, which it sets to `true` only after showing the panel. Therefore
+  the guard suppresses a **second show within one page load**, and nothing at all across reloads.
+  A player who closes the tab on the day they return, does not play, and opens it again two UTC
+  days later sees the welcome-back panel fire a second time for the same absence. The gap is
+  genuinely unclosed, not a stale note.
 - **Why it is not in scope this session:** closing it for good requires a **persisted field** (a
   record of the last gap for which the panel was shown). A persisted field is a change to the stored
   day-record shape, which is a Story 039 decision-record amendment plus CEO sign-off.
