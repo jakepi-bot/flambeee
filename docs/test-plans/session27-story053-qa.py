@@ -375,7 +375,7 @@ def run_browser(pw, label, build_dir, expect_throw, baseline=None):
             # already present and skips its own saveDayState(). Asserting
             # equality here would fail a strictly better build, so the check is
             # "introduces no write v0.24.0 did not make", not "writes the same".
-            check((not unchanged) or baseline[name],
+            check(unchanged or (not baseline[name]),
                   "[%s] candidate introduces no write v0.24.0 did not make, on %s"
                   % (label, name),
                   "candidate_wrote=%s v0.24.0_wrote=%s%s"
