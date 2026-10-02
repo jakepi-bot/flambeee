@@ -51,17 +51,19 @@ minimum:
 | Recent-quests list | 047 | The list reads the same anchor as the number |
 | Quest-log day labels | 050 | Labels are record-relative, not today-relative |
 | Away-window day count | 051 | `daysAway = gapDays - 1`, the count of fully missed UTC days; verification only, no code change |
-| Day-record load normalization | 053 (this session, **pending merge**) | The record is normalized once on load; readers read the documented shape |
+| Day-record load normalization | 053 (this session, **shipped in v0.25.0**) | The record is normalized once on load; readers read the documented shape |
 
 One honest caveat on the Story 045 row: it proved the **same-day** reload case, and its own
 disclosure says so. The cross-day case is the open candidate below. Do not read that row as "the
 guard is proven for every reload".
 
-Story 053 is listed as **in-flight, not shipped**. Until its PR merges and Scout re-runs the proof
-against the merged candidate in real Chromium, the load-normalization row is a claim under test. If
-Story 053 lands no code change (its story explicitly allows a verified no-change outcome), this row
-is corrected to say so before this record merges. A decision record that claims an unmerged story's
-result is the exact defect class this family exists to prevent.
+Story 053 **shipped in v0.25.0**. Its PRs #110 (helper + proof) and #111 (call site) merged to
+`main`; the merged candidate sha256 is `eb0123587d502ee2efde6786075298c618ff5c156f201a8e78144baf6c1c032b`;
+Kai's pure-function proof re-ran green (22 checks, exit 0) against the merged candidate and exit 1
+against tagged v0.24.0; and Scout re-ran the proof in real Chromium (32 checks, 0 failed). The
+load-normalization row is therefore shipped, not a claim under test. This correction was applied at
+release time, per the QA handoff, so the record does not claim an unmerged story's result, which is
+the exact defect class this family exists to prevent.
 
 Kai confirms the code read matches; if a surface's proof does not exist or does not hold, the record
 says so.
