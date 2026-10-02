@@ -492,6 +492,70 @@
   // post-reset record only when that record carries a usable array. Entries that
   // are not objects are skipped so a corrupt array cannot throw in the render.
   // Returns an array, always, never null. No path writes.
+  // Story 053: the load-path normalizer. Pure. It reads no localStorage, writes
+  // no localStorage, mutates neither its argument nor any global, and persists
+  // no field. It takes whatever JSON.parse handed back and returns the
+  // documented day-record shape
+  // { dayIndex, fightsUsed, innHealsUsed, quest, completedQuests },
+  // or null when the value cannot yield a usable dayIndex. The caller's
+  // existing !dayState path handles the null exactly as it handled a missing
+  // record before.
+  //
+  // Why the record and not the renderer: a wrong-typed completedQuests leaf
+  // reaches renderQuestLog()'s escapeHtml(entry.objective || entry.label || '')
+  // and throws TypeError: str.replace is not a function. The record is the thing
+  // that is malformed, so the record is where it is repaired, once, on load.
+  // Guarding the render instead would leave every other reader with a record no
+  // reader expects, which is the defect class this closes.
+  //
+  // Purity means the proof can extract this function and drive it alone, so the
+  // two bounds are inlined as literals rather than read from the surrounding
+  // closure: 15 is MAX_FIGHTS_PER_DAY and 3 is MAX_INN_HEALS_PER_DAY, both
+  // declared at src/cinder.html:68-69. The literals must track those constants.
+  function normalizeDayRecord(raw) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+    if (typeof raw.dayIndex !== 'number' || !isFinite(raw.dayIndex)) return null;
+
+    // Counters: a non-number, NaN or negative count becomes 0, a fractional
+    // count floors, and an over-max count clamps to the max. Always an integer.
+    const fightsUsed = Math.min(15, Math.max(0, Math.floor(
+      typeof raw.fightsUsed === 'number' && isFinite(raw.fightsUsed) ? raw.fightsUsed : 0)));
+    const innHealsUsed = Math.min(3, Math.max(0, Math.floor(
+      typeof raw.innHealsUsed === 'number' && isFinite(raw.innHealsUsed) ? raw.innHealsUsed : 0)));
+
+    // Quest state: keep the recorded object as-is (no fields added, none
+    // removed). Missing or malformed falls back to the exact value
+    // ensureQuestState() already produces, so the same-day branch of the reset
+    // sees no change from this call.
+    const quest = (raw.quest && typeof raw.quest === 'object' && !Array.isArray(raw.quest))
+      ? raw.quest
+      : { progress: 0, completed: false, rewarded: false };
+
+    // History: a missing or non-array value is []. Entries that are not plain
+    // objects are dropped (the same filter computeRecentQuestEntries applies),
+    // and each kept entry's objective and label leaves normalize to strings so
+    // the render's escapeHtml(...) call always receives one. An entry's
+    // dayIndex is left exactly as found: the read helpers already guard it, and
+    // dropping a recorded quest on a bad index would lose history. Order is
+    // preserved and no field is invented.
+    const source = Array.isArray(raw.completedQuests) ? raw.completedQuests : [];
+    const completedQuests = source.filter(function (entry) {
+      return entry && typeof entry === 'object' && !Array.isArray(entry);
+    }).map(function (entry) {
+      const normalized = Object.assign({}, entry);
+      normalized.objective = typeof entry.objective === 'string' ? entry.objective : '';
+      normalized.label = typeof entry.label === 'string' ? entry.label : '';
+      return normalized;
+    });
+
+    return {
+      dayIndex: raw.dayIndex,
+      fightsUsed: fightsUsed,
+      innHealsUsed: innHealsUsed,
+      quest: quest,
+      completedQuests: completedQuests
+    };
+  }
   function computeRecentQuestEntries(anchor, fallback) {
     try {
       if (anchor && typeof anchor === 'object' && Array.isArray(anchor.completedQuests)) {
