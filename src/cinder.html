@@ -556,6 +556,114 @@
       completedQuests: completedQuests
     };
   }
+
+  // Story 056: the character-record load-path normalizer, the counterpart to
+  // normalizeDayRecord() above. Pure. It reads no localStorage, writes no
+  // localStorage, mutates neither its argument nor any global, and persists no
+  // field. It takes whatever JSON.parse handed back and returns the documented
+  // character shape createCharacter() writes,
+  // { name, level, xp, hp, maxHp, attack, defense, gold, bank, weapon, armor,
+  //   wins, losses, deaths },
+  // or null when the value cannot be a record at all. init()'s existing
+  // !character path then calls showCharacterCreation() exactly as it did before.
+  //
+  // Why the record and not each reader: six defects measured on v0.25.0 are
+  // silent here. They do not throw and nothing reports them, so a damaged save
+  // yields a game that looks like it is working: gold that reads as unaffordable
+  // forever (A), a level that floors every stat to zero (C), string equipment
+  // ids that match no row under the strict === in WEAPONS.find() and so lose
+  // their bonus (G2, G3), and hp below zero or thirty-eight-million times its
+  // own maximum (H1, H2). The record is what is malformed, so the record is
+  // where it is repaired, once, on load. Guarding each reader instead is the
+  // piecemeal arrangement Story 053 just removed on the day side.
+  //
+  // The rule behind the field set: anything compared by strict equality against
+  // a table row or a constant must be a number, because === does not coerce,
+  // while arithmetic and ++ coerce on their own and need no rule.
+  function normalizeCharacterRecord(raw) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+
+    // Read a stored field as a finite number, then floor it at a per-field
+    // minimum. A numeric STRING is read, not discarded: equipment ids arrive as
+    // strings when a save is hand-edited, and the whole point of normalizing
+    // weapon/armor is that WEAPONS.find(w => w.id === character.weapon) matches
+    // again. Same reason gold is read: `character.gold += 5` on a string '40'
+    // concatenates to '405', which is a silent corruption a number check alone
+    // would leave in place. NaN, infinite, non-numeric strings and non-numbers
+    // all become 0, which is then floored at the field minimum.
+    const toNum = function (value) {
+      if (typeof value === 'number') return isFinite(value) ? value : 0;
+      if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (trimmed === '') return 0;
+        const parsed = Number(trimmed);
+        return isFinite(parsed) ? parsed : 0;
+      }
+      return 0;
+    };
+    const toInt = function (value, min) {
+      const n = Math.floor(toNum(value));
+      return n > min ? n : min;
+    };
+
+    // level floors to 1, never 0. getBaseStats() sums LEVELS[0..level-1], so a
+    // level of 0 leaves the hero at zero attack, zero defence and zero maximum
+    // HP with nothing reporting it. This is the one minimum that is not 0.
+    const level = toInt(raw.level, 1);
+    const xp = toInt(raw.xp, 0);
+    const gold = toInt(raw.gold, 0);
+    const bank = toInt(raw.bank, 0);
+
+    // maxHp is normalized first, then hp is clamped against the result. Order
+    // is the point: hp must never exceed the maximum it is measured against, so
+    // hp > maxHp is unreachable at every read surface. If maxHp normalizes to 0
+    // while hp is positive, hp clamps to 0. There is deliberately no fallback
+    // maximum here; getMaxHp() already derives the real one from the level, and
+    // the persisted maxHp is only a load-time bound.
+    const maxHp = toInt(raw.maxHp, 0);
+    const hp = Math.min(toInt(raw.hp, 0), maxHp);
+
+    // Equipment ids are numbers because WEAPONS.find(w => w.id === character.weapon)
+    // and its ARMOR counterpart compare by strict equality against a row id. A
+    // string id matches no row and the bonus silently vanishes while the stats
+    // still look plausible. A well-formed record already holds numbers here, so
+    // this is a no-op for every legitimate save.
+    const weapon = toInt(raw.weapon, 0);
+    const armor = toInt(raw.armor, 0);
+
+    // Counters. Defensive rather than a reproduced defect: they are counters and
+    // belong to the same group.
+    const wins = toInt(raw.wins, 0);
+    const losses = toInt(raw.losses, 0);
+    const deaths = toInt(raw.deaths, 0);
+
+    // The name is interpolated into the status line and the quest log. create
+    // Character() truncates at 20, so this does too; a non-string becomes the
+    // empty string rather than reaching .replace().
+    const name = typeof raw.name === 'string' ? raw.name.trim().substring(0, 20) : '';
+
+    // attack and defense are vestigial and are passed through untouched, with no
+    // rule of any kind. getTotalAttack() and getTotalDefense() compute the real
+    // values from getBaseStats(level) plus the equipment bonus and never read the
+    // stored fields; normalizing them would invent a contract the code does not
+    // have. They stay because the stored shape is frozen.
+    return {
+      name: name,
+      level: level,
+      xp: xp,
+      hp: hp,
+      maxHp: maxHp,
+      attack: raw.attack,
+      defense: raw.defense,
+      gold: gold,
+      bank: bank,
+      weapon: weapon,
+      armor: armor,
+      wins: wins,
+      losses: losses,
+      deaths: deaths
+    };
+  }
   function computeRecentQuestEntries(anchor, fallback) {
     try {
       if (anchor && typeof anchor === 'object' && Array.isArray(anchor.completedQuests)) {
@@ -1514,7 +1622,7 @@
 
   // === INITIALIZATION ===
   function init() {
-    character = loadSave();
+    character = normalizeCharacterRecord(loadSave());
     dayState = normalizeDayRecord(loadDayState());
     // Story 040: capture the loaded day record and derive the absence window
     // BEFORE checkDailyReset(), which replaces dayState wholesale and would
