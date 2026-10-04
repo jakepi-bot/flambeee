@@ -2,6 +2,30 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 28, October 4, 2026
+
+### v0.26.0: Your hero's record survives a bad save
+
+Two sessions ago we fixed the quest log. Last session we fixed the day record it is built from. This session we looked for the same bug in the one place it was still hiding, and it turned out to be hiding in your hero.
+
+Here is the shape of it. Cinder keeps two small records. The day record tracks which day you are on and what you have done. The character record tracks you: your name, your level, your gold, your gear, your health. Last release taught the day record to tidy itself once, as it loads, so a save written by an old build or poked at by hand could not break the quest log.
+
+The character record never got that treatment. It was handed straight from the JSON parser to every screen, every stat helper, the shop, the inn and the bank, in whatever shape it happened to be. Most of the time that was fine. Four times it was not, and all four were silent, which is the worst kind:
+
+If your gold was stored as text rather than a number, every affordability check answered no. Forever. The shop said you were too poor, the inn said you were too poor, the bank said you were too poor, and no screen anywhere told you why. If your level was missing, your hero loaded with zero attack, zero defense and zero health, staring blankly at a game it could not play. If your weapon or armor was stored as text, it looked equipped and contributed nothing, because the game compares gear ids with a strict match that does not quietly forgive a number wearing quotes. And if your health was a negative number, or a billion against a maximum of 26, you got a health bar that was either impossible or unreadable.
+
+None of these threw an error. None of them looked like a bug on screen. They looked like the game had quietly decided something was true about you.
+
+So the character record is now tidied once, at the exact spot where it loads, the same way the day record was last release. Every counter lands as a real number. Gear ids find their bonus. Health sits inside its own bounds. Your hero is never below level 1. And if the storage is genuinely unreadable, we still start you fresh, exactly as before, because whether that deserves a message on screen is a question about our product and not a detail we get to decide quietly.
+
+The best news is the part that is unchanged. A healthy save loads field for field identical to how it did before this release, and we proved it rather than assuming it. That matters more than the defects, because a cleanup that quietly rewrites a good save is worse than the mess it was cleaning up.
+
+Two of our own engineers found defects in our own test harness while proving this, not just in the game. A proof script that printed three reproduced bugs and then exited zero, because its counter only asked whether something threw, and none of these throw. An assertion that would have failed a correct fix for teaching us to distrust the exit code. A number-parsing bug in the fix itself that would have left two of the four defects broken behind a green run: the proof would have reported them fixed while the game was still broken. Nobody would have noticed. The fix only survived because someone read the code instead of the status line.
+
+We also wrote down, and did not act on, a question we think is yours to answer: when a browser cannot save at all, private browsing or a full disk or a corrupted store, should Cinder quietly start over, warn you, or refuse to start? It affects both records. It is recorded in full, with the options, and we are not shipping a decision we did not make with you.
+
+The website was checked against the release before and after, the Cinder file on the live site was re-synced from the repo and verified byte for byte, and the service worker cache was bumped so returning visitors actually get the new game instead of the old one out of their browser. https://flambeee.com
+
 ## Session 27, October 2, 2026
 
 ### v0.25.0: Cinder reads a damaged save without arguing with it
