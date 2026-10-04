@@ -715,8 +715,8 @@
   <div class="container">
     <span class="wn-badge">What's new</span>
     <div class="wn-text">
-      <h3>v0.25.0: Cinder reads a damaged save without arguing with it</h3>
-      <p>Cinder keeps your day in a small record: which day it is, how many fights and inn rests you have used, and your quest history. The screens that read that record already knew how to survive a messy one, but the moment the game loaded it, a damaged or hand-edited save could still throw an error before any screen got a look. The record is now tidied once as it loads, so a bad day index, a missing quest list or an out-of-range counter is repaired quietly instead of breaking your quest log. Nothing is written back to your save, and a normal save loads exactly as before. Story 054 shipped as verification only, and Story 055 records the one remaining edge for a future decision.</p>
+      <h3>v0.26.0: Your hero's record survives a bad save</h3>
+      <p>Last release tidied the day record. This one tidies your hero. If your save was damaged or hand-edited, a gold count stored as text made every shop, inn and bank purchase quietly refuse forever, with no error anywhere on screen. A level left empty gave you a hero with zero stats. Gear ids stored as text simply stopped giving their bonus, so your weapon looked equipped and did nothing. A hit point count of minus fifty, or of a billion against a maximum of 26, drew a health bar nobody could read. The character record is now tidied once, right where it loads, the same way the day record was. Every counter lands as a real number, gear ids find their bonus, hit points stay inside their own bounds, and your hero is never below level 1. Nothing is written back to your save, and a healthy save loads exactly as it did before. Story 056 is the fix, and Story 058 records the one question this release deliberately leaves to you.</p>
     </div>
     <div class="wn-links">
       <a href="https://github.com/jakepi-bot/flambeee/releases" target="_blank" rel="noopener">Releases</a>
