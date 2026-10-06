@@ -144,6 +144,7 @@ var AG = {
   LIT_START_MS: 2000,
   LIT_FLOOR_MS: 800,
   LIT_STEP_MS: 120,
+  DARK_WINDOW_MS: 3000,
   REVEAL_MS: 900,
   BASE_BUDGET: 24,
   MIN_BUDGET: 10,
@@ -154,6 +155,14 @@ var AG = {
 function litWindowMs(index) {
   var v = AG.LIT_START_MS - index * AG.LIT_STEP_MS;
   return v < AG.LIT_FLOOR_MS ? AG.LIT_FLOOR_MS : v;
+}
+
+// The dark phase is the action window. It is bounded: when it expires the board
+// lights for the reveal and the next lit phase begins, with the position and the
+// remaining budget kept. Running out of time in the dark is not a failure, it is
+// simply the end of your chance to move blind.
+function darkWindowMs() {
+  return AG.DARK_WINDOW_MS;
 }
 
 // Move budget per level: generous early, tightening later, floored.
@@ -383,6 +392,13 @@ function attemptMove(level, pos, dir) {
     banner.textContent = 'Dark. Move from memory.';
     banner.className = 'phase-banner dark';
     draw(false);
+    clearTimeout(state.timer);
+    // The action window is bounded. When it expires the board lights for the
+    // reveal and the next lit phase begins; position and budget are kept.
+    state.timer = setTimeout(function () {
+      if (state.phase !== AG.PHASE_DARK) return;
+      endDark('Time up');
+    }, darkWindowMs());
   }
 
   function endDark(reason) {
