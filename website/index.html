@@ -706,6 +706,12 @@
         <div class="game-desc">A BBS-style text RPG. Fight monsters, bank your gold, level up.</div>
         <a class="play-btn" href="games/cinder.html">Play</a>
       </div>
+      <div class="game-card">
+        <img class="game-shot" src="assets/game-afterglow.png" alt="Afterglow grid puzzle with lit tiles, walls and a glowing exit">
+        <div class="game-name">Afterglow</div>
+        <div class="game-desc">See the board. Then the lights go out and you move from memory.</div>
+        <a class="play-btn" href="games/afterglow.html">Play</a>
+      </div>
     </div>
   </div>
 </section>
@@ -774,7 +780,7 @@
       </p>
       <div class="stat-row">
         <div class="stat">
-          <div class="num">5</div>
+          <div class="num">6</div>
           <div class="label">Games shipped</div>
         </div>
         <div class="stat">
@@ -890,6 +896,43 @@
           items.push({ label: 'Hard streak', value: hard.streak });
         }
         return items;
+      }
+    },
+    afterglow: {
+      name: 'Afterglow',
+      desc: 'See the board, then it goes dark. You move from memory, and only from memory.',
+      screenshot: 'assets/game-afterglow.png',
+      screenshotAlt: 'Afterglow grid puzzle with lit tiles, walls and a glowing exit',
+      playLink: 'games/afterglow.html',
+      rules: [
+        'The board lights up for a moment. Watch it, because you cannot move yet',
+        'The lights go out. Now you move, blind, from memory of what you saw',
+        'The board lights again and shows where you ended and what you hit',
+        'Input outside the dark phase is ignored, not queued',
+        'Reach the exit to clear the level. A hazard or an empty move budget resets the level, not your run',
+        'Every level is generated from a seed, so a level plays the same way twice',
+        'Swipe or tap the edge you want on mobile, or use the arrow keys or WASD on desktop'
+      ],
+      getStats: function () {
+        var rec = { levelsCleared: 0, runsFinished: 0, bestLevel: 0 };
+        try {
+          var raw = localStorage.getItem('flambeee-afterglow-stats');
+          if (raw) {
+            var d = JSON.parse(raw);
+            rec.levelsCleared = d.levelsCleared || 0;
+            rec.runsFinished = d.runsFinished || 0;
+            rec.bestLevel = d.bestLevel || 0;
+          }
+        } catch (e) { /* private mode or corrupt data */ }
+        return rec;
+      },
+      formatStats: function (s) {
+        if (!s || (s.levelsCleared === 0 && s.runsFinished === 0 && s.bestLevel === 0)) return null;
+        return [
+          { label: 'Levels cleared', value: s.levelsCleared },
+          { label: 'Runs finished', value: s.runsFinished },
+          { label: 'Best level', value: s.bestLevel }
+        ];
       }
     },
     minesweeper: {
@@ -1242,6 +1285,7 @@
     else if (href === 'games/simon.html') gameKey = 'simon';
     else if (href === 'games/2048.html') gameKey = '2048';
     else if (href === 'games/cinder.html') gameKey = 'cinder';
+    else if (href === 'games/afterglow.html') gameKey = 'afterglow';
 
     if (gameKey) {
       playBtn.addEventListener('click', function (e) {

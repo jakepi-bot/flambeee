@@ -18,7 +18,7 @@
  */
 'use strict';
 
-var CACHE_VERSION = 4;
+var CACHE_VERSION = 5;
 var CACHE_NAME = 'flambeee-shell-v' + CACHE_VERSION;
 
 var PRECACHE_URLS = [
@@ -29,6 +29,7 @@ var PRECACHE_URLS = [
   './assets/icon-512.png',
   './assets/apple-touch-icon-180.png',
   './games/2048.html',
+  './games/afterglow.html',
   './games/cinder.html',
   './games/minesweeper.html',
   './games/simon.html',

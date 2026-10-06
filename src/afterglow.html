@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Afterglow - memory in the dark | Flambeee</title>
+  <style>
+    :root {
+      --bg: #1a1a2e;
+      --surface: #16213e;
+      --accent: #e94560;
+      --afterglow: #ffb37a;
+      --text: #eee;
+      --muted: #8a8fa3;
+      --border: #222;
+      --floor: #24243e;
+      --wall: #0d0d18;
+      --hazard: #ff5470;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .back-link { position: absolute; top: 16px; left: 16px; color: var(--text); text-decoration: none; font-size: 14px; opacity: 0.7; }
+    .back-link:hover { opacity: 1; }
+    h1 { margin: 28px 0 4px; font-size: 1.8rem; letter-spacing: 2px; }
+    .tagline { color: var(--muted); font-size: 0.9rem; margin-bottom: 14px; text-align: center; max-width: 340px; }
+    .hud { display: flex; gap: 18px; margin-bottom: 10px; font-size: 0.95rem; }
+    .hud .item { background: var(--surface); padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border); }
+    .hud .k { color: var(--muted); margin-right: 6px; font-size: 0.8rem; }
+    .phase-banner { height: 22px; font-size: 0.85rem; letter-spacing: 1px; margin-bottom: 8px; color: var(--afterglow); }
+    .phase-banner.dark { color: var(--muted); }
+    #board {
+      background: var(--floor);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      display: block;
+      touch-action: none;
+    }
+    .controls { margin-top: 14px; display: flex; gap: 10px; }
+    button {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--accent); }
+    button:disabled { opacity: 0.4; cursor: default; }
+    .stats { margin-top: 18px; display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+    .stat { background: var(--surface); padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border); text-align: center; min-width: 84px; }
+    .stat .label { display: block; font-size: 0.72rem; color: var(--muted); margin-bottom: 4px; }
+    .stat .value { font-size: 1.15rem; }
+    .hint { margin-top: 12px; color: var(--muted); font-size: 0.78rem; text-align: center; max-width: 340px; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <a class="back-link" href="../index.html">&larr; Flambeee</a>
+
+  <h1>Afterglow</h1>
+  <p class="tagline">See the board. Then the lights go out. You move from memory, and only from memory.</p>
+
+  <div class="hud">
+    <div class="item"><span class="k">Level</span><span id="hud-level">1</span></div>
+    <div class="item"><span class="k">Moves</span><span id="hud-moves">0</span></div>
+    <div class="item"><span class="k">Cleared</span><span id="hud-cleared">0</span></div>
+  </div>
+
+  <div class="phase-banner" id="phase-banner">&nbsp;</div>
+
+  <canvas id="board" width="360" height="360" aria-label="Afterglow game board"></canvas>
+
+  <div class="controls">
+    <button id="btn-start">Start</button>
+    <button id="btn-restart" disabled>Restart run</button>
+  </div>
+
+  <div class="stats hidden" id="stats-block">
+    <div class="stat"><span class="label">Levels cleared</span><span class="value" id="stat-levels">0</span></div>
+    <div class="stat"><span class="label">Runs finished</span><span class="value" id="stat-runs">0</span></div>
+    <div class="stat"><span class="label">Best level</span><span class="value" id="stat-best">0</span></div>
+  </div>
+
+  <p class="hint">
+    During the lit phase you watch. During the dark phase you move, blind. Swipe or tap the
+    edge you want, or use arrow keys or WASD. Input outside the dark phase is ignored.
+  </p>
+
+<script>
+/* ===========================================================================
+   AFTERGLOW - pure logic block.
+   Everything between the BEGIN and END markers is deterministic, free of DOM,
+   storage and timers, and safe to extract and execute in Node by the proof
+   harness. Do not reference document, window or localStorage inside it.
+   =========================================================================== */
+/* === AFTERGLOW-PURE-BEGIN === */
+
+// Deterministic 32-bit PRNG. Same seed, same stream, every run, every browser.
+function mulberry32(a) {
+  a = a >>> 0;
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    var t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Fold a seed string and a level index into one integer, so a seed sequence is
+// stable and each level in the sequence is independent of the others.
+function seedFor(seed, index) {
+  var s = String(seed) + ':' + String(index);
+  var h = 2166136261;
+  for (var i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+var AG = {
+  WALL: '#',
+  FLOOR: '.',
+  HAZARD: '^',
+  EXIT: 'E',
+  PHASE_LIT: 'lit',
+  PHASE_DARK: 'dark',
+  PHASE_REVEAL: 'reveal',
+  LIT_START_MS: 2000,
+  LIT_FLOOR_MS: 800,
+  LIT_STEP_MS: 120,
+  DARK_WINDOW_MS: 3000,
+  REVEAL_MS: 900,
+  BASE_BUDGET: 24,
+  MIN_BUDGET: 10,
+  SIZE: 9
+};
+
+// Shrink the lit window as levels advance, never below the floor.
+function litWindowMs(index) {
+  var v = AG.LIT_START_MS - index * AG.LIT_STEP_MS;
+  return v < AG.LIT_FLOOR_MS ? AG.LIT_FLOOR_MS : v;
+}
+
+// The dark phase is the action window. It is bounded: when it expires the board
+// lights for the reveal and the next lit phase begins, with the position and the
+// remaining budget kept. Running out of time in the dark is not a failure, it is
+// simply the end of your chance to move blind.
+function darkWindowMs() {
+  return AG.DARK_WINDOW_MS;
+}
+
+// Move budget per level: generous early, tightening later, floored.
+function moveBudget(index) {
+  var v = AG.BASE_BUDGET - Math.floor(index * 1.5);
+  return v < AG.MIN_BUDGET ? AG.MIN_BUDGET : v;
+}
+
+function cellAt(level, x, y) {
+  if (y < 0 || y >= level.size || x < 0 || x >= level.size) return AG.WALL;
+  return level.grid[y][x];
+}
+
+function setCell(grid, x, y, code) {
+  grid[y] = grid[y].substring(0, x) + code + grid[y].substring(x + 1);
+}
+
+function inBounds(level, x, y) {
+  return x >= 0 && y >= 0 && x < level.size && y < level.size;
+}
+
+// Breadth-first reachability, used to guarantee start -> exit before returning.
+function reachable(level, from, to) {
+  var seen = {};
+  var q = [from];
+  seen[from.x + ',' + from.y] = true;
+  var dirs = [[0,-1],[0,1],[-1,0],[1,0]];
+  while (q.length) {
+    var cur = q.shift();
+    if (cur.x === to.x && cur.y === to.y) return true;
+    for (var i = 0; i < dirs.length; i++) {
+      var nx = cur.x + dirs[i][0], ny = cur.y + dirs[i][1];
+      var key = nx + ',' + ny;
+      if (seen[key]) continue;
+      if (!inBounds(level, nx, ny)) continue;
+      if (cellAt(level, nx, ny) === AG.WALL) continue;
+      seen[key] = true;
+      q.push({ x: nx, y: ny });
+    }
+  }
+  return false;
+}
+
+// Carve a guaranteed path from start to exit when random walls disconnect them.
+// Deterministic: a fixed L-shaped route.
+function carvePath(grid, start, exit) {
+  var x = start.x, y = start.y;
+  while (x !== exit.x) {
+    x += (exit.x > x) ? 1 : -1;
+    if (grid[y][x] === AG.WALL) setCell(grid, x, y, AG.FLOOR);
+  }
+  while (y !== exit.y) {
+    y += (exit.y > y) ? 1 : -1;
+    if (grid[y][x] === AG.WALL) setCell(grid, x, y, AG.FLOOR);
+  }
+}
+
+// The single source of truth for a level. Pure: same (seed, index) returns a
+// deep-equal level object every time, and reads no mutable state.
+function generateLevel(seed, index) {
+  var rnd = mulberry32(seedFor(seed, index));
+  var size = AG.SIZE;
+  var grid = [];
+  var x, y;
+  for (y = 0; y < size; y++) {
+    var row = '';
+    for (x = 0; x < size; x++) {
+      if (x === 0 || y === 0 || x === size - 1 || y === size - 1) {
+        row += AG.WALL;
+      } else {
+        row += (rnd() < 0.22) ? AG.WALL : AG.FLOOR;
+      }
+    }
+    grid.push(row);
+  }
+
+  var start = { x: 1, y: 1 };
+  var exit = { x: size - 2, y: size - 2 };
+  setCell(grid, start.x, start.y, AG.FLOOR);
+  setCell(grid, exit.x, exit.y, AG.FLOOR);
+
+  var level = { size: size, grid: grid, start: start, exit: exit, hazards: [], budget: moveBudget(index) };
+
+  if (!reachable(level, start, exit)) {
+    carvePath(level.grid, start, exit);
+  }
+
+  // Hazards: never on start, exit or the guaranteed route cells adjacent to them.
+  var hazardCount = Math.min(5, 1 + Math.floor(index / 2));
+  var placed = 0, guard = 0;
+  while (placed < hazardCount && guard < 200) {
+    guard++;
+    var hx = 1 + Math.floor(rnd() * (size - 2));
+    var hy = 1 + Math.floor(rnd() * (size - 2));
+    if (cellAt(level, hx, hy) !== AG.FLOOR) continue;
+    if (hx === start.x && hy === start.y) continue;
+    if (hx === exit.x && hy === exit.y) continue;
+    if (Math.abs(hx - start.x) + Math.abs(hy - start.y) < 2) continue;
+    setCell(level.grid, hx, hy, AG.HAZARD);
+    level.hazards.push({ x: hx, y: hy });
+    placed++;
+  }
+
+  setCell(level.grid, exit.x, exit.y, AG.EXIT);
+  return level;
+}
+
+// Input is accepted ONLY in the dark. This is the mechanic.
+function canAcceptInput(phase) {
+  return phase === 'dark';
+}
+
+function nextPhase(phase) {
+  if (phase === AG.PHASE_LIT) return AG.PHASE_DARK;
+  if (phase === AG.PHASE_DARK) return AG.PHASE_REVEAL;
+  return AG.PHASE_LIT;
+}
+
+// Apply one move. Returns the resulting position and what happened. Pure.
+// `dir` is one of up/down/left/right. A wall blocks (no move, no cost).
+function attemptMove(level, pos, dir) {
+  var dx = 0, dy = 0;
+  if (dir === 'up') dy = -1;
+  else if (dir === 'down') dy = 1;
+  else if (dir === 'left') dx = -1;
+  else if (dir === 'right') dx = 1;
+  else return { pos: pos, moved: false, blocked: false, hazard: false, exit: false, ignored: true };
+
+  var nx = pos.x + dx, ny = pos.y + dy;
+  var cell = cellAt(level, nx, ny);
+  if (cell === AG.WALL) {
+    return { pos: pos, moved: false, blocked: true, hazard: false, exit: false, ignored: false };
+  }
+  var res = { pos: { x: nx, y: ny }, moved: true, blocked: false, hazard: false, exit: false, ignored: false };
+  if (cell === AG.HAZARD) res.hazard = true;
+  if (cell === AG.EXIT) res.exit = true;
+  return res;
+}
+
+/* === AFTERGLOW-PURE-END === */
+
+/* ===========================================================================
+   Presentation and input. Everything below may touch the DOM.
+   =========================================================================== */
+(function () {
+  var STORAGE_KEY = 'flambeee-afterglow-stats';
+  var canvas = document.getElementById('board');
+  var ctx = canvas.getContext('2d');
+  var banner = document.getElementById('phase-banner');
+  var hudLevel = document.getElementById('hud-level');
+  var hudMoves = document.getElementById('hud-moves');
+  var hudCleared = document.getElementById('hud-cleared');
+  var btnStart = document.getElementById('btn-start');
+  var btnRestart = document.getElementById('btn-restart');
+
+  var state = {
+    seed: 'afterglow',
+    levelIndex: 0,
+    level: null,
+    pos: null,
+    phase: 'idle',
+    movesLeft: 0,
+    cleared: 0,
+    running: false,
+    timer: null,
+    lastEvent: null
+  };
+
+  function readStats() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      var d = JSON.parse(raw);
+      if (!d || typeof d !== 'object') return null;
+      return d;
+    } catch (e) { return null; }
+  }
+
+  function writeStats(patch) {
+    try {
+      var cur = readStats() || { levelsCleared: 0, runsFinished: 0, bestLevel: 0 };
+      cur.levelsCleared = (cur.levelsCleared || 0) + (patch.levelsCleared || 0);
+      cur.runsFinished = (cur.runsFinished || 0) + (patch.runsFinished || 0);
+      if (patch.bestLevel && patch.bestLevel > (cur.bestLevel || 0)) cur.bestLevel = patch.bestLevel;
+      cur.lastPlayed = new Date().toISOString();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(cur));
+    } catch (e) { /* private mode or quota: play on, save nothing */ }
+  }
+
+  function renderStats() {
+    var s = readStats();
+    var block = document.getElementById('stats-block');
+    if (!s || !(s.levelsCleared > 0 || s.runsFinished > 0 || s.bestLevel > 0)) {
+      block.classList.add('hidden');
+      return;
+    }
+    block.classList.remove('hidden');
+    document.getElementById('stat-levels').textContent = s.levelsCleared || 0;
+    document.getElementById('stat-runs').textContent = s.runsFinished || 0;
+    document.getElementById('stat-best').textContent = s.bestLevel || 0;
+  }
+
+  function startLevel(index) {
+    state.levelIndex = index;
+    state.level = generateLevel(state.seed, index);
+    state.pos = { x: state.level.start.x, y: state.level.start.y };
+    state.movesLeft = state.level.budget;
+    state.phase = AG.PHASE_DARK; // begin in the dark; the lit frame shows first
+    hudLevel.textContent = String(index + 1);
+    hudMoves.textContent = String(state.movesLeft);
+    hudCleared.textContent = String(state.cleared);
+    runLit();
+  }
+
+  function runLit() {
+    state.phase = AG.PHASE_LIT;
+    state.lastEvent = null;
+    banner.textContent = 'Watch the board';
+    banner.className = 'phase-banner';
+    draw(true);
+    clearTimeout(state.timer);
+    state.timer = setTimeout(runDark, litWindowMs(state.levelIndex));
+  }
+
+  function runDark() {
+    state.phase = AG.PHASE_DARK;
+    banner.textContent = 'Dark. Move from memory.';
+    banner.className = 'phase-banner dark';
+    draw(false);
+    clearTimeout(state.timer);
+    // The action window is bounded. When it expires the board lights for the
+    // reveal and the next lit phase begins; position and budget are kept.
+    state.timer = setTimeout(function () {
+      if (state.phase !== AG.PHASE_DARK) return;
+      endDark('Time up');
+    }, darkWindowMs());
+  }
+
+  function endDark(reason) {
+    state.phase = AG.PHASE_REVEAL;
+    banner.textContent = reason;
+    banner.className = 'phase-banner';
+    draw(true);
+    clearTimeout(state.timer);
+    state.timer = setTimeout(function () {
+      if (state.phase !== AG.PHASE_REVEAL) return;
+      runLit();
+    }, AG.REVEAL_MS);
+  }
+
+  function levelFailed(why) {
+    endDark(why);
+    // Reset the level only. Cleared count and run persist.
+    setTimeout(function () {
+      if (!state.running) return;
+      startLevel(state.levelIndex);
+    }, AG.REVEAL_MS + 60);
+  }
+
+  function levelCleared() {
+    state.cleared++;
+    writeStats({ levelsCleared: 1, bestLevel: state.levelIndex + 1 });
+    renderStats();
+    endDark('Level cleared');
+    setTimeout(function () {
+      if (!state.running) return;
+      startLevel(state.levelIndex + 1);
+    }, AG.REVEAL_MS + 60);
+  }
+
+  function handleMove(dir) {
+    if (!state.running) return;
+    if (!canAcceptInput(state.phase)) return; // ignored, not queued
+    var before = state.phase;
+    var res = attemptMove(state.level, state.pos, dir);
+    if (res.ignored) return;
+    if (!res.moved) {
+      // Blocked by a wall: costs nothing, but it was a real blind input.
+      state.lastEvent = 'wall';
+      draw(false);
+      return;
+    }
+    state.pos = res.pos;
+    state.movesLeft--;
+    hudMoves.textContent = String(state.movesLeft);
+
+    if (res.exit) { levelCleared(); return; }
+    if (res.hazard) { levelFailed('Hit a hazard'); return; }
+    if (state.movesLeft <= 0) { levelFailed('Out of moves'); return; }
+    state.lastEvent = null;
+    draw(false);
+  }
+
+  function draw(lit) {
+    var size = state.level ? state.level.size : AG.SIZE;
+    var cell = canvas.width / size;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = lit ? '#24243e' : '#0b0b12';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (!state.level) return;
+
+    for (var y = 0; y < size; y++) {
+      for (var x = 0; x < size; x++) {
+        var c = cellAt(state.level, x, y);
+        if (!lit) continue; // dark field: nothing is drawn
+        var px = x * cell, py = y * cell;
+        if (c === AG.WALL) { ctx.fillStyle = '#0d0d18'; ctx.fillRect(px, py, cell, cell); }
+        else if (c === AG.HAZARD) { ctx.fillStyle = '#ff5470'; ctx.fillRect(px + cell * 0.22, py + cell * 0.22, cell * 0.56, cell * 0.56); }
+        else if (c === AG.EXIT) { ctx.fillStyle = '#e94560'; ctx.fillRect(px + cell * 0.12, py + cell * 0.12, cell * 0.76, cell * 0.76); }
+      }
+    }
+
+    if (lit) {
+      ctx.fillStyle = '#ffb37a';
+      ctx.beginPath();
+      ctx.arc(state.pos.x * cell + cell / 2, state.pos.y * cell + cell / 2, cell * 0.26, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      // The player is a faint non-directional glow. No position is revealed.
+      ctx.fillStyle = 'rgba(255,179,122,0.10)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+  }
+
+  function startRun() {
+    state.running = true;
+    state.cleared = 0;
+    state.seed = 'afterglow-' + Date.now();
+    btnStart.disabled = true;
+    btnRestart.disabled = false;
+    startLevel(0);
+  }
+
+  function restartRun() {
+    if (state.running) writeStats({ runsFinished: 1 });
+    clearTimeout(state.timer);
+    state.running = false;
+    btnStart.disabled = false;
+    btnRestart.disabled = true;
+    state.level = null;
+    state.pos = null;
+    state.phase = 'idle';
+    banner.textContent = '\u00a0';
+    draw(false);
+    hudLevel.textContent = '1';
+    hudMoves.textContent = '0';
+    hudCleared.textContent = '0';
+    renderStats();
+  }
+
+  btnStart.addEventListener('click', startRun);
+  btnRestart.addEventListener('click', function () {
+    restartRun();
+    startRun();
+  });
+
+  var KEYS = {
+    ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
+    w: 'up', a: 'left', s: 'down', d: 'right',
+    W: 'up', A: 'left', S: 'down', D: 'right'
+  };
+  window.addEventListener('keydown', function (e) {
+    var dir = KEYS[e.key];
+    if (!dir) return;
+    e.preventDefault();
+    handleMove(dir);
+  });
+
+  var touchStart = null;
+  canvas.addEventListener('touchstart', function (e) {
+    if (e.touches.length !== 1) return;
+    e.preventDefault();
+    touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  }, { passive: false });
+  canvas.addEventListener('touchend', function (e) {
+    if (!touchStart) return;
+    e.preventDefault();
+    var t = e.changedTouches[0];
+    var dx = t.clientX - touchStart.x, dy = t.clientY - touchStart.y;
+    touchStart = null;
+    var THRESH = 24;
+    if (Math.abs(dx) < THRESH && Math.abs(dy) < THRESH) {
+      // Tap: move toward the tapped edge relative to board centre.
+      var rect = canvas.getBoundingClientRect();
+      var cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+      var ax = t.clientX - cx, ay = t.clientY - cy;
+      if (Math.abs(ax) > Math.abs(ay)) handleMove(ax > 0 ? 'right' : 'left');
+      else handleMove(ay > 0 ? 'down' : 'up');
+      return;
+    }
+    if (Math.abs(dx) > Math.abs(dy)) handleMove(dx > 0 ? 'right' : 'left');
+    else handleMove(dy > 0 ? 'down' : 'up');
+  }, { passive: false });
+
+  // Mouse click acts like a tap for desktop without a keyboard.
+  canvas.addEventListener('click', function (e) {
+    var rect = canvas.getBoundingClientRect();
+    var cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+    var ax = e.clientX - cx, ay = e.clientY - cy;
+    if (Math.abs(ax) > Math.abs(ay)) handleMove(ax > 0 ? 'right' : 'left');
+    else handleMove(ay > 0 ? 'down' : 'up');
+  });
+
+  renderStats();
+  draw(false);
+
+  // Expose the pure surface for the proof harness when running headless.
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { generateLevel: generateLevel, canAcceptInput: canAcceptInput, attemptMove: attemptMove, nextPhase: nextPhase, litWindowMs: litWindowMs, moveBudget: moveBudget, seedFor: seedFor, mulberry32: mulberry32, AG: AG };
+  }
+})();
+</script>
+</body>
+</html>

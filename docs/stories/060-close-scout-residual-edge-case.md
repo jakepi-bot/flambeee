@@ -109,3 +109,36 @@ apply and are recorded in Story 056.
 
 1. **Where the answer is recorded.** Recommended: `dev-results.md` plus the outcome line in this
    file. If the parent prefers a single location, `dev-results.md` is the one.
+
+---
+
+## OUTCOME — CLOSED by measurement (2026-10-06, Session 29)
+
+**Result: NO FOURTH FINDING.** Scout's unnamed residual edge case is closed.
+
+Measured against shipped **v0.26.0** `src/cinder.html` by executing the real extracted functions
+(`dev/afterglow-060-residual.py`, run in Node). Not read, not inferred.
+
+- **All Session 28 seeds A, C, G2/G3, H1/H2 are fixed on v0.26.0.** `gold: 'abc'` becomes the
+  finite integer `0` (so the gates compare numerically and the player can earn their way out);
+  `level: null` yields atk 2 / def 1 / hp 10; string equipment ids find their bonus (atk 15 vs 6,
+  def 10 vs 3); `hp: -50` clamps to 0 and `hp: 1e9 / maxHp 26` clamps to 26.
+- **The three documented non-blocking notes all reproduce as recorded**, and none is a fourth
+  defect: N1 `maxHp: 'junk'` clamps hp to 0 (the clamp-ruling consequence, hp 0 reads as death at
+  the inn), N2 `normalizeCharacterRecord({})` returns a level-1 hero where `normalizeDayRecord({})`
+  returns null (the recorded asymmetry), N3 `flambeee-team/` is gitignored (logistics, not
+  behaviour).
+- **Storage and boundary sweep: no throws.** `null` / `42` / `'a string'` / `[]` all normalize to
+  null; `{}` returns a record (N2). 50-char name, `xp: 12.7`, `gold: -5`, `wins: 3.2`, `level: 99`,
+  `maxHp: 0` with positive hp, and an all-wrong-types object all normalize without throwing.
+- **Defect E (unreadable storage) is unchanged and still ownered to Story 058.** Out of scope here.
+
+**A harness bug was found and corrected during this run, and it is worth recording because it is
+this project's recurring failure mode.** The first pass asserted `gold >= 10` for seed A and
+reported a spurious FOURTH FINDING. Story 056 AC-4 is explicit that `gold: 'abc'` must normalize to
+`0` and that `gold >= 10` is then **false correctly**; the defect was the type being a string, not
+the value being zero. The assertion tested affordability, which is not the invariant. Corrected to
+assert a finite number, and the finding disappeared. A green (or red) exit is a claim about the
+script: check the harness before believing the product.
+
+No code changed under Story 060.
