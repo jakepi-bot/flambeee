@@ -49,6 +49,9 @@
       touch-action: none;
     }
     .controls { margin-top: 14px; display: flex; gap: 10px; }
+    .modes { margin-top: 14px; display: flex; gap: 10px; align-items: center; }
+    .modes button[aria-pressed="true"] { border-color: var(--afterglow); }
+    .daily-label { margin-top: 8px; color: var(--muted); font-size: 0.78rem; letter-spacing: 1px; min-height: 18px; }
     button {
       background: var(--surface);
       color: var(--text);
@@ -85,6 +88,12 @@
 
   <canvas id="board" width="360" height="360" aria-label="Afterglow game board"></canvas>
 
+  <div class="modes" role="group" aria-label="Game mode">
+    <button id="btn-daily" aria-pressed="true">Daily</button>
+    <button id="btn-free" aria-pressed="false">Free play</button>
+  </div>
+  <div class="daily-label" id="daily-label"></div>
+
   <div class="controls">
     <button id="btn-start">Start</button>
     <button id="btn-restart" disabled>Restart run</button>
@@ -119,6 +128,14 @@ function mulberry32(a) {
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
+}
+
+// Daily seed source (Story 064). One UTC day, one seed, the same for every
+// player: the day index is the count of whole UTC days since the epoch, the
+// same UTC-day index the other daily games use. Pure: a string in, a string
+// out. No DOM, storage, clock or timer references.
+function dailySeedForDay(dayIndex) {
+  return 'afterglow-daily:' + String(dayIndex >>> 0);
 }
 
 // Fold a seed string and a level index into one integer, so a seed sequence is
@@ -309,6 +326,7 @@ function attemptMove(level, pos, dir) {
    =========================================================================== */
 (function () {
   var STORAGE_KEY = 'flambeee-afterglow-stats';
+  var DAILY_STORAGE_KEY = 'flambeee-afterglow-daily-stats';
   var canvas = document.getElementById('board');
   var ctx = canvas.getContext('2d');
   var banner = document.getElementById('phase-banner');
@@ -317,8 +335,13 @@ function attemptMove(level, pos, dir) {
   var hudCleared = document.getElementById('hud-cleared');
   var btnStart = document.getElementById('btn-start');
   var btnRestart = document.getElementById('btn-restart');
+  var btnDaily = document.getElementById('btn-daily');
+  var btnFree = document.getElementById('btn-free');
+  var dailyLabel = document.getElementById('daily-label');
 
   var state = {
+    mode: 'daily',
+    dayIndex: Math.floor(Date.now() / 86400000),
     seed: 'afterglow',
     levelIndex: 0,
     level: null,
@@ -331,9 +354,15 @@ function attemptMove(level, pos, dir) {
     lastEvent: null
   };
 
+  // Daily and free-play records live under separate keys so neither mode can
+  // clobber the other (Story 064 stats isolation).
+  function statsKey() {
+    return state.mode === 'daily' ? DAILY_STORAGE_KEY : STORAGE_KEY;
+  }
+
   function readStats() {
     try {
-      var raw = localStorage.getItem(STORAGE_KEY);
+      var raw = localStorage.getItem(statsKey());
       if (!raw) return null;
       var d = JSON.parse(raw);
       if (!d || typeof d !== 'object') return null;
@@ -348,7 +377,7 @@ function attemptMove(level, pos, dir) {
       cur.runsFinished = (cur.runsFinished || 0) + (patch.runsFinished || 0);
       if (patch.bestLevel && patch.bestLevel > (cur.bestLevel || 0)) cur.bestLevel = patch.bestLevel;
       cur.lastPlayed = new Date().toISOString();
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(cur));
+      localStorage.setItem(statsKey(), JSON.stringify(cur));
     } catch (e) { /* private mode or quota: play on, save nothing */ }
   }
 
@@ -490,7 +519,14 @@ function attemptMove(level, pos, dir) {
   function startRun() {
     state.running = true;
     state.cleared = 0;
-    state.seed = 'afterglow-' + Date.now();
+    if (state.mode === 'daily') {
+      // One sequence per UTC day, the same for every player. Recomputed at
+      // every run start, so a post-midnight reload advances to the new day.
+      state.dayIndex = Math.floor(Date.now() / 86400000);
+      state.seed = dailySeedForDay(state.dayIndex);
+    } else {
+      state.seed = 'afterglow-' + Date.now();
+    }
     btnStart.disabled = true;
     btnRestart.disabled = false;
     startLevel(0);
@@ -518,6 +554,33 @@ function attemptMove(level, pos, dir) {
     restartRun();
     startRun();
   });
+
+  // Mode entry (Story 064). In-game only: Daily and Free play share the
+  // phase machine, grid, budget and input gating; only the seed source and
+  // the stats key differ. Switching mode stops the current run first.
+  function renderMode() {
+    var daily = state.mode === 'daily';
+    btnDaily.setAttribute('aria-pressed', daily ? 'true' : 'false');
+    btnFree.setAttribute('aria-pressed', daily ? 'false' : 'true');
+    if (daily) {
+      var d = new Date(state.dayIndex * 86400000);
+      dailyLabel.textContent = 'Daily ' + d.toISOString().slice(0, 10);
+    } else {
+      dailyLabel.textContent = '';
+    }
+    renderStats();
+  }
+
+  function setMode(mode) {
+    if (state.mode === mode) return;
+    if (state.running) restartRun();
+    state.mode = mode;
+    if (mode === 'daily') state.dayIndex = Math.floor(Date.now() / 86400000);
+    renderMode();
+  }
+
+  btnDaily.addEventListener('click', function () { setMode('daily'); });
+  btnFree.addEventListener('click', function () { setMode('free'); });
 
   var KEYS = {
     ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
@@ -566,13 +629,28 @@ function attemptMove(level, pos, dir) {
     else handleMove(ay > 0 ? 'down' : 'up');
   });
 
-  renderStats();
+  renderMode();
   draw(false);
 
   // Expose the pure surface for the proof harness when running headless.
   if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { generateLevel: generateLevel, canAcceptInput: canAcceptInput, attemptMove: attemptMove, nextPhase: nextPhase, litWindowMs: litWindowMs, moveBudget: moveBudget, seedFor: seedFor, mulberry32: mulberry32, AG: AG };
+    module.exports = { generateLevel: generateLevel, canAcceptInput: canAcceptInput, attemptMove: attemptMove, nextPhase: nextPhase, litWindowMs: litWindowMs, moveBudget: moveBudget, seedFor: seedFor, dailySeedForDay: dailySeedForDay, mulberry32: mulberry32, AG: AG };
   }
+
+  // Read-only debug hook for automated browser checks. Reports phase,
+  // position, budget, mode and seed; never mutates game state.
+  window.__afterglow = function () {
+    return {
+      phase: state.phase,
+      pos: state.pos ? { x: state.pos.x, y: state.pos.y } : null,
+      movesLeft: state.movesLeft,
+      running: state.running,
+      mode: state.mode,
+      dayIndex: state.dayIndex,
+      seed: state.seed,
+      levelIndex: state.levelIndex
+    };
+  };
 })();
 </script>
 </body>
