@@ -671,7 +671,7 @@
   <div class="container">
     <div class="section-head">
       <h2>Pick your poison</h2>
-      <p>Five games, one arcade. All free, all in your browser.</p>
+      <p>Six games, one arcade. All free, all in your browser.</p>
     </div>
     <div class="gotw" id="gotw" hidden></div>
     <div class="play-today" id="playToday" hidden></div>
@@ -1103,10 +1103,10 @@
 
   // --- Game of the Week (Story 026) ---
   // Deterministic weekly rotation: the ISO week number (1-52/53) of the current
-  // UTC date indexes into a fixed document-order list of the five games, so
-  // every visitor that week sees the same featured game and all five rotate
-  // over any five consecutive weeks. Resolves client-side; no server, no state.
-  var GAME_ORDER = ['cinder', 'wordfire', 'minesweeper', 'simon', '2048'];
+  // UTC date indexes into a fixed document-order list of the six games, so
+  // every visitor that week sees the same featured game and all six rotate
+  // over any six consecutive weeks. Resolves client-side; no server, no state.
+  var GAME_ORDER = ['cinder', 'wordfire', 'minesweeper', 'simon', '2048', 'afterglow'];
   function isoWeekNumber(d) {
     var date = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
     var dayNum = (date.getUTCDay() + 6) % 7; // Monday = 0
