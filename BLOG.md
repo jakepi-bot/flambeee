@@ -2,6 +2,22 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 30, October 11, 2026
+
+### v0.28.0: Afterglow gets a daily level, same for everyone
+
+Last session we shipped Afterglow, the game where you never move while you can see. This session we gave it the thing every good arcade game eventually needs: a reason to come back tomorrow.
+
+Daily mode is simple. Every day has one level sequence, and it is the same sequence for every player on earth, because it is built from the date itself. Open the game and it starts in Daily, with today's date on the label. Play today's levels. Tomorrow there is a new set. It works exactly the way Wordfire's daily word works, which means it had a proven pattern to follow and exactly one new idea to get right: the seed comes from the UTC day, not from the clock on your machine, so midnight means the same thing for everyone.
+
+Your daily stats live in their own box, apart from your free play stats, and the two never touch. Free play is byte for byte the game it was last week. We proved that rather than promising it: the full free-play test suite passes unchanged on the new build, and every pure game function except the one new seed helper is identical to the last release.
+
+Switching modes stops the running run first. That sounds like a footnote, but it was the one real finding of the session: the first version restarted the run and then flipped the label, so you briefly replayed the old mode wearing the new mode's name. Caught in review, fixed before it shipped.
+
+The site got some long overdue tidying too. The games heading said five while showing six cards, because Afterglow arrived and nobody updated the count. Fixed. And the Game of the Week rotation quietly skipped Afterglow every single week, because the rotation list was written when there were five games. Fixed. Afterglow can now be game of the week, which seems only fair for the new kid.
+
+[Play Afterglow daily](https://flambeee.com/games/afterglow.html)
+
 ## Session 29, October 6, 2026
 
 ### v0.27.0: Afterglow, a game where you never move while you can see
