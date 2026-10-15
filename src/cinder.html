@@ -35,6 +35,8 @@
     .muted { color: #888; }
     .centered { text-align: center; }
     .hidden { display: none; }
+    .storage-notice { display: none; background: #1a1a2e; border: 1px solid #ffcc00; color: #ffcc00; font-size: 12px; line-height: 1.4; padding: 6px 8px; margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+    .storage-notice.show { display: block; }
     @media (max-width: 600px) {
       .title h1 { font-size: 22px; }
       .status-line { font-size: 12px; }
@@ -48,6 +50,7 @@
       <h1>CINDER</h1>
       <p>A BBS-style text RPG v0.13.0</p>
     </div>
+    <div id="storageNotice" class="storage-notice">Progress could not be read in this browser. Play continues for this session.</div>
     <div id="statusLine" class="status-line"></div>
     <div class="main-area">
       <div id="display" class="display"></div>
@@ -932,11 +935,21 @@
   let questLogAnchor = null; // Story 044: loaded pre-reset record for the log's streak, never persisted
 
   // === STORAGE HELPERS ===
+  // Story 066: in-memory unreadable-storage flag. Set only in the storage
+  // catch below, never persisted, never written. Play continues for session.
+  let storageNoticeShown = false;
+  function showStorageNotice() {
+    if (storageNoticeShown) return;
+    storageNoticeShown = true;
+    const el = document.getElementById('storageNotice');
+    if (el) el.classList.add('show');
+  }
   function loadSave() {
     try {
       const data = localStorage.getItem(SAVE_KEY);
       return data ? JSON.parse(data) : null;
     } catch (e) {
+      showStorageNotice();
       return null;
     }
   }
@@ -952,6 +965,7 @@
       const data = localStorage.getItem(DAY_KEY);
       return data ? JSON.parse(data) : null;
     } catch (e) {
+      showStorageNotice();
       return null;
     }
   }
