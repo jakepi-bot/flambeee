@@ -15,10 +15,10 @@
 set -u
 set -o pipefail
 
-LIVE="/home/jake/.openclaw/workspace/share/Flambeee/index.html"
+LIVE="${FLAMBEEE_LIVE:-/home/jake/share/Flambeee/index.html}"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MIRROR="${REPO_ROOT}/website/index.html"
-GAMES_DIR="/home/jake/.openclaw/workspace/share/Flambeee/games"
+GAMES_DIR="$(dirname "$LIVE")/games"
 RELEASES_URL="https://github.com/jakepi-bot/flambeee/releases"
 BLOG_URL="https://github.com/jakepi-bot/flambeee/blob/main/BLOG.md"
 
