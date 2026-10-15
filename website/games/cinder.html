@@ -1,0 +1,1754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Cinder - A BBS-style Text RPG | Flambeee</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; background: #0a0a0f; color: #33ff33; font-family: ui-monospace, "Courier New", monospace; font-size: 14px; line-height: 1.5; overflow: hidden; }
+    .terminal { display: flex; flex-direction: column; height: 100%; max-width: 900px; margin: 0 auto; padding: 12px; }
+    .title { text-align: center; margin-bottom: 8px; }
+    .title h1 { color: #ffcc00; font-size: 28px; letter-spacing: 4px; text-shadow: 2px 2px #cc0000; }
+    .title p { color: #666; font-size: 12px; margin-top: 4px; }
+    .status-line { background: #1a1a2e; padding: 8px; border: 1px solid #333; margin-bottom: 8px; font-size: 13px; white-space: nowrap; overflow-x: auto; }
+    .main-area { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+    .display { flex: 1; background: #0f0f1a; border: 1px solid #333; padding: 12px; overflow-y: auto; margin-bottom: 8px; }
+    .display pre { white-space: pre-wrap; word-wrap: break-word; }
+    .prompt-line { display: flex; gap: 8px; align-items: center; }
+    .prompt-line label { color: #ffcc00; }
+    .prompt-line input { flex: 1; background: #1a1a2e; border: 1px solid #444; color: #33ff33; padding: 8px; font-family: inherit; font-size: 14px; outline: none; }
+    .prompt-line input:focus { border-color: #ffcc00; }
+    .menu-row { display: block; padding: 10px 12px; margin: 4px 0; background: #1a1a2e; border: 1px solid #333; cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent; }
+    .menu-row:hover { background: #2a2a3e; border-color: #555; }
+    .menu-row:active { background: #3a3a4e; }
+    .menu-row .num { color: #ffcc00; margin-right: 8px; }
+    .log-entry { margin: 2px 0; }
+    .log-entry.damage { color: #ff6666; }
+    .log-entry.healing { color: #66ff66; }
+    .log-entry.gold { color: #ffcc00; }
+    .log-entry.flavor { color: #66ccff; }
+    .log-entry.death { color: #ff3333; font-weight: bold; }
+    .boxed-menu { background: #1a1a2e; border: 2px solid #444; padding: 12px; margin: 8px 0; }
+    .boxed-menu .header { color: #ffcc00; text-align: center; margin-bottom: 8px; }
+    .boxed-menu .divider { border-top: 1px dashed #444; margin: 8px 0; }
+    .muted { color: #888; }
+    .centered { text-align: center; }
+    .hidden { display: none; }
+    .storage-notice { display: none; background: #1a1a2e; border: 1px solid #ffcc00; color: #ffcc00; font-size: 12px; line-height: 1.4; padding: 6px 8px; margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+    .storage-notice.show { display: block; }
+    @media (max-width: 600px) {
+      .title h1 { font-size: 22px; }
+      .status-line { font-size: 12px; }
+      .display { font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="terminal">
+    <div class="title">
+      <h1>CINDER</h1>
+      <p>A BBS-style text RPG v0.13.0</p>
+    </div>
+    <div id="storageNotice" class="storage-notice">Progress could not be read in this browser. Play continues for this session.</div>
+    <div id="statusLine" class="status-line"></div>
+    <div class="main-area">
+      <div id="display" class="display"></div>
+      <div id="promptLine" class="prompt-line">
+        <label>&gt;</label>
+        <input type="text" id="promptInput" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      </div>
+    </div>
+  </div>
+
+<script>
+(function() {
+  'use strict';
+
+  // === CONSTANTS ===
+  const SAVE_KEY = 'flambeee-cinder-save';
+  const DAY_KEY = 'flambeee-cinder-day';
+  const MAX_FIGHTS_PER_DAY = 15;
+  const MAX_INN_HEALS_PER_DAY = 3;
+  const INN_HEAL_COST = 5;
+  const RUN_SUCCESS_CHANCE = 0.5;
+  const MONSTER_ENCOUNTER_RATE = 0.7;
+  const BOSS_TIER = 13; // monsters with id >= 13 count as bosses (Shadow Knight, Ancient Wyrm, Void Horror)
+
+  // === GAME DATA ===
+  const LEVELS = [
+    { level: 1, xpNeeded: 0, hpGain: 10, atkGain: 2, defGain: 1 },
+    { level: 2, xpNeeded: 50, hpGain: 8, atkGain: 2, defGain: 1 },
+    { level: 3, xpNeeded: 120, hpGain: 8, atkGain: 2, defGain: 1 },
+    { level: 4, xpNeeded: 220, hpGain: 8, atkGain: 2, defGain: 1 },
+    { level: 5, xpNeeded: 350, hpGain: 8, atkGain: 2, defGain: 1 },
+    { level: 6, xpNeeded: 520, hpGain: 8, atkGain: 2, defGain: 1 },
+    { level: 7, xpNeeded: 740, hpGain: 8, atkGain: 2, defGain: 1 },
+    { level: 8, xpNeeded: 1020, hpGain: 8, atkGain: 2, defGain: 1 },
+    { level: 9, xpNeeded: 1360, hpGain: 8, atkGain: 2, defGain: 1 },
+    { level: 10, xpNeeded: 1760, hpGain: 8, atkGain: 2, defGain: 1 }
+  ];
+
+  const WEAPONS = [
+    { id: 0, name: 'Rusty Dagger', atk: 1, price: 0 },
+    { id: 1, name: 'Iron Knife', atk: 3, price: 25 },
+    { id: 2, name: 'Steel Shortsword', atk: 5, price: 60 },
+    { id: 3, name: 'Warrior Axe', atk: 8, price: 120 },
+    { id: 4, name: 'Knight Blade', atk: 12, price: 220 },
+    { id: 5, name: 'Hero Sword', atk: 17, price: 400 },
+    { id: 6, name: 'Dragon Slayer', atk: 24, price: 700 },
+    { id: 7, name: 'Godforge Edge', atk: 35, price: 1200 }
+  ];
+
+  const ARMOR = [
+    { id: 0, name: 'Cloth Tunic', def: 1, price: 0 },
+    { id: 1, name: 'Leather Vest', def: 2, price: 30 },
+    { id: 2, name: 'Studded Leather', def: 4, price: 75 },
+    { id: 3, name: 'Chain Mail', def: 7, price: 150 },
+    { id: 4, name: 'Plate Armor', def: 11, price: 280 },
+    { id: 5, name: 'Templar Plate', def: 16, price: 500 },
+    { id: 6, name: 'Dragon Scale', def: 23, price: 850 },
+    { id: 7, name: 'Godforge Mail', def: 32, price: 1400 }
+  ];
+
+  const MONSTERS = [
+    { id: 1, name: 'Mud Gremlin', hp: 12, atk: 3, def: 1, xp: 8, gold: 5, flavor: 'A small creature made of swamp muck. It smells worse than it fights.' },
+    { id: 2, name: 'Forest Rat', hp: 10, atk: 4, def: 0, xp: 7, gold: 4, flavor: 'Oversized and hungry. Probably has rabies.' },
+    { id: 3, name: 'Goblin Scout', hp: 15, atk: 4, def: 2, xp: 10, gold: 8, flavor: 'Carries a rusty blade and a grudge against civilization.' },
+    { id: 4, name: 'Wild Boar', hp: 20, atk: 5, def: 2, xp: 12, gold: 6, flavor: 'Tusks like daggers. Temperament to match.' },
+    { id: 5, name: 'Swamp Adder', hp: 14, atk: 7, def: 1, xp: 11, gold: 7, flavor: 'Venomous. The good news is you will not feel much.' },
+    { id: 6, name: 'Orc Grunt', hp: 25, atk: 6, def: 3, xp: 15, gold: 12, flavor: 'Not bright, but strong. Also not hygienic.' },
+    { id: 7, name: 'Dark Cultist', hp: 22, atk: 8, def: 2, xp: 16, gold: 15, flavor: 'Wears robes. Mumbles about ancient powers. Classic villain origin story.' },
+    { id: 8, name: 'Stone Golem', hp: 35, atk: 7, def: 6, xp: 20, gold: 10, flavor: 'Made of rock. Literally. Good luck hurting it.' },
+    { id: 9, name: 'Wraith', hp: 28, atk: 10, def: 3, xp: 22, gold: 18, flavor: 'Incorporeal. Still manages to hit you.' },
+    { id: 10, name: 'Ogre Brute', hp: 45, atk: 9, def: 5, xp: 25, gold: 20, flavor: 'Big, dumb, and angry. The unholy trinity.' },
+    { id: 11, name: 'Fire Elemental', hp: 38, atk: 11, def: 4, xp: 28, gold: 22, flavor: 'On fire. Everything else is on fire now too.' },
+    { id: 12, name: 'Frost Giant', hp: 50, atk: 12, def: 6, xp: 32, gold: 28, flavor: 'Cold enough to freeze your blood. Which it will try to do.' },
+    { id: 13, name: 'Shadow Knight', hp: 42, atk: 13, def: 8, xp: 35, gold: 30, flavor: 'Former hero. Fell to darkness. Classic tragedy.' },
+    { id: 14, name: 'Ancient Wyrm', hp: 60, atk: 14, def: 7, xp: 40, gold: 35, flavor: 'Old, wise, and wants to eat you. Standard dragon behavior.' },
+    { id: 15, name: 'Void Horror', hp: 70, atk: 16, def: 9, xp: 50, gold: 45, flavor: 'From beyond reality. Smells like regret and sulfur.' }
+  ];
+
+  const EVENTS = [
+    { id: 1, type: 'treasure', text: 'You find a pouch hidden under a rock.', goldMin: 8, goldMax: 20 },
+    { id: 2, type: 'treasure', text: 'A merchant dropped his coin purse. Finders keepers.', goldMin: 12, goldMax: 25 },
+    { id: 3, type: 'treasure', text: 'You discover a buried chest with old coins.', goldMin: 15, goldMax: 30 },
+    { id: 4, type: 'treasure', text: 'Bandit camp abandoned in a hurry. Their loss.', goldMin: 20, goldMax: 40 },
+    { id: 5, type: 'heal', text: 'You find a healing spring. Drink deeply.', healMin: 5, healMax: 12 },
+    { id: 6, type: 'heal', text: 'A wandering priest blesses you for no clear reason.', healMin: 8, healMax: 15 },
+    { id: 7, type: 'heal', text: 'Strange mushrooms. You eat them. They work.', healMin: 6, healMax: 10 },
+    { id: 8, type: 'strange', text: 'A mysterious rune glows on the path. You feel stronger.', effect: 'perm_atk', value: 1 },
+    { id: 9, type: 'strange', text: 'You step in glowing slime. Your skin hardens.', effect: 'perm_def', value: 1 },
+    { id: 10, type: 'strange', text: 'A fortune teller reads your palm. She seems worried.', effect: 'none' },
+    { id: 11, type: 'strange', text: 'You find a shrine. Leaving an offering feels right.', effect: 'gold_loss', value: 10 },
+    { id: 12, type: 'gag', text: 'Nothing happened. Absolutely nothing. Exciting stuff.' },
+    { id: 13, type: 'gag', text: 'You walk for a bit. Scenery was nice.' },
+    { id: 14, type: 'gag', text: 'A butterfly lands on your nose. Then leaves.' },
+    { id: 15, type: 'gag', text: 'You hear a strange noise. It was just wind.' },
+    { id: 16, type: 'treasure', text: 'Old adventurer skeleton. Taking their gear would be rude. Gold though...', goldMin: 10, goldMax: 22 },
+    { id: 17, type: 'heal', text: 'Resting under a tree restores some energy.', healMin: 4, healMax: 8 },
+    { id: 18, type: 'strange', text: 'A trickster spirit offers a deal. You decline. Smart.', effect: 'none' },
+    { id: 19, type: 'gag', text: 'You trip over nothing. Embarrassing but harmless.' },
+    { id: 20, type: 'treasure', text: 'Monster lair cleared by someone else. Leftover loot.', goldMin: 18, goldMax: 35 }
+  ];
+
+  const RUMORS = [
+    'The barkeep swears the Wilderness gets weirder after midnight. He also swears he once wrestled a bear.',
+    'Someone claims they saw a monster with three heads. Or it was a guy with two friends. Hard to tell when drunk.',
+    'The Trainer used to fight here. Retired after something looked at him wrong.',
+    'Bank vault has never been robbed. Either great security or nothing worth stealing.',
+    'Old legend says the Godforge weapons were made by actual gods. Or really good blacksmiths.',
+    'Heard there is a merchant who sells armor made from dragon scales. Probably a scam.',
+    'The Inn keeper says the same thing every day: "No fighting inside." Ironically.',
+    'Someone left a diary in the Tavern bathroom. Pages 3 through 7 are concerning.',
+    'The Void Horror apparently speaks in riddles. Or it just has bad breath.',
+    'Local kids dare each other to punch a Stone Golem. No one has won yet.',
+    'There is a cult that worships the Ancient Wyrm. They throw very dull parties.',
+    'The Weapon Shop owner once fought an Ogre bare-handed. Lost an eyebrow.',
+    'Rumor says if you deposit exactly 1000 gold, something special happens. Nothing happens.',
+    'A bard wrote a song about the Shadow Knight. It is terrible. The knight agrees.',
+    'The Frost Giant collects hats. Do not ask how you know this.'
+  ];
+
+  // === DAILY QUEST SYSTEM (Story 025) ===
+  // One deterministic quest per UTC day, seeded from the same day index that
+  // anchors the daily fights/Inn reset. Every player sees the same quest that
+  // UTC day. Quest state lives on the flambeee-cinder-day day-state object
+  // (dayState.quest) so it resets for free at UTC along with fights/Inn heals.
+  //
+  // UI call-outs for Riven (Story 025 frontend):
+  //  - getActiveQuest() -> the day's quest template (label, target, rewardXp/
+  //    rewardGold, kind). Same for all players that UTC day.
+  //  - getQuestState()  -> live dayState.quest: { progress, completed, rewarded }.
+  //    Reads are always safe; ensureQuestState() backfills a missing object.
+  //  - A town menu row 8 "Today's quest" and renderQuest() are provided as a
+  //    working provisional UI following the v0.13.1 data-action delegation
+  //    pattern; Riven owns final presentation and the mobile tap polish.
+  //
+  // Quest templates. `kind` is the objective type the rotation guard keys on:
+  // no player sees the same kind of quest two UTC days in a row. `target` is the
+  // progress needed to complete; rewards are flat bonuses paid exactly once.
+  // Balance: roughly one to two fights' worth of XP/gold, meaningful without
+  // trivializing progression. The boss quest pays more because it is harder
+  // (requires defeating a high-tier monster).
+  const QUEST_TYPES = [
+    { id: 'slay3',   kind: 'slay', target: 3,   rewardXp: 70,  rewardGold: 35, label: 'Defeat 3 monsters', objective: 'Defeat 3 monsters' },
+    { id: 'slay5',   kind: 'slay', target: 5,   rewardXp: 90,  rewardGold: 40, label: 'Defeat 5 monsters', objective: 'Defeat 5 monsters' },
+    { id: 'gold100', kind: 'gold', target: 100, rewardXp: 50,  rewardGold: 25, label: 'Earn 100 gold', objective: 'Earn 100 gold from combat' },
+    { id: 'gold150', kind: 'gold', target: 150, rewardXp: 60,  rewardGold: 25, label: 'Earn 150 gold', objective: 'Earn 150 gold from combat' },
+    { id: 'boss1',   kind: 'boss', target: 1,   rewardXp: 120, rewardGold: 60, label: 'Defeat a boss', objective: 'Defeat a boss (Shadow Knight or stronger)' }
+  ];
+
+  const KIND_CYCLE = ['slay', 'gold', 'boss'];
+
+  // Kind rotation. A fully closed-form O(1) function of the day index that
+  // provably never assigns the same kind on consecutive days: within a 3-day
+  // block the index advances by exactly 1 (never two equal in a row), and at
+  // block boundaries floor(block) advances by 1 while the remainder resets to 0,
+  // so the neighboring values differ mod 3 as well. It needs no recursion down
+  // the day history, and it cycles through all three kinds with variety.
+  // Hash-driven variety is applied within a kind via template selection below.
+  function kindIndexForDay(dayIdx) {
+    const block = Math.floor(dayIdx / 3);
+    const pos = dayIdx % 3;
+    return (block + pos) % 3;
+  }
+
+  // Deterministic 32-bit FNV-1a hash of an integer. A pure function with no
+  // randomness, stable across browsers and restarts, so the same UTC day always
+  // yields the same quest.
+  function dayIndexHash(n) {
+    n = n >>> 0;
+    let h = 0x811c9dc5;
+    for (let i = 0; i < 4; i++) {
+      const byte = (n >>> (i * 8)) & 0xff;
+      h ^= byte;
+      h = Math.imul(h, 0x01000193) >>> 0;
+    }
+    return h >>> 0;
+  }
+
+  // Choose the quest template for a given UTC day index.
+  //  - kindIndexForDay picks the objective kind (slay/gold/boss) with a
+  //    guaranteed no-consecutive-repeat rotation.
+  //  - Within that kind, the hash picks the specific template, so the two slay
+  //    and two gold variants alternate deterministically over time.
+  // Every player sees the same quest on a given UTC day.
+  function determineQuestForDay(dayIdx) {
+    const kind = KIND_CYCLE[kindIndexForDay(dayIdx)];
+    const pool = QUEST_TYPES.filter(function (t) { return t.kind === kind; });
+    return pool[dayIndexHash(dayIdx) % pool.length];
+  }
+
+  function getActiveQuest() {
+    return determineQuestForDay(getDayIndex());
+  }
+
+  // Ensure dayState.quest and dayState.completedQuests exist. New and existing
+  // saves both get a clean slate: the quest shows as available today with 0
+  // progress. completedQuests (Story 035) is an additive history field, so a
+  // save predating it loads with an empty history and no loss of any existing
+  // state. No crash, no corrupt data.
+  function ensureQuestState() {
+    if (!dayState) return;
+    if (!dayState.quest) {
+      dayState.quest = { progress: 0, completed: false, rewarded: false };
+      saveDayState();
+    }
+    if (!Array.isArray(dayState.completedQuests)) {
+      dayState.completedQuests = [];
+      saveDayState();
+    }
+  }
+
+  function getQuestState() {
+    ensureQuestState();
+    return dayState.quest;
+  }
+
+  // === APP-ICON BADGE (Story 037) ===
+  // Installed players get a home-screen badge of 1 while today's quest is still
+  // pending, cleared to 0 the moment the quest is completed and rewarded.
+  //
+  // This is a PURE MIRROR of quest state the game already has. It reads
+  // getQuestState() and writes nothing: no saveCharacter, no saveDayState, no
+  // localStorage, no new save field. The value is always 0 or 1.
+  //
+  // The Badging API (navigator.setAppBadge / navigator.clearAppBadge) is
+  // optional: absent in Firefox, iOS Safari, and most non-Chromium browsers.
+  // The path feature-detects both, swallows sync errors and rejected Promises,
+  // and no-ops cleanly when the API is missing. No notification, no push, no
+  // permission prompt, no install nag. Idempotent: re-applying the same value
+  // is harmless.
+  function syncAppBadge() {
+    try {
+      const nav = (typeof navigator !== 'undefined') ? navigator : null;
+      if (!nav) return false;
+      const canSet = typeof nav.setAppBadge === 'function';
+      const canClear = typeof nav.clearAppBadge === 'function';
+      if (!canSet && !canClear) return false;
+
+      const q = getQuestState();
+      const pending = !(q && q.completed && q.rewarded);
+
+      if (!pending && canClear) {
+        const p = nav.clearAppBadge();
+        if (p && typeof p.catch === 'function') p.catch(function () {});
+      } else if (canSet) {
+        const p = nav.setAppBadge(pending ? 1 : 0);
+        if (p && typeof p.catch === 'function') p.catch(function () {});
+      }
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Mark today's quest complete and pay the bonus exactly once. Guarded so a
+  // completed quest never re-pays, even across reloads, and progress is clamped
+  // at the target so it cannot drift past the objective.
+  function completeQuest() {
+    const q = getQuestState();
+    const quest = getActiveQuest();
+    if (q.completed) return;
+    q.completed = true;
+    if (q.progress > quest.target) q.progress = quest.target;
+    if (!q.rewarded) {
+      character.xp += quest.rewardXp;
+      character.gold += quest.rewardGold;
+      q.rewarded = true;
+      // Story 035: record this completed-and-rewarded quest once in the shared
+      // daily log. Guarded by the same once gate above, so a reload inside the
+      // same UTC day never appends a duplicate entry.
+      if (!Array.isArray(dayState.completedQuests)) dayState.completedQuests = [];
+      dayState.completedQuests.push({
+        dayIndex: getDayIndex(),
+        label: quest.label,
+        objective: quest.objective || quest.label
+      });
+      addLog('Quest complete: ' + quest.label, 'gold');
+      addLog('Reward: +' + quest.rewardXp + ' XP, +' + quest.rewardGold + ' gold.', 'gold');
+    }
+    saveCharacter();
+    saveDayState();
+    syncAppBadge();
+  }
+
+  // Apply a real combat outcome to today's quest progress. Called from
+  // winCombat() with the gold won and the defeated monster's id. Only progresses
+  // an incomplete quest; slays/gold are counted from the actual fight, never from
+  // a separate guess. A boss quest only advances on a BOSS_TIER+ monster kill.
+  function applyQuestProgress(quest, q, goldWon, monsterId) {
+    if (!quest || !q || q.completed) return;
+    if (quest.kind === 'slay') {
+      q.progress += 1;
+    } else if (quest.kind === 'gold') {
+      q.progress += goldWon;
+    } else if (quest.kind === 'boss') {
+      if (monsterId >= BOSS_TIER) q.progress += 1;
+    }
+    if (q.progress > quest.target) q.progress = quest.target;
+    if (q.progress >= quest.target) {
+      completeQuest();
+    } else {
+      saveDayState();
+    }
+  }
+
+  // Right-aligned live progress tail for the town menu row (provisional UI).
+  function questTail() {
+    if (!character || !dayState) return '';
+    const q = getQuestState();
+    const quest = getActiveQuest();
+    const status = q.completed ? 'Done' : (q.progress + '/' + quest.target);
+    return ' <span style="float:right;color:#ffcc00;">' + escapeHtml(quest.label) + ' [' + status + ']</span>';
+  }
+
+  // Story 033: today's quest completed and rewarded shows a daily-return summary.
+  // Built only in the completed (rewarded) state so the in-progress view stays
+  // byte-for-byte the same and the Back to Town row is never pushed off-screen
+  // on a narrow viewport. Tomorrow's quest is a pure read of the day after
+  // today via the same deterministic selection the live loop uses; only the
+  // objective is named, never the exact reward figure, to keep the daily hook.
+  function renderQuestNextDayBlock() {
+    const next = determineQuestForDay(getDayIndex() + 1);
+    return '<div class="divider"></div>' +
+      '<div>Tomorrow: ' + escapeHtml(next.objective || next.label) + '</div>' +
+      '<div class="muted">Come back after midnight to start it.</div>';
+  }
+
+  // Story 035: derive the current consecutive-day quest streak. A pure helper
+  // with no writes and no global mutation, so Kai's proof script can extract and
+  // test it. The streak counts trailing consecutive completed UTC days ending on
+  // today (live: today completed), or through yesterday when today is not yet
+  // complete (the player has most of the day to protect it). A gap resets it.
+  function computeQuestStreak(dayStateRef) {
+    if (!dayStateRef) return 0;
+    const completed = dayStateRef.completedQuests;
+    if (!Array.isArray(completed)) return 0;
+    const todayIdx = getDayIndex();
+    const live = !!(dayStateRef.quest && dayStateRef.quest.completed);
+    // Build the set of recorded completed day indexes. Today counts as a live
+    // completion only when today's quest is actually completed; otherwise the
+    // run is anchored on yesterday and stays unbroken until today ends.
+    const done = {};
+    if (live) done[todayIdx] = true;
+    for (let i = 0; i < completed.length; i++) {
+      const entry = completed[i];
+      if (entry && typeof entry.dayIndex === 'number') done[entry.dayIndex] = true;
+    }
+    // Count trailing consecutive completed days ending at the anchor.
+    let cursor = live ? todayIdx : todayIdx - 1;
+    let streak = 0;
+    while (done[cursor]) {
+      streak += 1;
+      cursor -= 1;
+    }
+    return streak;
+  }
+
+  // Story 044: the quest log honest streak source. A pure read with no
+  // writes, no global mutation and no new field, so the proof script can
+  // extract and test it. It answers the question the quest log actually asks:
+  // how long is the run of consecutive recorded play days that reaches the
+  // last recorded play day?
+  //
+  // Why not computeQuestStreak(): that helper anchors on "today or yesterday"
+  // and is therefore blind to history when a stale day record is loaded. The
+  // load path runs checkDailyReset() before the quest log
+  // can be opened, and the reset rebuilds the day record wholesale with
+  // completedQuests: [], so anchoring on the post-reset record reads 0 even when
+  // the recorded run is intact. The welcome-back panel on the same screen says
+  // "Your streak survived." for exactly that record, so the two surfaces
+  // contradicted each other.
+  //
+  // `rawDayState` is the day record as loaded from storage BEFORE
+  // checkDailyReset() runs: init() captures it at src/cinder.html:1386 and
+  // threads it here without writing anything. Null, missing or corrupt history
+  // degrades to 0 rather than throwing. Returns a number.
+  //
+  // Requirement 5 is binding: the streak source is the recorded history, never
+  // a post-reset record. When `rawDayState` is unavailable the helper returns 0
+  // rather than falling back to `dayState`, which on the load path is the
+  // rebuilt record with `completedQuests: []`. No path reads a post-reset
+  // record here.
+  function computeQuestLogStreak(dayState, rawDayState) {
+    try {
+      if (!rawDayState || typeof rawDayState !== 'object') return 0;
+      const rec = rawDayState;
+
+      // Recorded completion days, plus the raw day stamp. The day stamp counts
+      // as a candidate even with no completion on it, exactly as
+      // computeAwayWindow() treats it at src/cinder.html:425-446, so the two
+      // surfaces describe one window and cannot contradict each other.
+      const done = {};
+      let lastPlayIdx = null;
+      if (typeof rec.dayIndex === 'number' && isFinite(rec.dayIndex)) {
+        lastPlayIdx = rec.dayIndex;
+      }
+      const completed = rec.completedQuests;
+      if (Array.isArray(completed)) {
+        for (let i = 0; i < completed.length; i++) {
+          const entry = completed[i];
+          if (entry && typeof entry === 'object' &&
+              typeof entry.dayIndex === 'number' && isFinite(entry.dayIndex)) {
+            done[entry.dayIndex] = true;
+            if (lastPlayIdx === null || entry.dayIndex > lastPlayIdx) {
+              lastPlayIdx = entry.dayIndex;
+            }
+          }
+        }
+      }
+      if (lastPlayIdx === null) return 0;
+
+      // Count the consecutive run ending at the last recorded play day. Same
+      // trailing-run shape as computeQuestStreak() (src/cinder.html:382-404),
+      // re-anchored. A hole ends the run here, which is the story's requirement
+      // 3 case, and it is the same run length the panel's streak line uses.
+      let cursor = lastPlayIdx;
+      let streak = 0;
+      while (done[cursor]) {
+        streak += 1;
+        cursor -= 1;
+      }
+      return streak;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  // Story 047: the quest log recent-quests list source. A pure read with no
+  // writes, no global mutation and no new field, so the proof script can extract
+  // and test it. It answers the same question the number answers: which run of
+  // recorded play days does this screen describe?
+  //
+  // Why the anchor and not dayState: the number reads the pre-reset record
+  // (computeQuestLogStreak(dayState, questLogAnchor)), but the list read
+  // dayState.completedQuests directly, and the load path runs
+  // checkDailyReset() before the log can be opened. The reset rebuilds the day
+  // record wholesale with completedQuests: [], so on the first load of a stale
+  // record the number printed a nonzero streak beside an empty list. Sourcing
+  // the list from the same anchor makes the two expressions describe one record,
+  // which is what requirement 2 asks for.
+  //
+  // Guarded: a null, non-object or history-less anchor falls back to the
+  // post-reset record only when that record carries a usable array. Entries that
+  // are not objects are skipped so a corrupt array cannot throw in the render.
+  // Returns an array, always, never null. No path writes.
+  // Story 053: the load-path normalizer. Pure. It reads no localStorage, writes
+  // no localStorage, mutates neither its argument nor any global, and persists
+  // no field. It takes whatever JSON.parse handed back and returns the
+  // documented day-record shape
+  // { dayIndex, fightsUsed, innHealsUsed, quest, completedQuests },
+  // or null when the value cannot yield a usable dayIndex. The caller's
+  // existing !dayState path handles the null exactly as it handled a missing
+  // record before.
+  //
+  // Why the record and not the renderer: a wrong-typed completedQuests leaf
+  // reaches renderQuestLog()'s escapeHtml(entry.objective || entry.label || '')
+  // and throws TypeError: str.replace is not a function. The record is the thing
+  // that is malformed, so the record is where it is repaired, once, on load.
+  // Guarding the render instead would leave every other reader with a record no
+  // reader expects, which is the defect class this closes.
+  //
+  // Purity means the proof can extract this function and drive it alone, so the
+  // two bounds are inlined as literals rather than read from the surrounding
+  // closure: 15 is MAX_FIGHTS_PER_DAY and 3 is MAX_INN_HEALS_PER_DAY, both
+  // declared at src/cinder.html:68-69. The literals must track those constants.
+  function normalizeDayRecord(raw) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+    if (typeof raw.dayIndex !== 'number' || !isFinite(raw.dayIndex)) return null;
+
+    // Counters: a non-number, NaN or negative count becomes 0, a fractional
+    // count floors, and an over-max count clamps to the max. Always an integer.
+    const fightsUsed = Math.min(15, Math.max(0, Math.floor(
+      typeof raw.fightsUsed === 'number' && isFinite(raw.fightsUsed) ? raw.fightsUsed : 0)));
+    const innHealsUsed = Math.min(3, Math.max(0, Math.floor(
+      typeof raw.innHealsUsed === 'number' && isFinite(raw.innHealsUsed) ? raw.innHealsUsed : 0)));
+
+    // Quest state: keep the recorded object as-is (no fields added, none
+    // removed). Missing or malformed falls back to the exact value
+    // ensureQuestState() already produces, so the same-day branch of the reset
+    // sees no change from this call.
+    const quest = (raw.quest && typeof raw.quest === 'object' && !Array.isArray(raw.quest))
+      ? raw.quest
+      : { progress: 0, completed: false, rewarded: false };
+
+    // History: a missing or non-array value is []. Entries that are not plain
+    // objects are dropped (the same filter computeRecentQuestEntries applies),
+    // and each kept entry's objective and label leaves normalize to strings so
+    // the render's escapeHtml(...) call always receives one. An entry's
+    // dayIndex is left exactly as found: the read helpers already guard it, and
+    // dropping a recorded quest on a bad index would lose history. Order is
+    // preserved and no field is invented.
+    const source = Array.isArray(raw.completedQuests) ? raw.completedQuests : [];
+    const completedQuests = source.filter(function (entry) {
+      return entry && typeof entry === 'object' && !Array.isArray(entry);
+    }).map(function (entry) {
+      const normalized = Object.assign({}, entry);
+      normalized.objective = typeof entry.objective === 'string' ? entry.objective : '';
+      normalized.label = typeof entry.label === 'string' ? entry.label : '';
+      return normalized;
+    });
+
+    return {
+      dayIndex: raw.dayIndex,
+      fightsUsed: fightsUsed,
+      innHealsUsed: innHealsUsed,
+      quest: quest,
+      completedQuests: completedQuests
+    };
+  }
+
+  // Story 056: the character-record load-path normalizer, the counterpart to
+  // normalizeDayRecord() above. Pure. It reads no localStorage, writes no
+  // localStorage, mutates neither its argument nor any global, and persists no
+  // field. It takes whatever JSON.parse handed back and returns the documented
+  // character shape createCharacter() writes,
+  // { name, level, xp, hp, maxHp, attack, defense, gold, bank, weapon, armor,
+  //   wins, losses, deaths },
+  // or null when the value cannot be a record at all. init()'s existing
+  // !character path then calls showCharacterCreation() exactly as it did before.
+  //
+  // Why the record and not each reader: six defects measured on v0.25.0 are
+  // silent here. They do not throw and nothing reports them, so a damaged save
+  // yields a game that looks like it is working: gold that reads as unaffordable
+  // forever (A), a level that floors every stat to zero (C), string equipment
+  // ids that match no row under the strict === in WEAPONS.find() and so lose
+  // their bonus (G2, G3), and hp below zero or thirty-eight-million times its
+  // own maximum (H1, H2). The record is what is malformed, so the record is
+  // where it is repaired, once, on load. Guarding each reader instead is the
+  // piecemeal arrangement Story 053 just removed on the day side.
+  //
+  // The rule behind the field set: anything compared by strict equality against
+  // a table row or a constant must be a number, because === does not coerce,
+  // while arithmetic and ++ coerce on their own and need no rule.
+  function normalizeCharacterRecord(raw) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+
+    // Read a stored field as a finite number, then floor it at a per-field
+    // minimum. A numeric STRING is read, not discarded: equipment ids arrive as
+    // strings when a save is hand-edited, and the whole point of normalizing
+    // weapon/armor is that WEAPONS.find(w => w.id === character.weapon) matches
+    // again. Same reason gold is read: `character.gold += 5` on a string '40'
+    // concatenates to '405', which is a silent corruption a number check alone
+    // would leave in place. NaN, infinite, non-numeric strings and non-numbers
+    // all become 0, which is then floored at the field minimum.
+    const toNum = function (value) {
+      if (typeof value === 'number') return isFinite(value) ? value : 0;
+      if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (trimmed === '') return 0;
+        const parsed = Number(trimmed);
+        return isFinite(parsed) ? parsed : 0;
+      }
+      return 0;
+    };
+    const toInt = function (value, min) {
+      const n = Math.floor(toNum(value));
+      return n > min ? n : min;
+    };
+
+    // level floors to 1, never 0. getBaseStats() sums LEVELS[0..level-1], so a
+    // level of 0 leaves the hero at zero attack, zero defence and zero maximum
+    // HP with nothing reporting it. This is the one minimum that is not 0.
+    const level = toInt(raw.level, 1);
+    const xp = toInt(raw.xp, 0);
+    const gold = toInt(raw.gold, 0);
+    const bank = toInt(raw.bank, 0);
+
+    // maxHp is normalized first, then hp is clamped against the result. Order
+    // is the point: hp must never exceed the maximum it is measured against, so
+    // hp > maxHp is unreachable at every read surface. If maxHp normalizes to 0
+    // while hp is positive, hp clamps to 0. There is deliberately no fallback
+    // maximum here; getMaxHp() already derives the real one from the level, and
+    // the persisted maxHp is only a load-time bound.
+    const maxHp = toInt(raw.maxHp, 0);
+    const hp = Math.min(toInt(raw.hp, 0), maxHp);
+
+    // Equipment ids are numbers because WEAPONS.find(w => w.id === character.weapon)
+    // and its ARMOR counterpart compare by strict equality against a row id. A
+    // string id matches no row and the bonus silently vanishes while the stats
+    // still look plausible. A well-formed record already holds numbers here, so
+    // this is a no-op for every legitimate save.
+    const weapon = toInt(raw.weapon, 0);
+    const armor = toInt(raw.armor, 0);
+
+    // Counters. Defensive rather than a reproduced defect: they are counters and
+    // belong to the same group.
+    const wins = toInt(raw.wins, 0);
+    const losses = toInt(raw.losses, 0);
+    const deaths = toInt(raw.deaths, 0);
+
+    // The name is interpolated into the status line and the quest log. create
+    // Character() truncates at 20, so this does too; a non-string becomes the
+    // empty string rather than reaching .replace().
+    const name = typeof raw.name === 'string' ? raw.name.trim().substring(0, 20) : '';
+
+    // attack and defense are vestigial and are passed through untouched, with no
+    // rule of any kind. getTotalAttack() and getTotalDefense() compute the real
+    // values from getBaseStats(level) plus the equipment bonus and never read the
+    // stored fields; normalizing them would invent a contract the code does not
+    // have. They stay because the stored shape is frozen.
+    return {
+      name: name,
+      level: level,
+      xp: xp,
+      hp: hp,
+      maxHp: maxHp,
+      attack: raw.attack,
+      defense: raw.defense,
+      gold: gold,
+      bank: bank,
+      weapon: weapon,
+      armor: armor,
+      wins: wins,
+      losses: losses,
+      deaths: deaths
+    };
+  }
+  function computeRecentQuestEntries(anchor, fallback) {
+    try {
+      if (anchor && typeof anchor === 'object' && Array.isArray(anchor.completedQuests)) {
+        return anchor.completedQuests.filter(function (entry) {
+          return entry && typeof entry === 'object';
+        });
+      }
+      if (fallback && typeof fallback === 'object' && Array.isArray(fallback.completedQuests)) {
+        return fallback.completedQuests.filter(function (entry) {
+          return entry && typeof entry === 'object';
+        });
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // === WELCOME-BACK RETURN SUMMARY (Story 040) ===
+  // Pure read. No writes, no mutation of any argument, no localStorage, no new
+  // field, no state change. `rawDayState` is the day record as loaded from
+  // storage BEFORE checkDailyReset() runs (it may be null, or a corrupt or
+  // partial object), because checkDailyReset() replaces dayState wholesale and
+  // would otherwise report today's index as the last play day. `todayIdx` is
+  // getDayIndex() for this render. Returns
+  // { shouldShow, daysAway, questsMissed, streakSurvived } and degrades to
+  // "show nothing" on any input it cannot trust rather than throwing.
+  function computeAwayWindow(rawDayState, todayIdx) {
+    const hidden = { shouldShow: false, daysAway: 0, questsMissed: 0, streakSurvived: false };
+    try {
+      if (!rawDayState || typeof rawDayState !== 'object') return hidden;
+      if (typeof todayIdx !== 'number' || !isFinite(todayIdx)) return hidden;
+
+      // Last play day: the stored day stamp plus every recorded completion day.
+      // Take the maximum of the valid candidates; null when there are none.
+      let lastPlayIdx = null;
+      if (typeof rawDayState.dayIndex === 'number' && isFinite(rawDayState.dayIndex)) {
+        lastPlayIdx = rawDayState.dayIndex;
+      }
+      const completed = rawDayState.completedQuests;
+      const hasHistory = Array.isArray(completed);
+      const done = {};
+      if (hasHistory) {
+        for (let i = 0; i < completed.length; i++) {
+          const entry = completed[i];
+          if (entry && typeof entry === 'object' &&
+              typeof entry.dayIndex === 'number' && isFinite(entry.dayIndex)) {
+            done[entry.dayIndex] = true;
+            if (lastPlayIdx === null || entry.dayIndex > lastPlayIdx) {
+              lastPlayIdx = entry.dayIndex;
+            }
+          }
+        }
+      }
+      if (lastPlayIdx === null) return hidden;
+
+      // A gap only exists when at least one whole UTC day was fully missed.
+      // Same-day (gapDays 0) and next-day (gapDays 1) returns both stay quiet,
+      // so the Story 033 come-back-tomorrow flow is untouched.
+      const gapDays = todayIdx - lastPlayIdx;
+      const daysAway = gapDays - 1;
+      const out = { shouldShow: false, daysAway: daysAway > 0 ? daysAway : 0, questsMissed: 0, streakSurvived: false };
+      out.shouldShow = daysAway >= 1;
+      if (!out.shouldShow) return out;
+
+      // Quests missed: whole days inside the window with no completion on record.
+      // Today is in progress, not missed, so the window is exclusive at both ends.
+      // With no readable history there is no recorded completion, so every day in
+      // the window counts, which keeps questsMissed <= daysAway.
+      let missed = 0;
+      for (let d = lastPlayIdx + 1; d < todayIdx; d++) {
+        if (!hasHistory || !done[d]) missed += 1;
+      }
+      out.questsMissed = missed;
+      // Story 042: report the streak from the history this window already uses,
+      // never from computeQuestStreak(rawDayState). That helper anchors on
+      // "today or yesterday" and returns 0 here by design, and
+      // checkDailyReset() rebuilds the record with completedQuests: [] anyway.
+      // Anchor the run on lastPlayIdx, the same anchor as daysAway and
+      // questsMissed, so every number and the streak line describe one window.
+      let run = 0;
+      let streakCursor = lastPlayIdx;
+      while (done[streakCursor]) {
+        run += 1;
+        streakCursor -= 1;
+      }
+      out.streakSurvived = run >= 1;
+      return out;
+    } catch (e) {
+      return { shouldShow: false, daysAway: 0, questsMissed: 0, streakSurvived: false };
+    }
+  }
+
+  // Story 040 copy. Numbers read as sentences; a long absence is phrased, never
+  // dumped as a bare counter. Plain punctuation, no em dashes, no emoji.
+  function awayDaysSentence(daysAway) {
+    if (daysAway <= 1) return 'You were away for a day.';
+    if (daysAway >= 14) return 'You were away for a while.';
+    return 'You were away for ' + daysAway + ' days.';
+  }
+
+  function awayQuestsSentence(questsMissed) {
+    if (questsMissed <= 0) return '';
+    if (questsMissed === 1) return '1 quest went uncompleted while you were gone.';
+    return questsMissed + ' quests went uncompleted while you were gone.';
+  }
+
+  // The streak line is always explicit, never implied.
+  function awayStreakSentence(streakSurvived) {
+    return streakSurvived ? 'Your streak survived.' : 'Your streak is broken.';
+  }
+
+  // Story 042: the one-time per gap guard. Pure read, derived from existing
+  // state only: the load-time window plus the loaded day record. No persisted
+  // flag, no gap stamp, no version marker, no write. The same-day reload case
+  // needs no flag at all: checkDailyReset() writes today's stamp on the first
+  // load of a stale day, so the reload finds dayIndex === today, lastPlayIdx
+  // becomes today, gapDays is 0, awayWindow.shouldShow is false, and the player
+  // lands on the town hub. That derivation is proven directly, not assumed, in
+  // src/kai-story042-streak-proof.py.
+  function shouldShowWelcomeBack(windowState, shownThisPage, loadedRecord) {
+    if (!windowState || typeof windowState.shouldShow !== 'boolean') return false;
+    if (shownThisPage) return false;
+    if (!loadedRecord || typeof loadedRecord !== 'object') return false;
+    return windowState.shouldShow === true;
+  }
+
+  // Story 040: the one-time welcome-back return summary. Pure presentation: it
+  // reads the window computed at load and today's quest, and writes nothing.
+  // Back to Town is the primary row; the second row is the pointer to today's
+  // quest. Both use the v0.13.1 data-action delegation, never inline onclick.
+  function renderWelcomeBack() {
+    clearLog();
+    const display = document.getElementById('display');
+    const w = awayWindow || { daysAway: 0, questsMissed: 0, streakSurvived: false };
+    const quest = getActiveQuest();
+    display.innerHTML = '<div class="boxed-menu">' +
+      '<div class="header">=== WELCOME BACK ===</div>' +
+      '<div>' + awayDaysSentence(w.daysAway) + '</div>' +
+      awayQuestsSentence(w.questsMissed) +
+      '<div>' + awayStreakSentence(w.streakSurvived) + '</div>' +
+      '<div class="divider"></div>' +
+      '<div>Today\'s quest: ' + escapeHtml(quest.objective || quest.label || '') + '</div>' +
+      '<div class="divider"></div>' +
+      '<div class="menu-row" data-action="1"><span class="num">1.</span>Back to Town</div>' +
+      '<div class="menu-row" data-action="2"><span class="num">2.</span>Go to today\'s quest</div>' +
+      '</div>';
+    document.getElementById('promptInput').value = '';
+    document.getElementById('promptInput').focus();
+  }
+
+  // Story 035: short relative label for a completed-quest day index, used in the
+  // quest-log list. today/yesterday/N days ago; oldest history falls back to a
+  // plain day number in case of an out-of-range index.
+  //
+  // Story 050: the reference point is the record's own anchor, not today. The
+  // number (computeQuestLogStreak) and the list (computeRecentQuestEntries)
+  // both read the pre-reset record's last recorded play day, so the label
+  // measures its difference from that same day. Before this, the label used
+  // getDayIndex() and a 30-day-stale record printed a 1-day streak beside an
+  // entry labelled 30 days ago: the screen described two windows at once.
+  //
+  // The anchor is derived the same way computeQuestLogStreak() and
+  // computeRecentQuestEntries() derive it: the maximum valid candidate from the
+  // record's own `dayIndex` and the valid `completedQuests` entries' dayIndex
+  // values. When that cannot be derived (null, non-object, or no valid day),
+  // the label falls back to the pre-fix form measured from getDayIndex(), so a
+  // corrupt record renders as v0.23.0 did rather than throwing or labelling
+  // every entry against itself.
+  function dayLabelForIndex(dayIdx, anchor) {
+    let refIdx = getDayIndex();
+    if (typeof dayIdx === 'number' && isFinite(dayIdx) && anchor && typeof anchor === 'object') {
+      let lastPlayIdx = null;
+      if (typeof anchor.dayIndex === 'number' && isFinite(anchor.dayIndex)) {
+        lastPlayIdx = anchor.dayIndex;
+      }
+      const completed = anchor.completedQuests;
+      if (Array.isArray(completed)) {
+        for (let i = 0; i < completed.length; i++) {
+          const entry = completed[i];
+          if (entry && typeof entry === 'object' &&
+              typeof entry.dayIndex === 'number' && isFinite(entry.dayIndex)) {
+            if (lastPlayIdx === null || entry.dayIndex > lastPlayIdx) {
+              lastPlayIdx = entry.dayIndex;
+            }
+          }
+        }
+      }
+      if (lastPlayIdx !== null) refIdx = lastPlayIdx;
+    }
+    const diff = refIdx - dayIdx;
+    if (diff === 0) return 'today';
+    if (diff === 1) return 'yesterday';
+    if (diff > 1) return diff + ' days ago';
+    return 'day ' + dayIdx;
+  }
+
+  // Story 035: recent-quests / quest-streak view. Reachable from the town hub
+  // as row 9. A pure read: it only reads dayState and renders; it never writes
+  // any save, mutates state, or changes quest progress or rewards.
+  function renderQuestLog() {
+    clearLog();
+    const display = document.getElementById('display');
+    const completed = computeRecentQuestEntries(questLogAnchor, dayState);
+    const streak = computeQuestLogStreak(dayState, questLogAnchor);
+    // Most recent first, capped at 5 entries.
+    const recent = completed.slice(-5).reverse();
+
+    let listHtml = '<div class="muted">No quests recorded yet. Finish today\'s quest to start your log.</div>';
+    if (recent.length > 0) {
+      listHtml = recent.map(function (entry) {
+        const title = escapeHtml(entry.objective || entry.label || '');
+        return '<div>' + dayLabelForIndex(entry.dayIndex, questLogAnchor) + ': ' + title + '</div>';
+      }).join('');
+    }
+
+    display.innerHTML = '<div class="boxed-menu">' +
+      '<div class="header">=== QUEST LOG ===</div>' +
+      '<div style="color:#ffcc00;">Current streak: ' + streak + (streak === 1 ? ' day' : ' days') + '</div>' +
+      '<div class="divider"></div>' +
+      '<div>Recent quests:</div>' +
+      listHtml +
+      '<div class="divider"></div>' +
+      '<div class="menu-row" data-action="1"><span class="num">1.</span>Back to Town</div>' +
+      '</div>';
+    document.getElementById('promptInput').value = '';
+    document.getElementById('promptInput').focus();
+  }
+
+  function renderQuest() {
+    clearLog();
+    const q = getQuestState();
+    const quest = getActiveQuest();
+    const display = document.getElementById('display');
+    const statusText = q.completed ? 'COMPLETE - reward collected' : 'In progress';
+    const statusClass = q.completed ? ' class="gold"' : '';
+    let nextBlock = '';
+    if (q.completed && q.rewarded) {
+      nextBlock = renderQuestNextDayBlock();
+    }
+    display.innerHTML = '<div class="boxed-menu">' +
+      '<div class="header">=== TODAY\'S QUEST ===</div>' +
+      '<div class="divider"></div>' +
+      '<div>Objective: ' + escapeHtml(quest.objective || quest.label) + '</div>' +
+      '<div>Progress:  ' + q.progress + ' / ' + quest.target + '</div>' +
+      '<div class="gold">Reward:    +' + quest.rewardXp + ' XP, +' + quest.rewardGold + ' gold</div>' +
+      '<div class="divider"></div>' +
+      '<div' + statusClass + '>[ Status: ' + statusText + ' ]</div>' +
+      nextBlock +
+      '<div class="divider"></div>' +
+      '<div class="menu-row" data-action="1"><span class="num">1.</span>Back to Town</div>' +
+      '</div>';
+    document.getElementById('promptInput').value = '';
+    document.getElementById('promptInput').focus();
+  }
+
+  // === STATE ===
+  let character = null;
+  let dayState = null;
+  let location = 'town';
+  let inCombat = false;
+  let currentMonster = null;
+  let logBuffer = [];
+  let awayWindow = null;   // Story 040: computed once at load, never persisted
+  let returnShown = false; // Story 040: in-memory one-time guard for this page
+  let questLogAnchor = null; // Story 044: loaded pre-reset record for the log's streak, never persisted
+
+  // === STORAGE HELPERS ===
+  // Story 066: in-memory unreadable-storage flag. Set only in the storage
+  // catch below, never persisted, never written. Play continues for session.
+  let storageNoticeShown = false;
+  function showStorageNotice() {
+    if (storageNoticeShown) return;
+    storageNoticeShown = true;
+    const el = document.getElementById('storageNotice');
+    if (el) el.classList.add('show');
+  }
+  function loadSave() {
+    try {
+      const data = localStorage.getItem(SAVE_KEY);
+      return data ? JSON.parse(data) : null;
+    } catch (e) {
+      showStorageNotice();
+      return null;
+    }
+  }
+
+  function saveCharacter() {
+    try {
+      localStorage.setItem(SAVE_KEY, JSON.stringify(character));
+    } catch (e) {}
+  }
+
+  function loadDayState() {
+    try {
+      const data = localStorage.getItem(DAY_KEY);
+      return data ? JSON.parse(data) : null;
+    } catch (e) {
+      showStorageNotice();
+      return null;
+    }
+  }
+
+  function saveDayState() {
+    try {
+      localStorage.setItem(DAY_KEY, JSON.stringify(dayState));
+    } catch (e) {}
+  }
+
+  function getDayIndex() {
+    return Math.floor(Date.now() / 86400000);
+  }
+
+  function checkDailyReset() {
+    const today = getDayIndex();
+    if (!dayState || dayState.dayIndex !== today) {
+      dayState = { dayIndex: today, fightsUsed: 0, innHealsUsed: 0, quest: { progress: 0, completed: false, rewarded: false }, completedQuests: [] };
+      saveDayState();
+      addLog('New day begins. Fights reset to ' + MAX_FIGHTS_PER_DAY + '.', 'flavor');
+    } else {
+      ensureQuestState(); // existing same-day save with no quest state (grace)
+    }
+    syncAppBadge();
+  }
+
+  // === CHARACTER HELPERS ===
+  function getBaseStats(level) {
+    let hp = 0, atk = 0, def = 0;
+    for (let i = 0; i < level && i < LEVELS.length; i++) {
+      hp += LEVELS[i].hpGain;
+      atk += LEVELS[i].atkGain;
+      def += LEVELS[i].defGain;
+    }
+    return { hp, atk, def };
+  }
+
+  function getTotalAttack() {
+    const base = getBaseStats(character.level).atk;
+    const weapon = WEAPONS.find(w => w.id === character.weapon)?.atk || 0;
+    return base + weapon;
+  }
+
+  function getTotalDefense() {
+    const base = getBaseStats(character.level).def;
+    const armor = ARMOR.find(a => a.id === character.armor)?.def || 0;
+    return base + armor;
+  }
+
+  function getMaxHp() {
+    return getBaseStats(character.level).hp;
+  }
+
+  function getXpForLevel(level) {
+    if (level >= LEVELS.length) return Infinity;
+    return LEVELS[level].xpNeeded;
+  }
+
+  function canLevelUp() {
+    if (character.level >= 10) return false;
+    return character.xp >= getXpForLevel(character.level);
+  }
+
+  function levelUp() {
+    if (character.level >= 10) return false;
+    character.level++;
+    const gains = LEVELS[character.level - 1];
+    character.maxHp = getMaxHp();
+    character.hp = character.maxHp;
+    addLog('Level up! You are now level ' + character.level + '.', 'healing');
+    addLog('HP +' + gains.hpGain + ', ATK +' + gains.atkGain + ', DEF +' + gains.defGain, 'healing');
+    saveCharacter();
+    return true;
+  }
+
+  // === UI FUNCTIONS ===
+  function renderStatus() {
+    if (!character) return;
+    const status = document.getElementById('statusLine');
+    const fightsLeft = MAX_FIGHTS_PER_DAY - dayState.fightsUsed;
+    status.textContent = character.name + ' | Lv.' + character.level + ' | HP ' + character.hp + '/' + character.maxHp + ' | ATK ' + getTotalAttack() + ' | DEF ' + getTotalDefense() + ' | Gold ' + character.gold + ' | Bank ' + character.bank + ' | Fights: ' + fightsLeft;
+  }
+
+  function addLog(text, type) {
+    logBuffer.push({ text, type });
+    if (logBuffer.length > 50) logBuffer.shift();
+    renderLog();
+  }
+
+  function renderLog() {
+    const display = document.getElementById('display');
+    display.innerHTML = logBuffer.map(entry => {
+      const cls = entry.type ? ' class="' + entry.type + '"' : '';
+      return '<div class="log-entry' + cls + '">' + escapeHtml(entry.text) + '</div>';
+    }).join('');
+    display.scrollTop = display.scrollHeight;
+  }
+
+  function clearLog() {
+    logBuffer = [];
+    renderLog();
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function renderTownMenu() {
+    clearLog();
+    const display = document.getElementById('display');
+    display.innerHTML = '<div class="boxed-menu">' +
+      '<div class="header">=== TOWN SQUARE ===</div>' +
+      '<div class="menu-row" data-action="1"><span class="num">1.</span>Wilderness</div>' +
+      '<div class="menu-row" data-action="2"><span class="num">2.</span>Weapon Shop</div>' +
+      '<div class="menu-row" data-action="3"><span class="num">3.</span>Armor Shop</div>' +
+      '<div class="menu-row" data-action="4"><span class="num">4.</span>Bank</div>' +
+      '<div class="menu-row" data-action="5"><span class="num">5.</span>Inn</div>' +
+      '<div class="menu-row" data-action="6"><span class="num">6.</span>Trainer</div>' +
+      '<div class="menu-row" data-action="7"><span class="num">7.</span>Tavern</div>' +
+      '<div class="menu-row" data-action="8"><span class="num">8.</span>Today\'s quest' + questTail() + '</div>' +
+      '<div class="menu-row" data-action="9"><span class="num">9.</span>Quest Log</div>' +
+      '<div class="divider"></div>' +
+      '<div class="centered" style="color:#666;">Press number or tap option</div>' +
+      '</div>';
+    document.getElementById('promptInput').value = '';
+    document.getElementById('promptInput').focus();
+  }
+
+  function renderWeaponShop() {
+    clearLog();
+    const current = WEAPONS.find(w => w.id === character.weapon) || WEAPONS[0];
+    const nextIdx = Math.min(current.id + 1, WEAPONS.length - 1);
+    const next = WEAPONS[nextIdx];
+    const canAfford = character.gold >= next.price;
+    const display = document.getElementById('display');
+    display.innerHTML = '<div class="boxed-menu">' +
+      '<div class="header">=== WEAPON SHOP ===</div>' +
+      '<div>Current: ' + current.name + ' (ATK +' + current.atk + ')</div>' +
+      '<div class="divider"></div>';
+    if (current.id === WEAPONS.length - 1) {
+      display.innerHTML += '<div class="centered">You have the best weapon available.</div>';
+    } else {
+      display.innerHTML += '<div>Next: ' + next.name + ' (ATK +' + next.atk + ')</div>' +
+        '<div>Price: ' + next.price + ' gold</div>' +
+        '<div class="' + (canAfford ? 'gold' : '') + '">You have ' + character.gold + ' gold. ' + (canAfford ? 'Can afford.' : 'Cannot afford.') + '</div>' +
+        '<div class="divider"></div>' +
+        '<div class="menu-row" data-action="' + (canAfford ? 1 : 3) + '"><span class="num">1.</span>Buy ' + next.name + '</div>' +
+        '<div class="menu-row" data-action="2"><span class="num">2.</span>Leave</div>';
+    }
+    display.innerHTML += '</div>';
+    document.getElementById('promptInput').value = '';
+    document.getElementById('promptInput').focus();
+  }
+
+  function renderArmorShop() {
+    clearLog();
+    const current = ARMOR.find(a => a.id === character.armor) || ARMOR[0];
+    const nextIdx = Math.min(current.id + 1, ARMOR.length - 1);
+    const next = ARMOR[nextIdx];
+    const canAfford = character.gold >= next.price;
+    const display = document.getElementById('display');
+    display.innerHTML = '<div class="boxed-menu">' +
+      '<div class="header">=== ARMOR SHOP ===</div>' +
+      '<div>Current: ' + current.name + ' (DEF +' + current.def + ')</div>' +
+      '<div class="divider"></div>';
+    if (current.id === ARMOR.length - 1) {
+      display.innerHTML += '<div class="centered">You have the best armor available.</div>';
+    } else {
+      display.innerHTML += '<div>Next: ' + next.name + ' (DEF +' + next.def + ')</div>' +
+        '<div>Price: ' + next.price + ' gold</div>' +
+        '<div class="' + (canAfford ? 'gold' : '') + '">You have ' + character.gold + ' gold. ' + (canAfford ? 'Can afford.' : 'Cannot afford.') + '</div>' +
+        '<div class="divider"></div>' +
+        '<div class="menu-row" data-action="' + (canAfford ? 1 : 3) + '"><span class="num">1.</span>Buy ' + next.name + '</div>' +
+        '<div class="menu-row" data-action="2"><span class="num">2.</span>Leave</div>';
+    }
+    display.innerHTML += '</div>';
+    document.getElementById('promptInput').value = '';
+    document.getElementById('promptInput').focus();
+  }
+
+  function renderBank() {
+    clearLog();
+    const display = document.getElementById('display');
+    display.innerHTML = '<div class="boxed-menu">' +
+      '<div class="header">=== BANK ===</div>' +
+      '<div>Carried Gold: ' + character.gold + '</div>' +
+      '<div>Bank Balance: ' + character.bank + '</div>' +
+      '<div class="divider"></div>' +
+      '<div class="menu-row" data-action="1"><span class="num">1.</span>Deposit All</div>' +
+      '<div class="menu-row" data-action="2"><span class="num">2.</span>Withdraw All</div>' +
+      '<div class="menu-row" data-action="3"><span class="num">3.</span>Leave</div>' +
+      '</div>';
+    document.getElementById('promptInput').value = '';
+    document.getElementById('promptInput').focus();
+  }
+
+  function renderInn() {
+    clearLog();
+    const needsHealing = character.hp < character.maxHp;
+    const healsLeft = MAX_INN_HEALS_PER_DAY - dayState.innHealsUsed;
+    const canAfford = character.gold >= INN_HEAL_COST;
+    const display = document.getElementById('display');
+    display.innerHTML = '<div class="boxed-menu">' +
+      '<div class="header">=== THE RESTING INN ===</div>' +
+      '<div>Your HP: ' + character.hp + '/' + character.maxHp + '</div>' +
+      '<div>Healing Cost: ' + INN_HEAL_COST + ' gold</div>' +
+      '<div>Heals Available Today: ' + healsLeft + '</div>' +
+      '<div class="divider"></div>';
+    if (character.hp <= 0) {
+      display.innerHTML += '<div class="death">You are dead.</div><div>Reviving...</div>';
+      setTimeout(() => {
+        character.hp = character.maxHp;
+        addLog('You revive at the Inn, full of new determination.', 'healing');
+        saveCharacter();
+        renderInn();
+      }, 1000);
+    } else if (!needsHealing) {
+      display.innerHTML += '<div class="centered">You are already at full health.</div>' +
+        '<div class="divider"></div>' +
+        '<div class="menu-row" data-action="1"><span class="num">1.</span>Leave</div>';
+    } else if (healsLeft <= 0) {
+      display.innerHTML += '<div class="centered">You have used all your heals today.</div>' +
+        '<div class="divider"></div>' +
+        '<div class="menu-row" data-action="1"><span class="num">1.</span>Leave</div>';
+    } else {
+      display.innerHTML += '<div class="' + (canAfford ? 'gold' : '') + '">You have ' + character.gold + ' gold. ' + (canAfford ? 'Can afford.' : 'Cannot afford.') + '</div>' +
+        '<div class="divider"></div>' +
+        '<div class="menu-row" data-action="' + (canAfford ? 1 : 3) + '"><span class="num">1.</span>Rest (' + INN_HEAL_COST + ' gold)</div>' +
+        '<div class="menu-row" data-action="2"><span class="num">2.</span>Leave</div>';
+    }
+    display.innerHTML += '</div>';
+    document.getElementById('promptInput').value = '';
+    document.getElementById('promptInput').focus();
+  }
+
+  function renderTrainer() {
+    clearLog();
+    const display = document.getElementById('display');
+    if (character.level >= 10) {
+      display.innerHTML = '<div class="boxed-menu">' +
+        '<div class="header">=== THE TRAINER ===</div>' +
+        '<div>"You have reached the pinnacle of power."</div>' +
+        '<div class="divider"></div>' +
+        '<div class="menu-row" data-action="1"><span class="num">1.</span>Leave</div>' +
+        '</div>';
+    } else if (canLevelUp()) {
+      display.innerHTML = '<div class="boxed-menu">' +
+        '<div class="header">=== THE TRAINER ===</div>' +
+        '<div class="healing">"I can train you to the next level!"</div>' +
+        '<div class="divider"></div>' +
+        '<div class="menu-row" data-action="1"><span class="num">1.</span>Train to Level ' + (character.level + 1) + '</div>' +
+        '<div class="menu-row" data-action="2"><span class="num">2.</span>Leave</div>' +
+        '</div>';
+    } else {
+      const nextXp = getXpForLevel(character.level);
+      display.innerHTML = '<div class="boxed-menu">' +
+        '<div class="header">=== THE TRAINER ===</div>' +
+        '<div>"Come back when you have more experience."</div>' +
+        '<div>Current XP: ' + character.xp + '</div>' +
+        '<div>XP Needed: ' + nextXp + '</div>' +
+        '<div class="divider"></div>' +
+        '<div class="menu-row" data-action="1"><span class="num">1.</span>Leave</div>' +
+        '</div>';
+    }
+    document.getElementById('promptInput').value = '';
+    document.getElementById('promptInput').focus();
+  }
+
+  function renderTavern() {
+    clearLog();
+    const rumor = RUMORS[Math.floor(Math.random() * RUMORS.length)];
+    const display = document.getElementById('display');
+    display.innerHTML = '<div class="boxed-menu">' +
+      '<div class="header">=== THE RUSTY TANKARD TAVERN ===</div>' +
+      '<div class="flavor">"' + rumor + '"</div>' +
+      '<div class="divider"></div>' +
+      '<div class="menu-row" data-action="1"><span class="num">1.</span>Hear Another Rumor</div>' +
+      '<div class="menu-row" data-action="2"><span class="num">2.</span>Leave</div>' +
+      '</div>';
+    document.getElementById('promptInput').value = '';
+    document.getElementById('promptInput').focus();
+  }
+
+  function enterWilderness() {
+    if (dayState.fightsUsed >= MAX_FIGHTS_PER_DAY) {
+      addLog('You are out of fights for today. Come back tomorrow.', 'damage');
+      setTimeout(() => renderTownMenu(), 1500);
+      return;
+    }
+    clearLog();
+    addLog('You venture into the Wilderness...', 'flavor');
+    setTimeout(encounter, 800);
+  }
+
+  function encounter() {
+    if (Math.random() < MONSTER_ENCOUNTER_RATE) {
+      startCombat();
+    } else {
+      triggerEvent();
+    }
+  }
+
+  function triggerEvent() {
+    const event = EVENTS[Math.floor(Math.random() * EVENTS.length)];
+    addLog(event.text, 'flavor');
+    switch (event.type) {
+      case 'treasure':
+        const gold = Math.floor(Math.random() * (event.goldMax - event.goldMin + 1)) + event.goldMin;
+        character.gold += gold;
+        addLog('Found ' + gold + ' gold!', 'gold');
+        saveCharacter();
+        break;
+      case 'heal':
+        const heal = Math.floor(Math.random() * (event.healMax - event.healMin + 1)) + event.healMin;
+        character.hp = Math.min(character.maxHp, character.hp + heal);
+        addLog('Healed ' + heal + ' HP.', 'healing');
+        saveCharacter();
+        break;
+      case 'strange':
+        if (event.effect === 'perm_atk') {
+          addLog('Your attack increases permanently!', 'healing');
+        } else if (event.effect === 'perm_def') {
+          addLog('Your defense increases permanently!', 'healing');
+        } else if (event.effect === 'gold_loss') {
+          const loss = Math.min(character.gold, event.value);
+          character.gold -= loss;
+          addLog('You lose ' + loss + ' gold as an offering.', 'damage');
+          saveCharacter();
+        }
+        break;
+    }
+    setTimeout(() => wildernessMenu(), 1200);
+  }
+
+  function wildernessMenu() {
+    const display = document.getElementById('display');
+    display.innerHTML = '<div class="boxed-menu">' +
+      '<div class="header">=== WILDERNESS ===</div>' +
+      '<div class="menu-row" data-action="1"><span class="num">1.</span>Continue Exploring</div>' +
+      '<div class="menu-row" data-action="2"><span class="num">2.</span>Return to Town</div>' +
+      '</div>';
+    document.getElementById('promptInput').value = '';
+    document.getElementById('promptInput').focus();
+  }
+
+  function startCombat() {
+    // Boss day (Story 032, CEO-authorized 2026-09-11): the wilderness offers
+    // boss-tier encounters only, so the boss quest is reachable. Previously
+    // the random pool could exclude every boss, making a boss day a coin
+    // flip on the all-monster fallback. Reward stays the largest bonus; the
+    // fight itself is the difficulty.
+    const activeQuest = getActiveQuest();
+    const isBossDay = !!(activeQuest && activeQuest.kind === 'boss');
+    const pool = MONSTERS.filter((m) => {
+      if (isBossDay && m.id < BOSS_TIER) return false;
+      const playerStr = character.level + getTotalAttack() + getTotalDefense();
+      const monsterStr = m.hp + m.atk + m.def;
+      return monsterStr <= playerStr * 2.5;
+    });
+    let monster;
+    if (pool.length > 0) {
+      monster = pool[Math.floor(Math.random() * pool.length)];
+    } else if (isBossDay) {
+      // Too weak to clear any boss by the cap: still offer the weakest boss
+      // as a stretch fight (Run stays available), rather than an unrelated
+      // monster that cannot advance the quest.
+      const bosses = MONSTERS.filter((m) => m.id >= BOSS_TIER)
+        .sort((a, b) => (a.hp + a.atk + a.def) - (b.hp + b.atk + b.def));
+      monster = bosses[0] || MONSTERS[Math.floor(Math.random() * MONSTERS.length)];
+    } else {
+      monster = MONSTERS[Math.floor(Math.random() * MONSTERS.length)];
+    }
+    currentMonster = { ...monster, maxHp: monster.hp };
+    inCombat = true;
+    location = 'combat'; // route combat-menu inputs to handleCombatInput (was stuck on 'wilderness')
+    clearLog();
+    addLog('A ' + currentMonster.name + ' appears!', 'damage');
+    addLog('"' + currentMonster.flavor + '"', 'flavor');
+    renderCombat();
+  }
+
+  function renderCombat() {
+    const display = document.getElementById('display');
+    display.innerHTML = '<div class="boxed-menu">' +
+      '<div class="header">=== COMBAT ===</div>' +
+      '<div>' + currentMonster.name + ' HP: ' + currentMonster.hp + '/' + currentMonster.maxHp + '</div>' +
+      '<div>Your HP: ' + character.hp + '/' + character.maxHp + '</div>' +
+      '<div class="divider"></div>' +
+      '<div class="menu-row" data-action="1"><span class="num">1.</span>Attack</div>' +
+      '<div class="menu-row" data-action="2"><span class="num">2.</span>Run</div>' +
+      '</div>';
+    document.getElementById('promptInput').value = '';
+    document.getElementById('promptInput').focus();
+  }
+
+  function combatAttack() {
+    if (!inCombat || !currentMonster) return; // same guard as monsterTurn
+    const playerAtk = getTotalAttack();
+    const monsterDef = currentMonster.def;
+    const variance = Math.floor(Math.random() * 3);
+    const damage = Math.max(1, playerAtk - monsterDef + variance);
+    currentMonster.hp -= damage;
+    addLog('You hit the ' + currentMonster.name + ' for ' + damage + ' damage.', 'damage');
+    if (currentMonster.hp <= 0) {
+      winCombat();
+      return;
+    }
+    setTimeout(() => monsterTurn(), 400);
+  }
+
+  function combatRun() {
+    if (!inCombat || !currentMonster) return; // same guard as monsterTurn
+    if (Math.random() < RUN_SUCCESS_CHANCE) {
+      addLog('You escaped successfully!', 'healing');
+      inCombat = false;
+      currentMonster = null;
+      setTimeout(() => {
+        location = 'wilderness';
+        wildernessMenu();
+      }, 1000);
+    } else {
+      addLog('Failed to escape!', 'damage');
+      setTimeout(() => monsterTurn(), 400);
+    }
+  }
+
+  function monsterTurn() {
+    if (!inCombat || !currentMonster) return;
+    const monsterAtk = currentMonster.atk;
+    const playerDef = getTotalDefense();
+    const variance = Math.floor(Math.random() * 3);
+    const damage = Math.max(1, monsterAtk - playerDef + variance);
+    character.hp -= damage;
+    addLog('The ' + currentMonster.name + ' hits you for ' + damage + ' damage.', 'damage');
+    if (character.hp <= 0) {
+      loseCombat();
+      return;
+    }
+    renderCombat();
+  }
+
+  function winCombat() {
+    inCombat = false;
+    const xp = currentMonster.xp;
+    const gold = currentMonster.gold;
+    character.xp += xp;
+    character.gold += gold;
+    character.wins++;
+    dayState.fightsUsed++;
+    applyQuestProgress(getActiveQuest(), getQuestState(), gold, currentMonster.id);
+    addLog('Victory! Gained ' + xp + ' XP and ' + gold + ' gold.', 'gold');
+    saveCharacter();
+    saveDayState();
+    currentMonster = null;
+    setTimeout(() => {
+      if (canLevelUp()) {
+        addLog('You feel ready for training!', 'healing');
+      }
+      location = 'wilderness';
+      wildernessMenu();
+    }, 1000);
+  }
+
+  function loseCombat() {
+    inCombat = false;
+    character.hp = 0;
+    character.deaths++;
+    character.gold = 0;
+    dayState.fightsUsed = MAX_FIGHTS_PER_DAY;
+    addLog('You have been defeated...', 'death');
+    addLog('You lose all carried gold. Bank is safe.', 'damage');
+    saveCharacter();
+    saveDayState();
+    currentMonster = null;
+    setTimeout(() => {
+      addLog('Dragged to the Inn...', 'flavor');
+      location = 'inn';
+      renderInn();
+    }, 1500);
+  }
+
+  // === INPUT HANDLING ===
+  function handleMenuClick(num) {
+    handleInput(num.toString());
+  }
+
+  function handleInput(input) {
+    const n = parseInt(input, 10);
+    if (isNaN(n)) return;
+
+    switch (location) {
+      case 'town':
+        handleTownInput(n);
+        break;
+      case 'weaponshop':
+        handleWeaponShopInput(n);
+        break;
+      case 'armorshop':
+        handleArmorShopInput(n);
+        break;
+      case 'bank':
+        handleBankInput(n);
+        break;
+      case 'inn':
+        handleInnInput(n);
+        break;
+      case 'trainer':
+        handleTrainerInput(n);
+        break;
+      case 'tavern':
+        handleTavernInput(n);
+        break;
+      case 'quest':
+        handleQuestInput(n);
+        break;
+      case 'questlog':
+        handleQuestLogInput(n);
+        break;
+      case 'welcomeback':
+        handleWelcomeBackInput(n);
+        break;
+      case 'wilderness':
+        handleWildernessInput(n);
+        break;
+      case 'combat':
+        handleCombatInput(n);
+        break;
+    }
+  }
+
+  function handleTownInput(n) {
+    switch (n) {
+      case 1: enterWilderness(); location = 'wilderness'; break;
+      case 2: location = 'weaponshop'; renderWeaponShop(); break;
+      case 3: location = 'armorshop'; renderArmorShop(); break;
+      case 4: location = 'bank'; renderBank(); break;
+      case 5: location = 'inn'; renderInn(); break;
+      case 6: location = 'trainer'; renderTrainer(); break;
+      case 7: location = 'tavern'; renderTavern(); break;
+      case 8: location = 'quest'; renderQuest(); break;
+      case 9: location = 'questlog'; renderQuestLog(); break;
+    }
+  }
+
+  function handleWeaponShopInput(n) {
+    const current = WEAPONS.find(w => w.id === character.weapon) || WEAPONS[0];
+    const nextIdx = Math.min(current.id + 1, WEAPONS.length - 1);
+    const next = WEAPONS[nextIdx];
+    if (n === 1 && current.id < WEAPONS.length - 1 && character.gold >= next.price) {
+      character.gold -= next.price;
+      character.weapon = next.id;
+      addLog('Bought ' + next.name + '!', 'gold');
+      saveCharacter();
+      renderWeaponShop();
+    } else {
+      location = 'town';
+      renderTownMenu();
+    }
+  }
+
+  function handleArmorShopInput(n) {
+    const current = ARMOR.find(a => a.id === character.armor) || ARMOR[0];
+    const nextIdx = Math.min(current.id + 1, ARMOR.length - 1);
+    const next = ARMOR[nextIdx];
+    if (n === 1 && current.id < ARMOR.length - 1 && character.gold >= next.price) {
+      character.gold -= next.price;
+      character.armor = next.id;
+      addLog('Bought ' + next.name + '!', 'gold');
+      saveCharacter();
+      renderArmorShop();
+    } else {
+      location = 'town';
+      renderTownMenu();
+    }
+  }
+
+  function handleBankInput(n) {
+    if (n === 1) {
+      character.bank += character.gold;
+      character.gold = 0;
+      addLog('Deposited all gold.', 'gold');
+      saveCharacter();
+      renderBank();
+    } else if (n === 2 && character.bank > 0) {
+      character.gold += character.bank;
+      character.bank = 0;
+      addLog('Withdrew all gold.', 'gold');
+      saveCharacter();
+      renderBank();
+    } else {
+      location = 'town';
+      renderTownMenu();
+    }
+  }
+
+  function handleInnInput(n) {
+    if (character.hp <= 0) return;
+    const healsLeft = MAX_INN_HEALS_PER_DAY - dayState.innHealsUsed;
+    if (n === 1 && character.hp < character.maxHp && healsLeft > 0 && character.gold >= INN_HEAL_COST) {
+      character.gold -= INN_HEAL_COST;
+      character.hp = character.maxHp;
+      dayState.innHealsUsed++;
+      addLog('Rested and restored to full HP.', 'healing');
+      saveCharacter();
+      saveDayState();
+      renderInn();
+    } else {
+      location = 'town';
+      renderTownMenu();
+    }
+  }
+
+  function handleTrainerInput(n) {
+    if (n === 1 && canLevelUp()) {
+      levelUp();
+      renderTrainer();
+    } else {
+      location = 'town';
+      renderTownMenu();
+    }
+  }
+
+  function handleQuestInput(n) {
+    location = 'town';
+    renderTownMenu();
+  }
+
+  function handleQuestLogInput(n) {
+    location = 'town';
+    renderTownMenu();
+  }
+
+  function handleWelcomeBackInput(n) {
+    if (n === 2) {
+      location = 'quest';
+      renderQuest();
+    } else {
+      location = 'town';
+      renderTownMenu();
+    }
+  }
+
+  function handleTavernInput(n) {
+    if (n === 1) {
+      renderTavern();
+    } else {
+      location = 'town';
+      renderTownMenu();
+    }
+  }
+
+  function handleWildernessInput(n) {
+    if (n === 1) {
+      encounter();
+    } else {
+      location = 'town';
+      renderTownMenu();
+    }
+  }
+
+  function handleCombatInput(n) {
+    if (n === 1) {
+      combatAttack();
+    } else if (n === 2) {
+      combatRun();
+    }
+  }
+
+  // === INITIALIZATION ===
+  function init() {
+    character = normalizeCharacterRecord(loadSave());
+    dayState = normalizeDayRecord(loadDayState());
+    // Story 040: capture the loaded day record and derive the absence window
+    // BEFORE checkDailyReset(), which replaces dayState wholesale and would
+    // otherwise hand back today's index as the last play day. Pure read: the
+    // window is held in memory for this page load and is never persisted.
+    const rawDayState = dayState;
+    awayWindow = computeAwayWindow(rawDayState, getDayIndex());
+    // Story 044: hold the loaded (pre-reset) record for this page load. The
+    // quest log derives its streak from this record's history
+    // (computeQuestLogStreak), so the number it prints describes the same run
+    // the welcome-back panel just described. Read only: assigned in memory, and
+    // never persisted.
+    questLogAnchor = rawDayState;
+    checkDailyReset();
+    ensureQuestState();
+
+    if (!character) {
+      showCharacterCreation();
+    } else if (shouldShowWelcomeBack(awayWindow, returnShown, rawDayState)) {
+      returnShown = true;
+      location = 'welcomeback';
+      renderWelcomeBack();
+      renderStatus();
+    } else {
+      location = 'town';
+      renderTownMenu();
+      renderStatus();
+    }
+
+    const input = document.getElementById('promptInput');
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const val = input.value.trim();
+        if (val) {
+          handleInput(val);
+          input.value = '';
+        }
+      }
+    });
+
+    // Menu tap/click: menu rows carry data-action="N". Inline onclick attributes
+    // cannot reach functions inside this IIFE (ReferenceError on every tap, issue #46),
+    // so one delegated listener on the display container maps every rendered row,
+    // including dynamic shop/inn/trainer rows, to handleMenuClick.
+    const display = document.getElementById('display');
+    display.addEventListener('click', (e) => {
+      const row = e.target.closest('.menu-row');
+      if (!row) return;
+      const action = row.getAttribute('data-action');
+      if (action) handleMenuClick(parseInt(action, 10));
+    });
+
+    syncAppBadge();
+
+    setInterval(renderStatus, 1000);
+  }
+
+  function showCharacterCreation() {
+    clearLog();
+    const display = document.getElementById('display');
+    display.innerHTML = '<div class="boxed-menu">' +
+      '<div class="header">=== CHARACTER CREATION ===</div>' +
+      '<div>Enter your name to begin your adventure.</div>' +
+      '<div class="divider"></div>' +
+      '<div>Type your name and press Enter</div>' +
+      '</div>';
+    document.getElementById('promptInput').value = '';
+    document.getElementById('promptInput').focus();
+
+    const input = document.getElementById('promptInput');
+    const handler = (e) => {
+      if (e.key === 'Enter') {
+        const name = input.value.trim();
+        if (name) {
+          input.removeEventListener('keydown', handler);
+          createCharacter(name);
+        }
+      }
+    };
+    input.addEventListener('keydown', handler);
+  }
+
+  function createCharacter(name) {
+    character = {
+      name: name.substring(0, 20),
+      level: 1,
+      xp: 0,
+      hp: 10,
+      maxHp: 10,
+      attack: 2,
+      defense: 1,
+      gold: 20,
+      bank: 0,
+      weapon: 0,
+      armor: 0,
+      wins: 0,
+      losses: 0,
+      deaths: 0
+    };
+    dayState = { dayIndex: getDayIndex(), fightsUsed: 0, innHealsUsed: 0, quest: { progress: 0, completed: false, rewarded: false }, completedQuests: [] };
+    saveCharacter();
+    saveDayState();
+    addLog('Welcome, ' + character.name + '!', 'flavor');
+    addLog('Your adventure begins in the Town Square.', 'flavor');
+    location = 'town';
+    renderTownMenu();
+    renderStatus();
+  }
+
+  // Start the game
+  init();
+})();
+</script>
+</body>
+</html>
