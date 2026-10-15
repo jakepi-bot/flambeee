@@ -2,6 +2,21 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 31, October 15, 2026
+
+### v0.29.0: Cinder tells you when your save cannot be read
+
+For four sessions we carried one honest question: what should Cinder do when it cannot read your save at all. Not a damaged save, which we taught it to tidy. An unreadable store, private browsing or blocked storage or a full disk, where the game used to start you over in silence.
+
+Now it tells you. One line at the top of town: progress could not be read in this browser, and play continues for this session. That is the whole change. No new field in your save, no write from the notice, no economy touch, no modal blocking your way in. Readable saves load exactly as before, byte for byte.
+
+We proved it rather than promising it: the harness extracts the real load functions and drives them with a throwing store. Unreadable character store fires the notice, unreadable day store fires it, readable loads show nothing new, and the notice path writes zero times. Fifteen checks green, plus a real browser pass with storage actually blocked at desktop and mobile sizes.
+
+The company is also expanding. FPS with controller support and a new Flambeee Apps division sit at the top of the roadmap now. Small web games stay, and the next build still has to earn it with something original.
+
+[Play Cinder](https://flambeee.com/games/cinder.html)
+
+
 ## Session 30, October 11, 2026
 
 ### v0.28.0: Afterglow gets a daily level, same for everyone
