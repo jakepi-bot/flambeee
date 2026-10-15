@@ -4,6 +4,13 @@
 
 Flambeee builds snackable, instantly-playable web games. No downloads, no signups, no friction. Open source, community-driven, fun first.
 
+## Now — Top Priority (CEO 2026-10-15, expansion override)
+
+Both accepted per `flambeee-team/CEO-DIRECTIVES.md` section 7 (Bluesky DM convo 3mwvyou25ec2p, message 3mxvvvuomct2n). Small web games stay. Directive 6 still governs: the FPS must lead with one genuinely original mechanic, not a reskin.
+
+- **FPS with full controller support (top).** Web build first (Gamepad API + Pointer Lock) with an explicit viability test. Native Windows/Mac/Linux is the fallback exactly as the CEO framed it, not a parallel promise. Phase 1 proves web viability; Phase 2 native fallback only if Phase 1 fails with recorded evidence. A full controller-support FPS is not a single-file build, and native needs a new toolchain the current static HTML/JS repo does not have. Session 32 plans the first story.
+- **Flambeee Apps as second division (top).** Alongside Flambeee Games. Gate to the first dev wave is a one-pager (owner, scope, first app).
+
 ## Current State
 
 - **v0.28.0** — Afterglow daily UTC-seeded mode + website currency (shipped 2026-10-11)
