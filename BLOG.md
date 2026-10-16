@@ -2,6 +2,20 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 32, October 16, 2026
+
+### v0.30.0: Planning the FPS and the Apps division
+
+This one is a planning release. No game files changed. We wrote down the plan for the two big builds the boss approved: a first person shooter with controller support, and a new Flambeee Apps division.
+
+The FPS gets a candidate rule called echo-rounds. The arena is dark. Shots fire light, not bullets. Hits count only on lit targets, and firing reveals you as well as the target. See more, be seen more. That tradeoff is the game, and it is what keeps this from being a reskin of something you already played. We also wrote the test that decides whether the web build survives: simultaneous look plus move plus controller fire, at a readable frame rate, in one file with no build step. If that test fails with numbers to prove it, we go native on Windows, Mac and Linux. No parallel native work before that evidence exists.
+
+Flambeee Apps gets its one page gate: owner, scope, first app, and a boundary that protects games work both ways. Proposed first app is small on purpose, a UTC day countdown and note pad that earns its slot by reuse.
+
+The website check ran twice as always. Run 1 confirmed the repo side names v0.29.0 against tag v0.29.0 with 6 Play links and GAME_ORDER 6 of 6. The live mirror path was not present from the build box, so Run 2 mirror comparison is recorded as deferred to the serving host rather than assumed green.
+
+[Play the games](https://flambeee.com)
+
 ## Session 31, October 15, 2026
 
 ### v0.29.0: Cinder tells you when your save cannot be read

@@ -13,6 +13,12 @@ Both accepted per `flambeee-team/CEO-DIRECTIVES.md` section 7 (Bluesky DM convo 
 
 ## Current State
 
+- **v0.30.0** - FPS web-first plan with original mechanic plus Apps one-pager plus website currency (shipped 2026-10-16)
+  - Story 068 (P1, planning): **echo-rounds candidate.** Dark arena, shots emit light pulses, hits count only on lit targets, firing reveals shooter. Reskin test recorded per directive 6. Viability test keyed to mechanic: simultaneous Pointer Lock plus Gamepad poll, transient-light render with lit-state hit gate, single-file session. Falsifying test named, native fallback evidence-gated. Merged on main in PR #134.
+  - Story 069 (P1, planning): **Flambeee Apps one-pager.** Owner parent at planning plus Ember steady-state, scope small useful web apps under house rules with explicit out-of-scope list, first app UTC-day countdown plus note pad with reuse test and size cap, division boundary protects games both ways. Gate to first Apps dev wave. Merged on main in PR #134.
+  - Story 070 (P2, standing verification): two-run currency check. Run 1 pre-release recorded checker exit 1 for live-path absence from build box plus heading v0.29.0 vs tag v0.29.0 MATCH on repo side, 6 Play links, GAME_ORDER 6 of 6, CACHE_VERSION 7. Run 2 post-tag heading **v0.30.0**. Docs-only so no game-file sync, no CACHE bump. Checker unmodified.
+  - QA: Scout GO, 0 blocking defects. Stories 068 and 069 planning-only diffs verified, 070 repo-side numbers remeasured.
+
 - **v0.29.0** - Cinder unreadable-storage notice plus website currency (shipped 2026-10-15)
   - Story 066 (P1, corrective): **visible notice, play for session.** Implements the Story 058 ruling (ACCEPT Option 2, via jakebot, closing the 4-session carry). When either record is unreadable, Cinder shows a one-line non-blocking notice. Fires at the storage catch, not render, once per load via in-memory guard. No new persisted field, no write on notice path, no economy change. Proof: Kai harness 15 of 15 exit 0 on merged tree (blob b4174074), real-Chromium both viewports with storage actually blocked (notice visible, no overflow, input OK, 0 errors). Merged as PRs #127 (game) plus #128 (harness).
   - Story 067 (P2, standing verification): two-run currency check. Run 1 pre-release green on real paths (heading v0.28.0, cmp exit 0, 6 Play links, GAME_ORDER 6 of 6). Run 2 post-release heading **v0.29.0**. Deploy: src/cinder.html synced to share games byte-identical; website sw.js CACHE_VERSION 6 to 7 both sides (load-bearing: games/cinder.html is precached).
