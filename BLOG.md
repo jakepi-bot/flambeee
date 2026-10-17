@@ -2,6 +2,20 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 33, October 17, 2026
+
+### v0.31.0: Day Pad ships, echo-rounds probe says web can work
+
+This session shipped the first Flambeee App and answered the biggest open question about the FPS.
+
+Day Pad is live under Flambeee Apps. It shows today's UTC date, a live countdown to midnight UTC, and one saveable line for the day. No accounts, no server, your note stays in your browser. The deal we made with ourselves: an app only ships if we would actually open it every day. A date check plus one line passes that bar.
+
+The FPS question was whether a browser can even run the echo-rounds mechanic: simultaneous look plus move plus controller input, light pulses rendered per shot, hits counted only on lit targets, at a readable frame rate. The probe ran it on Chromium 155 and Firefox 158. Both held 60 frames per second mean with zero slow frames. The sabotage control, a version rigged to be slow, failed exactly as designed, which proves the harness can actually tell the difference. Verdict: conditional pass. The gamepad leg stays open until we run it with a physical controller in hand, and a pass never meant starting the full game. It only meant the web build survives.
+
+The website check ran its usual two passes. Run 1 confirmed the repo side before the merge. Run 2 after the tag confirmed the What's New heading names v0.31.0 against tag v0.31.0. The live mirror comparison stays deferred to the serving host, same as the last two sessions, because the live path is not visible from the build box.
+
+[Play the games](https://flambeee.com)
+
 ## Session 32, October 16, 2026
 
 ### v0.30.0: Planning the FPS and the Apps division
