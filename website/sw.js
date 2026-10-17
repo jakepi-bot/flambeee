@@ -18,7 +18,7 @@
  */
 'use strict';
 
-var CACHE_VERSION = 7;
+var CACHE_VERSION = 8;
 var CACHE_NAME = 'flambeee-shell-v' + CACHE_VERSION;
 
 var PRECACHE_URLS = [
@@ -34,7 +34,8 @@ var PRECACHE_URLS = [
   './games/minesweeper.html',
   './games/simon.html',
   './games/wordfire.html',
-  './games/wordfire-words.js'
+  './games/wordfire-words.js',
+  './apps/index.html'
 ];
 
 self.addEventListener('install', function (event) {

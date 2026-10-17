@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1a1a2e">
+<title>Day Pad | Flambeee Apps</title>
+<meta name="description" content="Day Pad by Flambeee Apps. Today's UTC date, time left to midnight UTC, and one saveable line. No accounts, no server.">
+<style>
+  :root {
+    --bg: #0f1428;
+    --bg-2: #16213e;
+    --surface: #1a1a2e;
+    --surface-2: #1f2a4a;
+    --accent: #e94560;
+    --accent-2: #ff5a75;
+    --text: #eef2ff;
+    --text-dim: #9aa7d8;
+    --text-mute: #6b76a8;
+    --border: #2a3a6e;
+    --radius: 14px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  a { color: var(--accent-2); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 0 24px; width: 100%; }
+  header.top { padding: 28px 0 8px; }
+  header.top a.back { font-size: 0.9rem; }
+  h1 { font-size: clamp(1.8rem, 4vw, 2.4rem); font-weight: 800; margin: 12px 0 4px; }
+  .sub { color: var(--text-dim); margin-bottom: 28px; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .card h2 {
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent-2);
+    margin-bottom: 10px;
+  }
+  #utcDate { font-size: 1.4rem; font-weight: 700; }
+  #countdown { font-size: 2.2rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+  #noteInput {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 1rem;
+    padding: 12px 14px;
+    outline: none;
+  }
+  #noteInput:focus { border-color: var(--accent-2); }
+  .note-row { display: flex; gap: 12px; margin-top: 12px; align-items: center; }
+  button.save {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 24px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  button.save:hover { background: var(--accent-2); }
+  #noteStatus { color: var(--text-mute); font-size: 0.85rem; }
+  footer { margin-top: auto; padding: 32px 0; text-align: center; color: var(--text-mute); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="back" href="../index.html">Back to Flambeee</a>
+    <h1>Day Pad</h1>
+    <p class="sub">UTC-day countdown plus one saveable line. Flambeee Apps.</p>
+  </header>
+
+  <div class="card">
+    <h2>Today in UTC</h2>
+    <div id="utcDate">Loading date</div>
+    <div id="countdown" aria-live="off">--:--:--</div>
+    <p class="sub" style="margin:8px 0 0;">Time left to midnight UTC.</p>
+  </div>
+
+  <div class="card">
+    <h2>One line for today</h2>
+    <input id="noteInput" type="text" maxlength="280" placeholder="Type one line, then save" autocomplete="off">
+    <div class="note-row">
+      <button class="save" id="noteSave" type="button">Save</button>
+      <span id="noteStatus" aria-live="polite"></span>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p>Flambeee Apps. No accounts. No server. Your line stays in this browser.</p>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  /* Story 072 stats-key prefix, fixed before first write. */
+  var PREFIX = 'flambeee-apps-';
+  var NOTE_KEY = PREFIX + 'daypad-note';
+
+  /* --- UTC day countdown --- */
+  var dateEl = document.getElementById('utcDate');
+  var cdEl = document.getElementById('countdown');
+
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+
+  function tick() {
+    var now = new Date();
+    var y = now.getUTCFullYear();
+    var m = now.getUTCMonth();
+    var d = now.getUTCDate();
+    dateEl.textContent = y + '-' + pad(m + 1) + '-' + pad(d) + ' UTC';
+    var nextMidnight = Date.UTC(y, m, d + 1, 0, 0, 0);
+    var ms = nextMidnight - now.getTime();
+    if (ms < 0) ms = 0;
+    var total = Math.floor(ms / 1000);
+    var h = Math.floor(total / 3600);
+    var min = Math.floor((total % 3600) / 60);
+    var s = total % 60;
+    cdEl.textContent = pad(h) + ':' + pad(min) + ':' + pad(s);
+  }
+  tick();
+  setInterval(tick, 1000);
+
+  /* --- One saveable line --- */
+  var input = document.getElementById('noteInput');
+  var saveBtn = document.getElementById('noteSave');
+  var status = document.getElementById('noteStatus');
+
+  function loadNote() {
+    var val = '';
+    try {
+      var raw = localStorage.getItem(NOTE_KEY);
+      if (typeof raw === 'string' && raw !== '') {
+        val = raw;
+      }
+    } catch (e) { val = ''; }
+    input.value = val;
+  }
+
+  function saveNote() {
+    try {
+      localStorage.setItem(NOTE_KEY, input.value);
+      status.textContent = 'Saved.';
+    } catch (e) {
+      status.textContent = 'Could not save in this browser.';
+    }
+  }
+
+  saveBtn.addEventListener('click', saveNote);
+  loadNote();
+})();
+</script>
+</body>
+</html>
