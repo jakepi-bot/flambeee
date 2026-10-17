@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Story 071 echo-rounds viability probe</title>
+<style>
+  body { background: #000; color: #0f0; font-family: monospace; margin: 8px; }
+  canvas { background: #050505; display: block; }
+  #out { white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<canvas id="c" width="640" height="400"></canvas>
+<pre id="out">probe running...</pre>
+<script>
+"use strict";
+/* Story 071 echo-rounds viability probe. Single file, no build, no dependency.
+ * Mechanic: dark arena, each shot emits one transient light pulse, hits count
+ * only on lit targets, firing reveals the shooter.
+ * Self-driving: scripted move/look/fire schedule on load, measures frame
+ * times with the light-ammo loop running, counts input drop/desync, then
+ * POSTs JSON to /results. Modes via query string:
+ *   (none)      full mechanic loop (light-ammo on)
+ *   ?empty=1    empty scene, no light pulses (Scenario 4 control)
+ *   ?sabotage=1 full loop plus 50ms busy-wait per frame (negative control;
+ *               harness must FAIL this run or the harness is a tautology)
+ */
+var q = new URLSearchParams(location.search);
+var EMPTY = q.get("empty") === "1";
+var SABOTAGE = q.get("sabotage") === "1";
+
+var canvas = document.getElementById("c");
+var ctx = canvas.getContext("2d");
+var out = document.getElementById("out");
+
+var player = { x: 320, y: 200, yaw: 0, visibleUntil: 0 };
+var keys = {};
+var pulses = [];
+var targets = [];
+for (var i = 0; i < 12; i++) {
+  targets.push({ x: 40 + (i * 53) % 560, y: 40 + (i * 97) % 320, litUntil: 0 });
+}
+var shots = 0, gatedHits = 0, gatedMisses = 0, revealCount = 0;
+
+/* input accounting: injected edges vs listener-observed edges */
+var injected = 0, observed = 0;
+var lastSeenKey = {};
+var transitions = [];
+window.addEventListener("keydown", function (e) {
+  if (!lastSeenKey[e.code]) { lastSeenKey[e.code] = true; observed++; }
+  keys[e.code] = true;
+});
+window.addEventListener("keyup", function (e) {
+  if (lastSeenKey[e.code]) { lastSeenKey[e.code] = false; observed++; }
+  keys[e.code] = false;
+});
+function injectEdge(code, down) {
+  injected++;
+  transitions.push({ key: code, type: down ? "down" : "up" });
+  window.dispatchEvent(new KeyboardEvent(down ? "keydown" : "keyup", { code: code }));
+}
+
+/* held-phase agreement: each 500ms phase holds one move key; count frames
+ * where the poll saw the expected key down */
+var holdPhases = [];
+var curPhase = -1;
+/* sub-frame taps: injected down+up between frames. Event listeners see both
+ * edges; a poll-only sampler cannot. Reported separately (informational). */
+var qTaps = 0, qTapsEventSeen = 0, qPollHits = 0, qWasHeld = false;
+var qObservedDown = false;
+window.addEventListener("keydown", function (e) {
+  if (e.code === "KeyQ") qObservedDown = true;
+});
+
+/* pointer lock + gamepad availability (recorded, not assumed) */
+var pointerLockState = "not-attempted";
+var gamepadsSeen = 0;
+var gamepadSamples = 0, gamepadEmptySamples = 0;
+try {
+  canvas.requestPointerLock = canvas.requestPointerLock || canvas.mozRequestPointerLock;
+  if (canvas.requestPointerLock) {
+    pointerLockState = "request-sent";
+    document.addEventListener("pointerlockchange", function () {
+      pointerLockState = (document.pointerLockElement === canvas) ? "locked" : "changed-lost";
+    });
+    document.addEventListener("pointerlockerror", function () { pointerLockState = "error"; });
+    canvas.requestPointerLock();
+  } else { pointerLockState = "unsupported"; }
+} catch (err) { pointerLockState = "threw:" + String(err && err.name || err); }
+var lookDX = 0;
+window.addEventListener("mousemove", function (e) {
+  lookDX += (e.movementX || 0);
+});
+function pollGamepad() {
+  gamepadSamples++;
+  var gps = [];
+  try { gps = navigator.getGamepads ? navigator.getGamepads() : []; } catch (e) { gps = []; }
+  var any = false;
+  for (var i = 0; i < gps.length; i++) { if (gps[i] && gps[i].connected) { any = true; break; } }
+  if (any) gamepadsSeen++; else gamepadEmptySamples++;
+}
+
+function fire(now) {
+  shots++;
+  player.visibleUntil = now + 150;
+  revealCount++;
+  if (EMPTY) return;
+  pulses.push({ x: player.x, y: player.y, r: 130, born: now, ttl: 140 });
+  for (var i = 0; i < targets.length; i++) {
+    var t = targets[i];
+    var dx = t.x - player.x, dy = t.y - player.y;
+    if (dx * dx + dy * dy < 130 * 130) { t.litUntil = now + 140; }
+  }
+  var hx = player.x + Math.cos(player.yaw) * 200;
+  var hy = player.y + Math.sin(player.yaw) * 200;
+  var hit = false;
+  for (var j = 0; j < targets.length; j++) {
+    var u = targets[j];
+    var ex = u.x - hx, ey = u.y - hy;
+    if (ex * ex + ey * ey < 24 * 24) {
+      if (now < u.litUntil) { gatedHits++; hit = true; }
+      break;
+    }
+  }
+  if (!hit) gatedMisses++;
+}
+
+function draw(now) {
+  ctx.fillStyle = "#050505";
+  ctx.fillRect(0, 0, 640, 400);
+  for (var p = 0; p < pulses.length; p++) {
+    var pu = pulses[p];
+    var age = now - pu.born;
+    if (age < pu.ttl) {
+      var g = ctx.createRadialGradient(pu.x, pu.y, 4, pu.x, pu.y, pu.r);
+      g.addColorStop(0, "rgba(255,240,180,0.85)");
+      g.addColorStop(1, "rgba(255,240,180,0)");
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, 640, 400);
+    }
+  }
+  for (var i = 0; i < targets.length; i++) {
+    var t = targets[i];
+    ctx.fillStyle = (now < t.litUntil) ? "#ffdd66" : "#331f00";
+    ctx.fillRect(t.x - 8, t.y - 8, 16, 16);
+  }
+  ctx.fillStyle = (now < player.visibleUntil) ? "#ff4444" : "#226622";
+  ctx.beginPath();
+  ctx.arc(player.x, player.y, 10, 0, 6.2832);
+  ctx.fill();
+  ctx.strokeStyle = "#888";
+  ctx.beginPath();
+  ctx.moveTo(player.x, player.y);
+  ctx.lineTo(player.x + Math.cos(player.yaw) * 30, player.y + Math.sin(player.yaw) * 30);
+  ctx.stroke();
+}
+
+var frameTimes = [];
+var lastT = 0, t0 = 0;
+var RUN_MS = 10000;
+var fireAcc = 0;
+var slowFrames = 0;
+var done = false;
+var lastTapBucket = -1;
+
+function step(now) {
+  if (!t0) t0 = now;
+  if (lastT) frameTimes.push(now - lastT);
+  lastT = now;
+
+  var elapsed = now - t0;
+  var phase = Math.floor(elapsed / 500) % 4;
+  var moveCode = ["KeyW", "KeyA", "KeyS", "KeyD"][phase];
+  if (phase !== curPhase) {
+    if (curPhase >= 0) {
+      var prev = ["KeyW", "KeyA", "KeyS", "KeyD"][curPhase];
+      if (keys[prev]) injectEdge(prev, false);
+    }
+    curPhase = phase;
+    holdPhases.push({ code: moveCode, frames: 0, sawDown: 0 });
+  }
+  if (!keys[moveCode]) injectEdge(moveCode, true);
+  var hp = holdPhases[holdPhases.length - 1];
+  hp.frames++;
+  if (keys[moveCode]) hp.sawDown++;
+
+  /* sub-frame tap stressor: one down+up pair per 100ms bucket */
+  var bucket = Math.floor(elapsed / 100);
+  if (bucket !== lastTapBucket) {
+    lastTapBucket = bucket;
+    qObservedDown = false;
+    qTaps++;
+    injectEdge("KeyQ", true);
+    injectEdge("KeyQ", false);
+    if (qObservedDown) qTapsEventSeen++;
+  }
+  if (keys.KeyQ) qPollHits++;
+  qWasHeld = !!keys.KeyQ;
+
+  player.yaw += 0.02 + lookDX * 0.001; lookDX = 0;
+  if (keys.KeyW) player.y += 1.2;
+  if (keys.KeyS) player.y -= 1.2;
+  if (keys.KeyA) player.x -= 1.2;
+  if (keys.KeyD) player.x += 1.2;
+  player.x = Math.max(20, Math.min(620, player.x));
+  player.y = Math.max(20, Math.min(380, player.y));
+
+  fireAcc += 16;
+  if (fireAcc >= 120) { fireAcc = 0; fire(now); }
+
+  pulses = pulses.filter(function (pu) { return now - pu.born < pu.ttl; });
+
+  pollGamepad();
+  draw(now);
+
+  if (SABOTAGE) {
+    var sb = performance.now();
+    while (performance.now() - sb < 50) { /* busy wait */ }
+  }
+
+  if (frameTimes[frameTimes.length - 1] > 33.4) slowFrames++;
+
+  if (elapsed < RUN_MS) { requestAnimationFrame(step); }
+  else { finish(now); }
+}
+
+function percentile(arr, p) {
+  if (!arr.length) return 0;
+  var s = arr.slice().sort(function (a, b) { return a - b; });
+  return s[Math.min(s.length - 1, Math.floor(p * s.length))];
+}
+
+function finish(now) {
+  if (done) return; done = true;
+  ["KeyW", "KeyA", "KeyS", "KeyD"].forEach(function (c) {
+    if (keys[c]) injectEdge(c, false);
+  });
+  var n = frameTimes.length;
+  var sum = frameTimes.reduce(function (a, b) { return a + b; }, 0);
+  var mean = n ? sum / n : 0;
+  var fps = mean > 0 ? 1000 / mean : 0;
+  var agreeFrames = 0, agreeSaw = 0;
+  holdPhases.forEach(function (h) { agreeFrames += h.frames; agreeSaw += h.sawDown; });
+  var result = {
+    mode: EMPTY ? "empty-scene" : (SABOTAGE ? "sabotage" : "mechanic-loop"),
+    runMs: Math.round(now - t0),
+    frames: n,
+    frameMeanMs: Math.round(mean * 100) / 100,
+    frameP50Ms: Math.round(percentile(frameTimes, 0.50) * 100) / 100,
+    frameP95Ms: Math.round(percentile(frameTimes, 0.95) * 100) / 100,
+    frameP99Ms: Math.round(percentile(frameTimes, 0.99) * 100) / 100,
+    fpsMean: Math.round(fps * 10) / 10,
+    slowFramesOver33ms: slowFrames,
+    shots: shots,
+    pulsesEmitted: EMPTY ? 0 : shots,
+    gatedHits: gatedHits,
+    gatedMisses: gatedMisses,
+    shooterReveals: revealCount,
+    inputInjected: injected,
+    inputObserved: observed,
+    inputDrops: Math.max(0, injected - observed),
+    holdPhaseFrames: agreeFrames,
+    holdPhaseSawDown: agreeSaw,
+    holdAgreementPct: agreeFrames ? Math.round(agreeSaw / agreeFrames * 1000) / 10 : 0,
+    subframeTaps: qTaps,
+    subframeTapsEventSeen: qTapsEventSeen,
+    subframeTapsPollSeen: qPollHits,
+    pointerLock: pointerLockState,
+    gamepadSamples: gamepadSamples,
+    gamepadNonEmpty: gamepadsSeen,
+    gamepadEmpty: gamepadEmptySamples,
+    userAgent: navigator.userAgent
+  };
+  out.textContent = JSON.stringify(result, null, 2);
+  window.__probeResult = result;
+  var payload = JSON.stringify(result);
+  try {
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon("/results", payload);
+    } else {
+      fetch("/results", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: payload
+      });
+    }
+  } catch (e) { /* harness falls back to DOM scrape */ }
+  /* keepalive: hold the page open briefly so sendBeacon/fetch lands */
+  var tEnd = performance.now();
+  while (performance.now() - tEnd < 1500) { /* drain */ }
+}
+
+requestAnimationFrame(step);
+</script>
+</body>
+</html>
