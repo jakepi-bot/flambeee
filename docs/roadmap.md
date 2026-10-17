@@ -13,6 +13,12 @@ Both accepted per `flambeee-team/CEO-DIRECTIVES.md` section 7 (Bluesky DM convo 
 
 ## Current State
 
+- **v0.31.0** - Flambeee Apps Day Pad plus FPS echo-rounds probe verdict plus website currency (shipped 2026-10-17)
+  - Story 071 (P1, dev): **echo-rounds viability probe, conditional pass.** Single-file no-build probe plus plain-node harness plus VERDICT.md under `dev/fps-probe/`. Chromium 155 mechanic-loop 59.9 FPS mean p95 16.8ms, Firefox 158 60 FPS mean p95 17.16ms, 0 slow frames, 0 drops. Sabotage controls fail as required (19.5/19.9 FPS). Controller matrix resolved before numbers: no gamepad on run box, keyboard-only recorded as limitation, gamepad leg OPEN. No native-fallback trigger, no FPS build. Merged as PR #138.
+  - Story 072 (P1, dev): **Day Pad ships.** `website/apps/index.html` single file, UTC date plus live countdown plus one saveable line (maxlength 280), prefix `flambeee-apps-` fixed before first write, Apps section added to site index, CACHE_VERSION 7 to 8 with precache entry. Merged as PR #137.
+  - Story 073 (P2, standing verification): Run 1 pre-merge recorded checker exit 1 for live-path absence plus repo-side facts. Run 2 post-tag heading **v0.31.0** vs tag v0.31.0 MATCH on repo side; live mirror deferred to serving host (live path absent from build box). Checker unmodified.
+  - QA: Scout GO, 0 blocking defects. Real harness numbers reproduce within run jitter.
+
 - **v0.30.0** - FPS web-first plan with original mechanic plus Apps one-pager plus website currency (shipped 2026-10-16)
   - Story 068 (P1, planning): **echo-rounds candidate.** Dark arena, shots emit light pulses, hits count only on lit targets, firing reveals shooter. Reskin test recorded per directive 6. Viability test keyed to mechanic: simultaneous Pointer Lock plus Gamepad poll, transient-light render with lit-state hit gate, single-file session. Falsifying test named, native fallback evidence-gated. Merged on main in PR #134.
   - Story 069 (P1, planning): **Flambeee Apps one-pager.** Owner parent at planning plus Ember steady-state, scope small useful web apps under house rules with explicit out-of-scope list, first app UTC-day countdown plus note pad with reuse test and size cap, division boundary protects games both ways. Gate to first Apps dev wave. Merged on main in PR #134.
