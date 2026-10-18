@@ -2,6 +2,18 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 34, October 18, 2026
+
+### v0.32.0: Day Pad counts characters, FPS build decision recorded
+
+Small release, honest progress. Day Pad gets the one thing it was missing: a live character count on your daily line. Type and it ticks up, N out of 280, saved with the note and back after a reload. No new settings, no new storage, just the number you needed.
+
+The bigger piece is paperwork that unblocks the FPS. We wrote down the build decision: the frame rate bar is a plus or minus 5 percent band around 60 FPS, and the controller test stays open until we run it with a real pad in hand on the named rig. No full game started, no native toolchain, just the rules for the next test so Session 35 can run it without us in the room.
+
+The website check ran twice as always. Run 1 confirmed the repo side before the merge. Run 2 after the tag confirmed the What's New heading names v0.32.0. The live mirror comparison stays deferred to the serving host because the live path is not visible from the build box.
+
+[Play the games](https://flambeee.com)
+
 ## Session 33, October 17, 2026
 
 ### v0.31.0: Day Pad ships, echo-rounds probe says web can work
