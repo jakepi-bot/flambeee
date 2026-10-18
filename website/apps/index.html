@@ -79,6 +79,7 @@
   }
   button.save:hover { background: var(--accent-2); }
   #noteStatus { color: var(--text-mute); font-size: 0.85rem; }
+  #noteCount { color: var(--text-dim); font-size: 0.85rem; margin-left: auto; font-variant-numeric: tabular-nums; white-space: nowrap; }
   footer { margin-top: auto; padding: 32px 0; text-align: center; color: var(--text-mute); font-size: 0.85rem; }
 </style>
 </head>
@@ -103,6 +104,7 @@
     <div class="note-row">
       <button class="save" id="noteSave" type="button">Save</button>
       <span id="noteStatus" aria-live="polite"></span>
+      <span id="noteCount" aria-live="off">0/280</span>
     </div>
   </div>
 </div>
@@ -147,6 +149,11 @@
   var input = document.getElementById('noteInput');
   var saveBtn = document.getElementById('noteSave');
   var status = document.getElementById('noteStatus');
+  var count = document.getElementById('noteCount');
+
+  function updateCount() {
+    count.textContent = input.value.length + '/280';
+  }
 
   function loadNote() {
     var val = '';
@@ -157,6 +164,7 @@
       }
     } catch (e) { val = ''; }
     input.value = val;
+    updateCount();
   }
 
   function saveNote() {
@@ -169,6 +177,7 @@
   }
 
   saveBtn.addEventListener('click', saveNote);
+  input.addEventListener('input', updateCount);
   loadNote();
 })();
 </script>
