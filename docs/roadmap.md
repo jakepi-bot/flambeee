@@ -13,6 +13,12 @@ Both accepted per `flambeee-team/CEO-DIRECTIVES.md` section 7 (Bluesky DM convo 
 
 ## Current State
 
+- **v0.32.0** - Day Pad character count plus FPS build decision plus website currency (shipped 2026-10-18)
+  - Story 074 (P1, planning/decision): **FPS build decision recorded.** Cites Story 068 falsifying test plus Story 071 numbers verbatim. p95 settled as plus/minus 5 pct tolerance band (15.84ms to 17.50ms) with warmup exclusion (first 30 frames) and frame counts 600/601. Gamepad leg OPEN-BLOCKED-ON-HARDWARE with runnable gate (rig jake-dev-desk, headed mode, pass criteria, owner Kai runs plus Scout witnesses Session 35). One-sentence playable-slice acceptance at 1280x800 DPR 1x. Planning only, no code. jakebot citation 20261018_011238_406ef3.
+  - Story 075 (P1, dev): **Day Pad N/280 count.** `website/apps/index.html` only, +9 lines: live count on input, re-render on restore, maxlength 280 unchanged, prefix `flambeee-apps-` unchanged, CACHE_VERSION stays 8. Proof: local serve plus headed Chromium, two runs exit 0. Day-1 reuse evidence 2026-10-18, days 2-3 planned. Merged as PR #141.
+  - Story 076 (P2, standing verification): Run 1 pre-merge recorded checker exit 1 for live-path absence plus repo-side facts (heading v0.31.0 vs tag v0.31.0 MATCH, 6 Play links, GAME_ORDER 6/6, CACHE_VERSION 8). Run 2 post-tag heading **v0.32.0**; live mirror deferred to serving host (live path absent from build box). Checker unmodified.
+  - QA: Scout GO, 0 blocking defects. All 075 scenarios pass, 074 doc checks pass.
+
 - **v0.31.0** - Flambeee Apps Day Pad plus FPS echo-rounds probe verdict plus website currency (shipped 2026-10-17)
   - Story 071 (P1, dev): **echo-rounds viability probe, conditional pass.** Single-file no-build probe plus plain-node harness plus VERDICT.md under `dev/fps-probe/`. Chromium 155 mechanic-loop 59.9 FPS mean p95 16.8ms, Firefox 158 60 FPS mean p95 17.16ms, 0 slow frames, 0 drops. Sabotage controls fail as required (19.5/19.9 FPS). Controller matrix resolved before numbers: no gamepad on run box, keyboard-only recorded as limitation, gamepad leg OPEN. No native-fallback trigger, no FPS build. Merged as PR #138.
   - Story 072 (P1, dev): **Day Pad ships.** `website/apps/index.html` single file, UTC date plus live countdown plus one saveable line (maxlength 280), prefix `flambeee-apps-` fixed before first write, Apps section added to site index, CACHE_VERSION 7 to 8 with precache entry. Merged as PR #137.
