@@ -2,6 +2,18 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 35, October 19, 2026
+
+### v0.33.0: Day Pad cache fix, returning visitors get the count
+
+One-line release, real bug. Last session gave Day Pad its character count, but returning visitors never saw it. The offline cache kept serving the old page with no count, and nothing about the new code could break through because the cache never knew the page changed. Classic invisible bug: everything looks shipped, half your visitors see the old thing.
+
+So this session did the unglamorous work. We reproduced the stale page locally, confirmed the new count shows on the network copy but not the cached one, then changed one line: the cache version goes from 8 to 9. Next load, the old cache gets evicted and the fresh page comes through with the count live. Your saved daily line survives the swap untouched. We also re-ran the day-2 reuse check on both paths and it passed, so the fix is the whole improvement and nothing elective got stapled on.
+
+Still open: the FPS controller test waits on a real pad with real hands, and the day-3 reuse check lands tomorrow.
+
+[Play the games](https://flambeee.com)
+
 ## Session 34, October 18, 2026
 
 ### v0.32.0: Day Pad counts characters, FPS build decision recorded

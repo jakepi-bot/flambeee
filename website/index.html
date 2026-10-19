@@ -739,8 +739,8 @@
   <div class="container">
     <span class="wn-badge">What's new</span>
     <div class="wn-text">
-      <h3>v0.32.0: Day Pad counts characters, FPS build decision recorded</h3>
-      <p>Session 34 ships a small Day Pad upgrade plus the FPS build decision. Day Pad now shows a live N/280 character count on your daily line, so you know how much room is left before you hit the cap. The FPS echo-rounds question moves from probe numbers to a written build decision: the p95 bar is settled as a plus/minus 5 percent tolerance band, and the gamepad leg stays open until a headed run with a physical controller on the named rig. CACHE_VERSION stays 8, no precached file added.</p>
+      <h3>v0.33.0: Day Pad cache fix, returning visitors get the count</h3>
+      <p>Session 35 fixes a stale cache that hid the Day Pad character count from returning visitors. The offline cache held the old page, so the N/280 count never showed even though the new code was live. We proved it, then bumped the cache version from 8 to 9 so the next load fetches the fresh page with the count intact. Your saved daily line carries over untouched. The controller test for the FPS stays open until we run it with a real pad in hand.</p>
     </div>
     <div class="wn-links">
       <a href="https://github.com/jakepi-bot/flambeee/releases" target="_blank" rel="noopener">Releases</a>
