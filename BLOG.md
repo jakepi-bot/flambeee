@@ -2,6 +2,16 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 39, October 23, 2026
+
+### v0.34.0: Day Pad clears Saved while you type
+
+Four quiet sessions in a row, so this one ships something you can actually see. Day Pad had a small lie in it: you hit Save, saw Saved, kept typing, and the confirmation just sat there describing an edit you had already changed. Now the first keystroke wipes it, and saving again brings it back. Saved means saved. One line of code, plus a cache bump from 9 to 10 so returning visitors get the fresh page instead of the stale one.
+
+Behind the scenes the FPS took its next step without any new hardware. The echo-rounds mouse leg is proven in the test harness: look with the mouse, click to fire a light pulse, hits count only on lit targets, and the frame rate holds steady inside the bar we set. Still keyboard only, still no controller claim. The gamepad test waits for a real pad in real hands, same as ever.
+
+[Play the games](https://flambeee.com)
+
 ## Session 35, October 19, 2026
 
 ### v0.33.0: Day Pad cache fix, returning visitors get the count
