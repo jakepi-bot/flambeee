@@ -28,12 +28,19 @@
 var q = new URLSearchParams(location.search);
 var EMPTY = q.get("empty") === "1";
 var SABOTAGE = q.get("sabotage") === "1";
+/* Story 089 mouse-leg mode (?mouseleg=1): pointer-lock look (yaw/pitch) plus
+ * click-to-shoot (one click emits one light pulse, fades) plus the lit-target
+ * hit gate (hits only on lit targets, shooter revealed per shot). Default
+ * mechanic-loop/empty/sabotage paths below are unchanged. */
+
+var MOUSELEG = q.get("mouseleg") === "1";
+var LOOK_SENS = 0.0025, PULSE_TTL = 140, WARMUP_N = 30;
 
 var canvas = document.getElementById("c");
 var ctx = canvas.getContext("2d");
 var out = document.getElementById("out");
 
-var player = { x: 320, y: 200, yaw: 0, visibleUntil: 0 };
+var player = { x: 320, y: 200, yaw: 0, pitch: 0, visibleUntil: 0 };
 var keys = {};
 var pulses = [];
 var targets = [];
@@ -41,6 +48,22 @@ for (var i = 0; i < 12; i++) {
   targets.push({ x: 40 + (i * 53) % 560, y: 40 + (i * 97) % 320, litUntil: 0 });
 }
 var shots = 0, gatedHits = 0, gatedMisses = 0, revealCount = 0;
+/* Story 089 mouse-leg counters. Gate stats only count shots fired while the
+ * gate is armed (scripted aimed phase); stress-phase shots are unevaluated. */
+var GATE_T = null;
+var lookDY = 0, lookAppliedDX = 0, lookAppliedDY = 0;
+var lookInjected = 0, lookApplied = 0;
+var clickShots = 0, pulsesFaded = 0, unevaluatedShots = 0;
+var litShots = 0, litHits = 0, unlitShots = 0, unlitHits = 0;
+var gateArmed = false, stressDone = false, fireMoveLookSurvived = false;
+var gateFired = { t1: false, t2: false, t3: false, t4: false };
+var lastClickElapsed = -400, observedAtLastShot = 0;
+if (MOUSELEG) {
+  targets[0].x = 500; targets[0].y = 200; targets[0].litUntil = 0;
+  targets[1].x = 140; targets[1].y = 320; targets[1].litUntil = 0;
+  GATE_T = targets[0];
+  player.yaw = Math.PI / 2; player.pitch = 0;
+}
 
 /* input accounting: injected edges vs listener-observed edges */
 var injected = 0, observed = 0;
@@ -90,6 +113,16 @@ try {
 var lookDX = 0;
 window.addEventListener("mousemove", function (e) {
   lookDX += (e.movementX || 0);
+  lookDY += (e.movementY || 0);
+});
+/* Story 089: click-to-shoot. One mousedown emits exactly one light pulse via
+ * mouselegFire. Synthetic clicks dispatched by the scripted driver travel this
+ * same path (headless Pointer Lock reports error per the Story 071 known
+ * limitation, so look/click input is driven synthetically). */
+window.addEventListener("mousedown", function () {
+  if (!MOUSELEG) return;
+  clickShots++;
+  mouselegFire(performance.now());
 });
 function pollGamepad() {
   gamepadSamples++;
@@ -125,6 +158,105 @@ function fire(now) {
   if (!hit) gatedMisses++;
 }
 
+/* Story 089 mouse-leg fire path (default-mode fire() above is untouched).
+ * Hit is decided against pre-shot lit state, then the pulse lights targets
+ * along the ray corridor, then fades. Every shot sets the shooter-revealed
+ * flag. Gate stats count only while gateArmed (scripted aimed phase). */
+function mouselegFire(now) {
+  shots++;
+  player.visibleUntil = now + PULSE_TTL + 10;
+  revealCount++;
+  var hx = player.x + Math.cos(player.yaw) * 200;
+  var hy = player.y + Math.sin(player.yaw) * 200;
+  if (gateArmed) {
+    var aimed = null;
+    for (var k = 0; k < 2; k++) {
+      var u = targets[k];
+      var ex = u.x - hx, ey = u.y - hy;
+      if (ex * ex + ey * ey < 24 * 24) { aimed = u; break; }
+    }
+    if (aimed && now < aimed.litUntil) { litShots++; litHits++; }
+    else { unlitShots++; }
+  } else { unevaluatedShots++; }
+  pulses.push({ x: player.x, y: player.y, r: 130, born: now, ttl: PULSE_TTL });
+  var cy = Math.cos(player.yaw), sy = Math.sin(player.yaw);
+  for (var i = 0; i < targets.length; i++) {
+    var t = targets[i];
+    var rx = t.x - player.x, ry = t.y - player.y;
+    var along = rx * cy + ry * sy;
+    var perp = Math.abs(-rx * sy + ry * cy);
+    if (along >= 0 && along <= 260 && perp <= 50) { t.litUntil = now + PULSE_TTL; }
+  }
+}
+
+function synthLook(dx, dy) {
+  lookInjected++;
+  var e = new Event("mousemove");
+  e.movementX = dx; e.movementY = dy;
+  window.dispatchEvent(e);
+}
+
+function synthClick() {
+  window.dispatchEvent(new MouseEvent("mousedown"));
+}
+
+/* Story 089 scripted driver: 0-5 s simultaneous fire-move-look stress
+ * (hold W, synthetic look every frame, click every 400 ms, gate disarmed),
+ * then a deterministic aimed gate phase (unlit miss, lit hit, faded miss,
+ * away miss), then a post-fire move window proving no input lockup. */
+function mouselegDrive(now, elapsed) {
+  if (elapsed < 5000) {
+    if (!keys.KeyW) injectEdge("KeyW", true);
+    synthLook(3, -1);
+    if (elapsed - lastClickElapsed >= 400) {
+      lastClickElapsed = elapsed;
+      synthClick();
+    }
+  } else if (!stressDone) {
+    stressDone = true;
+    if (keys.KeyW) injectEdge("KeyW", false);
+    fireMoveLookSurvived =
+      (shots > 0 && lookApplied > 0 && (injected - observed) === 0);
+    player.x = 320; player.y = 200; player.yaw = 0;
+    GATE_T.litUntil = 0;
+    gateArmed = true;
+  }
+  if (stressDone) {
+    if (!gateFired.t1 && elapsed >= 5200) {
+      gateFired.t1 = true;
+      player.x = 320; player.y = 200; player.yaw = 0;
+      GATE_T.litUntil = 0;
+      synthClick();
+    }
+    if (!gateFired.t2 && elapsed >= 5260) { gateFired.t2 = true; synthClick(); }
+    if (!gateFired.t3 && elapsed >= 5700) { gateFired.t3 = true; synthClick(); }
+    if (!gateFired.t4 && elapsed >= 5760) {
+      gateFired.t4 = true;
+      player.yaw = Math.PI;
+      synthClick();
+      observedAtLastShot = observed;
+    }
+    if (elapsed >= 8000 && elapsed < 10000) {
+      if (!keys.KeyD) injectEdge("KeyD", true);
+    } else if (keys.KeyD) { injectEdge("KeyD", false); }
+  }
+  if (lookDX || lookDY) {
+    lookApplied++;
+    lookAppliedDX += lookDX; lookAppliedDY += lookDY;
+    player.yaw += lookDX * LOOK_SENS;
+    player.pitch += lookDY * LOOK_SENS;
+    if (player.pitch > 1.2) player.pitch = 1.2;
+    if (player.pitch < -1.2) player.pitch = -1.2;
+    lookDX = 0; lookDY = 0;
+  }
+  if (keys.KeyW) player.y += 1.2;
+  if (keys.KeyS) player.y -= 1.2;
+  if (keys.KeyA) player.x -= 1.2;
+  if (keys.KeyD) player.x += 1.2;
+  player.x = Math.max(20, Math.min(620, player.x));
+  player.y = Math.max(20, Math.min(380, player.y));
+}
+
 function draw(now) {
   ctx.fillStyle = "#050505";
   ctx.fillRect(0, 0, 640, 400);
@@ -132,8 +264,10 @@ function draw(now) {
     var pu = pulses[p];
     var age = now - pu.born;
     if (age < pu.ttl) {
+      /* Story 089: pulse fades over its life in mouse-leg mode. */
+      var fade = MOUSELEG ? (1 - age / pu.ttl) : 1;
       var g = ctx.createRadialGradient(pu.x, pu.y, 4, pu.x, pu.y, pu.r);
-      g.addColorStop(0, "rgba(255,240,180,0.85)");
+      g.addColorStop(0, "rgba(255,240,180," + (0.85 * fade).toFixed(3) + ")");
       g.addColorStop(1, "rgba(255,240,180,0)");
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, 640, 400);
@@ -157,7 +291,7 @@ function draw(now) {
 
 var frameTimes = [];
 var lastT = 0, t0 = 0;
-var RUN_MS = 10000;
+var RUN_MS = MOUSELEG ? 12000 : 10000;
 var fireAcc = 0;
 var slowFrames = 0;
 var done = false;
@@ -169,6 +303,8 @@ function step(now) {
   lastT = now;
 
   var elapsed = now - t0;
+  if (MOUSELEG) { mouselegDrive(now, elapsed); }
+  else {
   var phase = Math.floor(elapsed / 500) % 4;
   var moveCode = ["KeyW", "KeyA", "KeyS", "KeyD"][phase];
   if (phase !== curPhase) {
@@ -208,7 +344,13 @@ function step(now) {
   fireAcc += 16;
   if (fireAcc >= 120) { fireAcc = 0; fire(now); }
 
-  pulses = pulses.filter(function (pu) { return now - pu.born < pu.ttl; });
+  } /* end default-mode middle; mouse-leg schedule runs in mouselegDrive */
+  var keptPulses = [];
+  for (var fi = 0; fi < pulses.length; fi++) {
+    if (now - pulses[fi].born < pulses[fi].ttl) keptPulses.push(pulses[fi]);
+    else pulsesFaded++;
+  }
+  pulses = keptPulses;
 
   pollGamepad();
   draw(now);
@@ -241,6 +383,10 @@ function finish(now) {
   var fps = mean > 0 ? 1000 / mean : 0;
   var agreeFrames = 0, agreeSaw = 0;
   holdPhases.forEach(function (h) { agreeFrames += h.frames; agreeSaw += h.sawDown; });
+  var stuck = 0;
+  ["KeyW", "KeyA", "KeyS", "KeyD", "KeyQ"].forEach(function (c) {
+    if (keys[c]) stuck++;
+  });
   var result = {
     mode: EMPTY ? "empty-scene" : (SABOTAGE ? "sabotage" : "mechanic-loop"),
     runMs: Math.round(now - t0),
@@ -271,6 +417,47 @@ function finish(now) {
     gamepadEmpty: gamepadEmptySamples,
     userAgent: navigator.userAgent
   };
+  if (MOUSELEG) {
+    /* Story 074 settlement: warmup first 30 excluded, count at least 600,
+     * p95 checked against the 15.84-17.50 ms band, slow frames over 33 ms. */
+    var counted = frameTimes.slice(WARMUP_N);
+    var csum = counted.reduce(function (a, b) { return a + b; }, 0);
+    var cmean = counted.length ? csum / counted.length : 0;
+    var cslow = 0, ci;
+    for (ci = 0; ci < counted.length; ci++) {
+      if (counted[ci] > 33) cslow++;
+    }
+    result.mode = "mouse-leg";
+    result.framesTotal = n;
+    result.warmupExcluded = WARMUP_N;
+    result.framesCounted = counted.length;
+    result.frameMeanMsCounted =
+      Math.round(cmean * 100) / 100;
+    result.frameP50MsCounted =
+      Math.round(percentile(counted, 0.50) * 100) / 100;
+    result.frameP95MsCounted =
+      Math.round(percentile(counted, 0.95) * 100) / 100;
+    result.frameP99MsCounted =
+      Math.round(percentile(counted, 0.99) * 100) / 100;
+    result.slowFramesOver33ms = cslow;
+    result.lookEventsInjected = lookInjected;
+    result.lookEventsApplied = lookApplied;
+    result.lookYawDelta =
+      Math.round(lookAppliedDX * LOOK_SENS * 1000) / 1000;
+    result.lookPitchDelta =
+      Math.round(lookAppliedDY * LOOK_SENS * 1000) / 1000;
+    result.fireMoveLookSurvived = fireMoveLookSurvived;
+    result.stuckInputs = stuck;
+    result.clickShots = clickShots;
+    result.pulsesFaded = pulsesFaded;
+    result.litShots = litShots;
+    result.litHits = litHits;
+    result.litHitRate = litShots ? litHits / litShots : 0;
+    result.unlitShots = unlitShots;
+    result.unlitHits = unlitHits;
+    result.unevaluatedShots = unevaluatedShots;
+    result.postFireInput = observed - observedAtLastShot;
+  }
   out.textContent = JSON.stringify(result, null, 2);
   window.__probeResult = result;
   var payload = JSON.stringify(result);
