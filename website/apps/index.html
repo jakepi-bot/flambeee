@@ -177,7 +177,7 @@
   }
 
   saveBtn.addEventListener('click', saveNote);
-  input.addEventListener('input', updateCount);
+  input.addEventListener('input', function () { status.textContent = ''; updateCount(); });
   loadNote();
 })();
 </script>
