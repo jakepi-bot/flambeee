@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1a1a2e">
+<title>Timer | Flambeee Apps</title>
+<meta name="description" content="Timer by Flambeee Apps. One countdown, start pause reset, one label line. No accounts, no server.">
+<link rel="icon" type="image/x-icon" href="../assets/favicon.ico">
+<style>
+  :root {
+    --bg: #0f1428;
+    --bg-2: #16213e;
+    --surface: #1a1a2e;
+    --surface-2: #1f2a4a;
+    --accent: #e94560;
+    --accent-2: #ff5a75;
+    --text: #eef2ff;
+    --text-dim: #9aa7d8;
+    --text-mute: #6b76a8;
+    --border: #2a3a6e;
+    --radius: 14px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  a { color: var(--accent-2); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 0 24px; width: 100%; }
+  header.top { padding: 28px 0 8px; }
+  header.top a.back { font-size: 0.9rem; }
+  h1 { font-size: clamp(1.8rem, 4vw, 2.4rem); font-weight: 800; margin: 12px 0 4px; }
+  .sub { color: var(--text-dim); margin-bottom: 28px; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .card h2 {
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent-2);
+    margin-bottom: 10px;
+  }
+  #timeLeft {
+    font-size: 2.6rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+  #labelLine {
+    font-size: 1.1rem;
+    color: var(--text-dim);
+    margin-top: 8px;
+    min-height: 1.75em;
+    overflow-wrap: break-word;
+  }
+  .field-row { display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+  .field { flex: 1 1 140px; display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 0.85rem; color: var(--text-dim); }
+  .field input {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 1rem;
+    padding: 12px 14px;
+    outline: none;
+  }
+  .field input:focus { border-color: var(--accent-2); }
+  .btn-row { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+  button.action {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 24px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  button.action:hover { background: var(--accent-2); }
+  button.action.secondary { background: var(--surface-2); border: 1px solid var(--border); }
+  button.action.secondary:hover { border-color: var(--accent-2); }
+  button.action:disabled { opacity: 0.5; cursor: default; }
+  #timerStatus { color: var(--text-mute); font-size: 0.85rem; margin-top: 12px; min-height: 1.4em; }
+  footer { margin-top: auto; padding: 32px 0; text-align: center; color: var(--text-mute); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="back" href="../index.html">Back to Flambeee</a>
+    <h1>Timer</h1>
+    <p class="sub">One countdown. Set minutes, start, pause, reset. Flambeee Apps.</p>
+  </header>
+
+  <div class="card">
+    <h2>Countdown</h2>
+    <div id="timeLeft" aria-live="off">00:00</div>
+    <div id="labelLine" aria-live="polite"></div>
+  </div>
+
+  <div class="card">
+    <h2>Setup</h2>
+    <div class="field-row">
+      <div class="field">
+        <label for="minutesInput">Minutes</label>
+        <input id="minutesInput" type="number" min="1" max="999" step="1" value="5" inputmode="numeric" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="nameInput">Label (one line)</label>
+        <input id="nameInput" type="text" maxlength="120" placeholder="e.g. Tea break" autocomplete="off">
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="action" id="startPauseBtn" type="button">Start</button>
+      <button class="action secondary" id="resetBtn" type="button">Reset</button>
+    </div>
+    <p id="timerStatus" aria-live="polite"></p>
+  </div>
+</div>
+
+<footer>
+  <p>Flambeee Apps. No accounts. No server. Your last duration stays in this browser.</p>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  /* Story 094 storage key, fixed before first write. Only the duration persists. */
+  var PREFIX = 'flambeee-apps-';
+  var DURATION_KEY = PREFIX + 'timer';
+
+  var timeEl = document.getElementById('timeLeft');
+  var labelEl = document.getElementById('labelLine');
+  var minutesInput = document.getElementById('minutesInput');
+  var nameInput = document.getElementById('nameInput');
+  var startPauseBtn = document.getElementById('startPauseBtn');
+  var resetBtn = document.getElementById('resetBtn');
+  var statusEl = document.getElementById('timerStatus');
+
+  var totalSeconds = 5 * 60;
+  var remainingMs = totalSeconds * 1000;
+  var running = false;
+  var endAt = 0;
+  var tickId = null;
+
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+
+  function format(ms) {
+    var s = Math.max(0, Math.ceil(ms / 1000));
+    var m = Math.floor(s / 60);
+    var r = s % 60;
+    return pad(m) + ':' + pad(r);
+  }
+
+  function render() {
+    timeEl.textContent = format(remainingMs);
+    startPauseBtn.textContent = running ? 'Pause' : 'Start';
+  }
+
+  function stopTick() {
+    if (tickId !== null) { clearInterval(tickId); tickId = null; }
+  }
+
+  function tick() {
+    remainingMs = endAt - Date.now();
+    if (remainingMs <= 0) {
+      remainingMs = 0;
+      running = false;
+      stopTick();
+      statusEl.textContent = 'Done.';
+    }
+    render();
+  }
+
+  function readMinutes() {
+    var v = parseInt(minutesInput.value, 10);
+    if (isNaN(v) || v < 1) v = 1;
+    if (v > 999) v = 999;
+    return v;
+  }
+
+  function saveDuration(minutes) {
+    try {
+      localStorage.setItem(DURATION_KEY, String(minutes));
+    } catch (e) { /* storage unavailable, timer still works */ }
+  }
+
+  function loadDuration() {
+    try {
+      var raw = localStorage.getItem(DURATION_KEY);
+      var v = parseInt(raw, 10);
+      if (!isNaN(v) && v >= 1 && v <= 999) {
+        totalSeconds = v * 60;
+        remainingMs = totalSeconds * 1000;
+        minutesInput.value = String(v);
+      }
+    } catch (e) { /* keep defaults */ }
+  }
+
+  function start() {
+    if (remainingMs <= 0) {
+      totalSeconds = readMinutes() * 60;
+      remainingMs = totalSeconds * 1000;
+    }
+    saveDuration(readMinutes());
+    labelEl.textContent = nameInput.value.trim();
+    running = true;
+    endAt = Date.now() + remainingMs;
+    statusEl.textContent = '';
+    stopTick();
+    tickId = setInterval(tick, 250);
+    render();
+  }
+
+  function pause() {
+    remainingMs = endAt - Date.now();
+    if (remainingMs < 0) remainingMs = 0;
+    running = false;
+    stopTick();
+    render();
+  }
+
+  startPauseBtn.addEventListener('click', function () {
+    if (running) { pause(); } else { start(); }
+  });
+
+  resetBtn.addEventListener('click', function () {
+    running = false;
+    stopTick();
+    totalSeconds = readMinutes() * 60;
+    remainingMs = totalSeconds * 1000;
+    saveDuration(readMinutes());
+    labelEl.textContent = nameInput.value.trim();
+    statusEl.textContent = '';
+    render();
+  });
+
+  minutesInput.addEventListener('change', function () {
+    if (!running) {
+      totalSeconds = readMinutes() * 60;
+      remainingMs = totalSeconds * 1000;
+      render();
+    }
+  });
+
+  nameInput.addEventListener('input', function () {
+    if (!running) { labelEl.textContent = nameInput.value.trim(); }
+  });
+
+  loadDuration();
+  render();
+})();
+</script>
+</body>
+</html>
