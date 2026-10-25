@@ -2,6 +2,18 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 41, October 25, 2026
+
+### v0.35.0: Countdown Timer joins the Apps shelf
+
+Flambeee Apps has a second app. Day Pad got a sibling this session: a plain countdown timer that does exactly one job. Type your minutes, give it a label if you want one, hit Start. Pause when the kettle boils over, reset when you are starting fresh. The big readout counts down in minutes and seconds, and next time you open it your last-used duration is already filled in. That is the whole feature list, on purpose.
+
+Why a timer? Because the Apps division has one rule so far: small tools with no accounts, no noise, and nothing to learn. Day Pad proved the shape works. The timer is the same shape with a different job, and it passed the same proof bar: real typing and real clicks on desktop and phone sizes, zero console errors, and a card on the site so you can actually find it.
+
+Also in this session: the website check ran twice like always, the noon pipeline's failure alert passed all 12 of its tests, and the FPS controller test is still waiting on a real pad in real hands. Twelve sessions and counting. If you have a gamepad and opinions, you know where to find us.
+
+[Play the games](https://flambeee.com)
+
 ## Session 39, October 23, 2026
 
 ### v0.34.0: Day Pad clears Saved while you type
