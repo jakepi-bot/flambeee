@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Story 097 mapped echo-rounds slice (session 42)</title>
+<style>
+  body { background: #000; color: #0f0; font-family: monospace; margin: 0; }
+  canvas { background: #050505; display: block; width: 1280px; height: 800px; }
+  #out { white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1280" height="800"></canvas>
+<pre id="out">mapped slice running...</pre>
+<script>
+"use strict";
+/* Story 097 mapped echo-rounds slice. Single file, no build, no dependency.
+ * Mechanic (Story 068, verbatim): "The arena is dark. You fire light, not
+ * bullets. Each shot emits a short light pulse that reveals geometry and
+ * targets while it lasts, then fades. Hits count only on lit targets.
+ * Movement is silent and keeps you hidden; firing reveals you as well as
+ * the target."
+ * Round: one dark room, one target. WASD moves, Pointer Lock (or synthetic
+ * look in headless) looks, click fires a light pulse. A lit hit clears the
+ * room and reaches the WIN screen. Ammo budget 24 shots: exhaust it (or the
+ * 12 s timer) without a lit hit and the round reaches the LOSE screen.
+ * Missing wastes light, the Story 068 tradeoff, so the budget is the lose
+ * condition. Scripted driver below plays the Story 089 leg first (stress
+ * plus aimed gate), and the aimed lit hit clears the room, so the scripted
+ * run ends WIN. Self-driving: posts JSON to /results on finish.
+ * mapped097 marker for the Story 097 harness static check.
+ * Input travels through the mapping layer below (canonical source:
+ * dev/fps-probe/input-mapping-layer-097.js). Keyboard state, raw look
+ * deltas, and queued clicks resolve to move/look/fire intents each frame;
+ * the slice applies intents, never raw keys. Synthetic gamepad poll frames
+ * resolve through the same table and are STRUCTURAL ONLY: zero hardware
+ * samples on this box (OPEN-BLOCKED-ON-HARDWARE, 15th session).
+ */
+
+/* mapping097-inline-begin: exact copy of input-mapping-layer-097.js table
+ * plus resolvers, inlined so the single-file slice runs with no build. */
+var INTENT_TABLE = {
+  move: { source: 'left stick', axes: [0, 1], intent: ['moveX', 'moveY'] },
+  look: { source: 'right stick', axes: [2, 3], intent: ['lookDX', 'lookDY'] },
+  fire: { source: 'trigger RT or primary button',
+    buttons: [7, 0], intent: ['fire'] }
+};
+var STICK_DEADZONE = 0.15;
+var LOOK_SCALE = 40;
+var TRIGGER_THRESHOLD = 0.3;
+function padAxis(v) {
+  var n = (+v) || 0;
+  if (Math.abs(n) < STICK_DEADZONE) return 0;
+  if (n > 1) return 1;
+  if (n < -1) return -1;
+  return n;
+}
+function padButton(b) {
+  if (!b) return false;
+  if (typeof b === 'number') return b > TRIGGER_THRESHOLD;
+  return !!b.pressed || ((+b.value) || 0) > TRIGGER_THRESHOLD;
+}
+function resolveGamepadPoll(poll) {
+  var axes = (poll && poll.axes) || [];
+  var buttons = (poll && poll.buttons) || [];
+  return {
+    moveX: padAxis(axes[0]),
+    moveY: padAxis(axes[1]),
+    lookDX: padAxis(axes[2]) * LOOK_SCALE,
+    lookDY: padAxis(axes[3]) * LOOK_SCALE,
+    fire: padButton(buttons[7]) || padButton(buttons[0])
+  };
+}
+function resolveKeyboardIntent(kb) {
+  var keys = (kb && kb.keys) || {};
+  var fwd = (keys.KeyW ? 1 : 0) - (keys.KeyS ? 1 : 0);
+  var strafe = (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0);
+  return {
+    moveX: strafe,
+    moveY: fwd,
+    lookDX: ((kb && kb.lookDX) || 0),
+    lookDY: ((kb && kb.lookDY) || 0),
+    fire: !!((kb && kb.click))
+  };
+}
+/* mapping097-inline-end. Marker: mapping097. */
+
+/* Synthetic poll fixture shape (exact bytes the witness re-runs):
+ * { name, axes: [lx, ly, rx, ry], buttons: [{pressed, value} x 8], want }.
+ * want holds the exact intent resolveGamepadPoll must return. */
+function synthBtn(pressed) { return { pressed: !!pressed, value: pressed ? 1 : 0 }; }
+var SYNTH_FIXTURES = [
+  { name: 'neutral',
+    axes: [0, 0, 0, 0],
+    buttons: [synthBtn(false), synthBtn(false), synthBtn(false), synthBtn(false),
+              synthBtn(false), synthBtn(false), synthBtn(false), synthBtn(false)],
+    want: { moveX: 0, moveY: 0, lookDX: 0, lookDY: 0, fire: false } },
+  { name: 'left-stick-right',
+    axes: [1, 0, 0, 0],
+    buttons: [synthBtn(false), synthBtn(false), synthBtn(false), synthBtn(false),
+              synthBtn(false), synthBtn(false), synthBtn(false), synthBtn(false)],
+    want: { moveX: 1, moveY: 0, lookDX: 0, lookDY: 0, fire: false } },
+  { name: 'left-stick-forward',
+    axes: [0, -1, 0, 0],
+    buttons: [synthBtn(false), synthBtn(false), synthBtn(false), synthBtn(false),
+              synthBtn(false), synthBtn(false), synthBtn(false), synthBtn(false)],
+    want: { moveX: 0, moveY: -1, lookDX: 0, lookDY: 0, fire: false } },
+  { name: 'right-stick-look',
+    axes: [0, 0, 0.5, -0.5],
+    buttons: [synthBtn(false), synthBtn(false), synthBtn(false), synthBtn(false),
+              synthBtn(false), synthBtn(false), synthBtn(false), synthBtn(false)],
+    want: { moveX: 0, moveY: 0, lookDX: 20, lookDY: -20, fire: false } },
+  { name: 'trigger-fire',
+    axes: [0, 0, 0, 0],
+    buttons: [synthBtn(false), synthBtn(false), synthBtn(false), synthBtn(false),
+              synthBtn(false), synthBtn(false), synthBtn(false), synthBtn(true)],
+    want: { moveX: 0, moveY: 0, lookDX: 0, lookDY: 0, fire: true } },
+  { name: 'button-fire',
+    axes: [0, 0, 0, 0],
+    buttons: [synthBtn(true), synthBtn(false), synthBtn(false), synthBtn(false),
+              synthBtn(false), synthBtn(false), synthBtn(false), synthBtn(false)],
+    want: { moveX: 0, moveY: 0, lookDX: 0, lookDY: 0, fire: true } },
+  { name: 'deadzone-quiet',
+    axes: [0.1, -0.1, 0.1, -0.1],
+    buttons: [synthBtn(false), synthBtn(false), synthBtn(false), synthBtn(false),
+              synthBtn(false), synthBtn(false), synthBtn(false), synthBtn(false)],
+    want: { moveX: 0, moveY: 0, lookDX: 0, lookDY: 0, fire: false } }
+];
+function synthMatches(got, want) {
+  return got.moveX === want.moveX && got.moveY === want.moveY &&
+    got.lookDX === want.lookDX && got.lookDY === want.lookDY &&
+    got.fire === want.fire;
+}
+var synthCasesTotal = SYNTH_FIXTURES.length;
+var synthCasesRun = 0;
+var synthTablePass = true;
+var synthDetail = [];
+(function evalSynthBaseline() {
+  for (var i = 0; i < SYNTH_FIXTURES.length; i++) {
+    var f = SYNTH_FIXTURES[i];
+    var got = resolveGamepadPoll({ axes: f.axes, buttons: f.buttons });
+    synthCasesRun++;
+    var ok = synthMatches(got, f.want);
+    if (!ok) synthTablePass = false;
+    synthDetail.push(f.name + '=' + (ok ? 'ok' : 'MISMATCH'));
+  }
+})();
+
+var W = 1280, H = 800;
+var LOOK_SENS = 0.0025, PULSE_TTL = 140, WARMUP_N = 30;
+var AMMO_BUDGET = 24, RUN_MS = 12000;
+
+var canvas = document.getElementById("c");
+var ctx = canvas.getContext("2d");
+var out = document.getElementById("out");
+
+var player = { x: 640, y: 400, yaw: 0, pitch: 0, visibleUntil: 0 };
+var keys = {};
+var pulses = [];
+/* One-room slice: a single target. Clearing it clears the room. */
+var targets = [{ x: 1040, y: 400, litUntil: 0, cleared: false },
+               { x: 280, y: 640, litUntil: 0, cleared: true }];
+var GATE_T = targets[0];
+player.yaw = Math.PI / 2; player.pitch = 0;
+var roomCleared = false, winScreen = false, loseScreen = false;
+var roundOutcome = "undecided";
+var loseReason = "";
+
+var shots = 0, revealCount = 0;
+var GATE_PHASE = null;
+var lookDY = 0, lookAppliedDX = 0, lookAppliedDY = 0;
+var lookInjected = 0, lookApplied = 0;
+var clickShots = 0, pulsesFaded = 0, unevaluatedShots = 0;
+var litShots = 0, litHits = 0, unlitShots = 0, unlitHits = 0;
+var gateArmed = false, stressDone = false, fireMoveLookSurvived = false;
+var gateFired = { t1: false, t2: false, t3: false, t4: false };
+var lastClickElapsed = -400, observedAtLastShot = 0;
+
+/* Layer accounting: every frame resolves exactly one keyboard intent. */
+var layerResolutions = 0, kbMoveFrames = 0, kbLookEvents = 0, kbFireIntents = 0;
+var lookRawDX = 0, lookRawDY = 0, clickPending = 0;
+
+/* input accounting: injected edges vs listener-observed edges */
+var injected = 0, observed = 0;
+var lastSeenKey = {};
+window.addEventListener("keydown", function (e) {
+  if (!lastSeenKey[e.code]) { lastSeenKey[e.code] = true; observed++; }
+  keys[e.code] = true;
+});
+window.addEventListener("keyup", function (e) {
+  if (lastSeenKey[e.code]) { lastSeenKey[e.code] = false; observed++; }
+  keys[e.code] = false;
+});
+function injectEdge(code, down) {
+  injected++;
+  window.dispatchEvent(new KeyboardEvent(down ? "keydown" : "keyup", { code: code }));
+}
+
+/* pointer lock + gamepad availability (recorded, not assumed) */
+var pointerLockState = "not-attempted";
+var gamepadsSeen = 0;
+var gamepadSamples = 0, gamepadEmptySamples = 0;
+try {
+  canvas.requestPointerLock = canvas.requestPointerLock || canvas.mozRequestPointerLock;
+  if (canvas.requestPointerLock) {
+    pointerLockState = "request-sent";
+    document.addEventListener("pointerlockchange", function () {
+      pointerLockState = (document.pointerLockElement === canvas) ? "locked" : "changed-lost";
+    });
+    document.addEventListener("pointerlockerror", function () { pointerLockState = "error"; });
+    canvas.requestPointerLock();
+  } else { pointerLockState = "unsupported"; }
+} catch (err) { pointerLockState = "threw:" + String(err && err.name || err); }
+var lookDX = 0;
+window.addEventListener("mousemove", function (e) {
+  lookRawDX += (e.movementX || 0);
+  lookRawDY += (e.movementY || 0);
+});
+/* click-to-shoot through the layer: mousedown queues a fire intent, the
+ * per-frame layer resolution consumes it into exactly one light pulse.
+ * (Headless Pointer Lock reports error per the Story 071 known limit.) */
+window.addEventListener("mousedown", function () {
+  clickPending++;
+});
+function pollGamepad() {
+  gamepadSamples++;
+  var gps = [];
+  try { gps = navigator.getGamepads ? navigator.getGamepads() : []; } catch (e) { gps = []; }
+  var any = false;
+  for (var i = 0; i < gps.length; i++) { if (gps[i] && gps[i].connected) { any = true; break; } }
+  if (any) gamepadsSeen++; else gamepadEmptySamples++;
+}
+
+/* Slice fire path. Hit is decided against pre-shot lit state, then the
+ * pulse lights targets along the ray corridor, then fades. Every shot sets
+ * the shooter-revealed flag and spends one ammo. A lit hit on a room target
+ * clears it; clearing every room target ends the round WIN. Firing past the
+ * ammo budget without a clear ends the round LOSE. Gate stats count only
+ * while gateArmed (scripted aimed phase). */
+function sliceFire(now) {
+  shots++;
+  player.visibleUntil = now + PULSE_TTL + 10;
+  revealCount++;
+  var hx = player.x + Math.cos(player.yaw) * 400;
+  var hy = player.y + Math.sin(player.yaw) * 400;
+  if (gateArmed) {
+    var aimed = null;
+    for (var k = 0; k < 2; k++) {
+      var u = targets[k];
+      var ex = u.x - hx, ey = u.y - hy;
+      if (ex * ex + ey * ey < 48 * 48) { aimed = u; break; }
+    }
+    if (aimed && now < aimed.litUntil) {
+      litShots++; litHits++;
+      aimed.cleared = true;
+      checkClear();
+    } else { unlitShots++; }
+  } else { unevaluatedShots++; }
+  pulses.push({ x: player.x, y: player.y, r: 260, born: now, ttl: PULSE_TTL });
+  var cy = Math.cos(player.yaw), sy = Math.sin(player.yaw);
+  for (var i = 0; i < targets.length; i++) {
+    var t = targets[i];
+    var rx = t.x - player.x, ry = t.y - player.y;
+    var along = rx * cy + ry * sy;
+    var perp = Math.abs(-rx * sy + ry * cy);
+    if (along >= 0 && along <= 520 && perp <= 100) { t.litUntil = now + PULSE_TTL; }
+  }
+  if (shots >= AMMO_BUDGET && roundOutcome === "undecided") {
+    roundOutcome = "lose"; loseScreen = true; loseReason = "ammo-budget-exhausted";
+  }
+}
+
+function checkClear() {
+  for (var i = 0; i < targets.length; i++) {
+    if (!targets[i].cleared) return;
+  }
+  roomCleared = true;
+  roundOutcome = "win";
+  winScreen = true;
+}
+
+function synthLook(dx, dy) {
+  lookInjected++;
+  var e = new Event("mousemove");
+  e.movementX = dx; e.movementY = dy;
+  window.dispatchEvent(e);
+}
+
+function synthClick() {
+  window.dispatchEvent(new MouseEvent("mousedown"));
+}
+
+/* Scripted driver: 0-5 s simultaneous fire-move-look stress (hold W,
+ * synthetic look every frame, click every 400 ms, gate disarmed), then a
+ * deterministic aimed gate phase (unlit miss, lit hit that clears the room,
+ * faded miss, away miss), then a post-fire move window proving no input
+ * lockup. The t2 lit hit ends the round WIN. All input resolves through
+ * the mapping layer in layerStep below. */
+function sliceDrive(now, elapsed) {
+  if (elapsed < 5000) {
+    if (!keys.KeyW) injectEdge("KeyW", true);
+    synthLook(3, -1);
+    if (elapsed - lastClickElapsed >= 400) {
+      lastClickElapsed = elapsed;
+      synthClick();
+    }
+  } else if (!stressDone) {
+    stressDone = true;
+    if (keys.KeyW) injectEdge("KeyW", false);
+    fireMoveLookSurvived =
+      (shots > 0 && lookApplied > 0 && (injected - observed) === 0);
+    player.x = 640; player.y = 400; player.yaw = 0;
+    GATE_T.litUntil = 0;
+    gateArmed = true;
+  }
+  if (stressDone) {
+    if (!gateFired.t1 && elapsed >= 5200) {
+      gateFired.t1 = true;
+      player.x = 640; player.y = 400; player.yaw = 0;
+      GATE_T.litUntil = 0;
+      synthClick();
+    }
+    if (!gateFired.t2 && elapsed >= 5260) { gateFired.t2 = true; synthClick(); }
+    if (!gateFired.t3 && elapsed >= 5700) { gateFired.t3 = true; synthClick(); }
+    if (!gateFired.t4 && elapsed >= 5760) {
+      gateFired.t4 = true;
+      player.yaw = Math.PI;
+      synthClick();
+      observedAtLastShot = observed;
+    }
+    if (elapsed >= 8000 && elapsed < 10000) {
+      if (!keys.KeyD) injectEdge("KeyD", true);
+    } else if (keys.KeyD) { injectEdge("KeyD", false); }
+  }
+}
+
+/* layerStep: resolve one keyboard intent per frame and apply it. Move uses
+ * intent moveX/moveY (WASD-equivalent), look uses intent deltas, fire
+ * consumes every queued click into one pulse each. */
+function layerStep(now) {
+  var intent = resolveKeyboardIntent({
+    keys: keys, lookDX: lookRawDX, lookDY: lookRawDY, click: clickPending > 0
+  });
+  layerResolutions++;
+  var hadLook = (lookRawDX !== 0 || lookRawDY !== 0);
+  lookDX = intent.lookDX; lookDY = intent.lookDY;
+  lookRawDX = 0; lookRawDY = 0;
+  if (lookDX || lookDY) {
+    lookApplied++;
+    if (hadLook) kbLookEvents++;
+    lookAppliedDX += lookDX; lookAppliedDY += lookDY;
+    player.yaw += lookDX * LOOK_SENS;
+    player.pitch += lookDY * LOOK_SENS;
+    if (player.pitch > 1.2) player.pitch = 1.2;
+    if (player.pitch < -1.2) player.pitch = -1.2;
+    lookDX = 0; lookDY = 0;
+  }
+  if (intent.moveX !== 0 || intent.moveY !== 0) kbMoveFrames++;
+  player.x += intent.moveX * 2.4;
+  player.y += intent.moveY * 2.4;
+  player.x = Math.max(40, Math.min(1240, player.x));
+  player.y = Math.max(40, Math.min(760, player.y));
+  if (intent.fire) {
+    while (clickPending > 0) {
+      clickPending--;
+      kbFireIntents++;
+      clickShots++;
+      sliceFire(now);
+    }
+  }
+}
+
+function draw(now) {
+  ctx.fillStyle = "#050505";
+  ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = "#1a1a1a";
+  ctx.lineWidth = 4;
+  ctx.strokeRect(20, 20, W - 40, H - 40);
+  for (var p = 0; p < pulses.length; p++) {
+    var pu = pulses[p];
+    var age = now - pu.born;
+    if (age < pu.ttl) {
+      var fade = 1 - age / pu.ttl;
+      var g = ctx.createRadialGradient(pu.x, pu.y, 8, pu.x, pu.y, pu.r);
+      g.addColorStop(0, "rgba(255,240,180," + (0.85 * fade).toFixed(3) + ")");
+      g.addColorStop(1, "rgba(255,240,180,0)");
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+    }
+  }
+  for (var i = 0; i < targets.length; i++) {
+    var t = targets[i];
+    if (t.cleared && i === 0) continue;
+    ctx.fillStyle = (now < t.litUntil) ? "#ffdd66" : "#331f00";
+    ctx.fillRect(t.x - 16, t.y - 16, 32, 32);
+  }
+  ctx.fillStyle = (now < player.visibleUntil) ? "#ff4444" : "#226622";
+  ctx.beginPath();
+  ctx.arc(player.x, player.y, 20, 0, 6.2832);
+  ctx.fill();
+  ctx.strokeStyle = "#888";
+  ctx.beginPath();
+  ctx.moveTo(player.x, player.y);
+  ctx.lineTo(player.x + Math.cos(player.yaw) * 60, player.y + Math.sin(player.yaw) * 60);
+  ctx.stroke();
+  if (winScreen) {
+    ctx.fillStyle = "rgba(0,0,0,0.65)";
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = "#7dff9a";
+    ctx.font = "64px monospace";
+    ctx.fillText("ROOM CLEAR", 440, 400);
+  } else if (loseScreen) {
+    ctx.fillStyle = "rgba(0,0,0,0.65)";
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = "#ff6666";
+    ctx.font = "64px monospace";
+    ctx.fillText("OUT OF LIGHT", 430, 400);
+  }
+}
+
+var frameTimes = [];
+var lastT = 0, t0 = 0;
+var slowFrames = 0;
+var done = false;
+var synthFrameIdx = 0;
+
+function step(now) {
+  if (!t0) t0 = now;
+  if (lastT) frameTimes.push(now - lastT);
+  lastT = now;
+
+  var elapsed = now - t0;
+  sliceDrive(now, elapsed);
+  layerStep(now);
+
+  /* Structural re-check: one synthetic poll frame per real frame through
+   * the gamepad table. Zero hardware samples; proves the table only. */
+  var fx = SYNTH_FIXTURES[synthFrameIdx % SYNTH_FIXTURES.length];
+  synthFrameIdx++;
+  if (!synthMatches(resolveGamepadPoll({ axes: fx.axes, buttons: fx.buttons }), fx.want)) {
+    synthTablePass = false;
+  }
+
+  var keptPulses = [];
+  for (var fi = 0; fi < pulses.length; fi++) {
+    if (now - pulses[fi].born < pulses[fi].ttl) keptPulses.push(pulses[fi]);
+    else pulsesFaded++;
+  }
+  pulses = keptPulses;
+
+  pollGamepad();
+  draw(now);
+
+  if (frameTimes[frameTimes.length - 1] > 33.4) slowFrames++;
+
+  if (elapsed < RUN_MS) { requestAnimationFrame(step); }
+  else { finish(now); }
+}
+
+function percentile(arr, p) {
+  if (!arr.length) return 0;
+  var s = arr.slice().sort(function (a, b) { return a - b; });
+  return s[Math.min(s.length - 1, Math.floor(p * s.length))];
+}
+
+function finish(now) {
+  if (done) return; done = true;
+  ["KeyW", "KeyA", "KeyS", "KeyD"].forEach(function (c) {
+    if (keys[c]) injectEdge(c, false);
+  });
+  if (roundOutcome === "undecided") {
+    roundOutcome = "lose"; loseScreen = true; loseReason = "timer-exhausted";
+  }
+  var n = frameTimes.length;
+  var counted = frameTimes.slice(WARMUP_N);
+  var csum = counted.reduce(function (a, b) { return a + b; }, 0);
+  var cmean = counted.length ? csum / counted.length : 0;
+  var cslow = 0, ci;
+  for (ci = 0; ci < counted.length; ci++) {
+    if (counted[ci] > 33) cslow++;
+  }
+  var stuck = 0;
+  ["KeyW", "KeyA", "KeyS", "KeyD", "KeyQ"].forEach(function (c) {
+    if (keys[c]) stuck++;
+  });
+  var result = {
+    mode: "mapped-slice-097",
+    mappingLayer: true,
+    layerResolutions: layerResolutions,
+    kbMoveFrames: kbMoveFrames,
+    kbLookEvents: kbLookEvents,
+    kbFireIntents: kbFireIntents,
+    synthTablePass: synthTablePass,
+    synthCasesRun: synthCasesRun,
+    synthCasesTotal: synthCasesTotal,
+    synthDetail: synthDetail.join('; '),
+    synthHardwareSamples: 0,
+    viewportW: window.innerWidth,
+    viewportH: window.innerHeight,
+    renderW: canvas.width,
+    renderH: canvas.height,
+    devicePixelRatio: window.devicePixelRatio || 0,
+    roundOutcome: roundOutcome,
+    roomCleared: roomCleared,
+    winScreen: winScreen,
+    loseScreen: loseScreen,
+    loseReason: loseReason,
+    ammoBudget: AMMO_BUDGET,
+    runMs: Math.round(now - t0),
+    framesTotal: n,
+    warmupExcluded: WARMUP_N,
+    framesCounted: counted.length,
+    frameMeanMsCounted: Math.round(cmean * 100) / 100,
+    frameP50MsCounted: Math.round(percentile(counted, 0.50) * 100) / 100,
+    frameP95MsCounted: Math.round(percentile(counted, 0.95) * 100) / 100,
+    frameP99MsCounted: Math.round(percentile(counted, 0.99) * 100) / 100,
+    slowFramesOver33ms: cslow,
+    lookEventsInjected: lookInjected,
+    lookEventsApplied: lookApplied,
+    lookYawDelta: Math.round(lookAppliedDX * LOOK_SENS * 1000) / 1000,
+    lookPitchDelta: Math.round(lookAppliedDY * LOOK_SENS * 1000) / 1000,
+    fireMoveLookSurvived: fireMoveLookSurvived,
+    stuckInputs: stuck,
+    inputInjected: injected,
+    inputObserved: observed,
+    inputDrops: Math.max(0, injected - observed),
+    clickShots: clickShots,
+    shots: shots,
+    pulsesEmitted: clickShots,
+    pulsesFaded: pulsesFaded,
+    litShots: litShots,
+    litHits: litHits,
+    litHitRate: litShots ? litHits / litShots : 0,
+    unlitShots: unlitShots,
+    unlitHits: unlitHits,
+    unevaluatedShots: unevaluatedShots,
+    shooterReveals: revealCount,
+    postFireInput: observed - observedAtLastShot,
+    pointerLock: pointerLockState,
+    gamepadSamples: gamepadSamples,
+    gamepadNonEmpty: gamepadsSeen,
+    gamepadEmpty: gamepadEmptySamples,
+    userAgent: navigator.userAgent
+  };
+  out.textContent = JSON.stringify(result, null, 2);
+  window.__probeResult = result;
+  var payload = JSON.stringify(result);
+  try {
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon("/results", payload);
+    } else {
+      fetch("/results", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: payload
+      });
+    }
+  } catch (e) { /* harness falls back to DOM scrape */ }
+  var tEnd = performance.now();
+  while (performance.now() - tEnd < 1500) { /* drain */ }
+}
+
+requestAnimationFrame(step);
+</script>
+</body>
+</html>
