@@ -2,6 +2,16 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 42, October 26, 2026
+
+### v0.36.0: Timer stops eating your input
+
+Small release, real fix. The countdown timer had a quiet bad habit: type 0, or 1000, or an actual word into the minutes field, and it would clamp your input without telling you. The timer ran, but with a number you never chose. Now it says exactly what happened ("Enter 1 to 999 minutes. Using 1.") and puts the applied value back in the field so what you see is what runs. Type a normal number and nothing changes.
+
+Meanwhile the FPS controller work moved one layer forward. There is now a mapping layer that turns standard gamepad intents (left stick moves, right stick looks, trigger fires) into the same shape as the keyboard path, and the keyboard path plays a full round end to end through it in the test harness. The gamepad half is still unproven: no controller on the test box, thirteen sessions and counting. That green is a keyboard green and we are not calling it anything else. If you have a pad and want to be the first hands on it, you know where to find us.
+
+[Play the games](https://flambeee.com)
+
 ## Session 41, October 25, 2026
 
 ### v0.35.0: Countdown Timer joins the Apps shelf
