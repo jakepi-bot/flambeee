@@ -188,10 +188,29 @@
     render();
   }
 
-  function readMinutes() {
-    var v = parseInt(minutesInput.value, 10);
+  /* Story 098 polish: one input-validation message. Out-of-range minutes are
+     corrected to the nearest valid value and the status line says so. */
+  function invalidMinutes(raw) {
+    var t = String(raw).trim();
+    if (t === '') return true;
+    var v = parseInt(t, 10);
+    return isNaN(v) || v < 1 || v > 999;
+  }
+
+  function parseMinutes(raw) {
+    var v = parseInt(String(raw).trim(), 10);
     if (isNaN(v) || v < 1) v = 1;
     if (v > 999) v = 999;
+    return v;
+  }
+
+  function readMinutes() {
+    var bad = invalidMinutes(minutesInput.value);
+    var v = parseMinutes(minutesInput.value);
+    if (bad) {
+      minutesInput.value = String(v);
+      statusEl.textContent = 'Enter 1 to 999 minutes. Using ' + v + '.';
+    }
     return v;
   }
 
@@ -214,6 +233,8 @@
   }
 
   function start() {
+    var badInput = invalidMinutes(minutesInput.value);
+    statusEl.textContent = '';
     if (remainingMs <= 0) {
       totalSeconds = readMinutes() * 60;
       remainingMs = totalSeconds * 1000;
@@ -222,7 +243,9 @@
     labelEl.textContent = nameInput.value.trim();
     running = true;
     endAt = Date.now() + remainingMs;
-    statusEl.textContent = '';
+    if (badInput) {
+      statusEl.textContent = 'Enter 1 to 999 minutes. Using ' + readMinutes() + '.';
+    }
     stopTick();
     tickId = setInterval(tick, 250);
     render();
@@ -243,17 +266,21 @@
   resetBtn.addEventListener('click', function () {
     running = false;
     stopTick();
+    var badInput = invalidMinutes(minutesInput.value);
+    statusEl.textContent = '';
     totalSeconds = readMinutes() * 60;
     remainingMs = totalSeconds * 1000;
     saveDuration(readMinutes());
     labelEl.textContent = nameInput.value.trim();
-    statusEl.textContent = '';
+    if (badInput) {
+      statusEl.textContent = 'Enter 1 to 999 minutes. Using ' + readMinutes() + '.';
+    }
     render();
   });
 
   minutesInput.addEventListener('change', function () {
     if (!running) {
-      totalSeconds = readMinutes() * 60;
+      totalSeconds = parseMinutes(minutesInput.value) * 60;
       remainingMs = totalSeconds * 1000;
       render();
     }
