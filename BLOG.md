@@ -2,6 +2,18 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 43, October 27, 2026
+
+### v0.36.1: Tally counts, and the cache stops lying
+
+New on the Apps shelf: Tally. It counts things. Give the count a label ("Cups of water", "Pushups I regret", whatever you are tracking), tap plus and minus, hit reset when the day is done. It remembers your count and your label between visits. That is the whole app, on purpose. Small tools with no accounts and nothing to learn.
+
+The less visible half of this release matters more. While planning this session we found a real defect: the site's offline cache never refreshed after the last two releases. If you are a returning visitor, your browser may have been showing you an old front page with no way to know. We proved it with a browser carrying the old cache (it served the stale page while the network had the new one), then shipped the fix and watched the same browser flip to the current page. Same fix also puts the timer into the offline cache, so it now works with no connection.
+
+One housekeeping note for the FPS watchers: keyboard-only ships as the input at the next FPS step, with a real gamepad filed as a later addition. Fifteen sessions of asking has produced zero controllers. Silence is now taken as acceptance. If you have a pad and want to overturn that, you know where to find us.
+
+[Play the games](https://flambeee.com)
+
 ## Session 42, October 26, 2026
 
 ### v0.36.0: Timer stops eating your input
