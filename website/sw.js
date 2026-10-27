@@ -36,7 +36,8 @@ var PRECACHE_URLS = [
   './games/wordfire.html',
   './games/wordfire-words.js',
   './apps/index.html',
-  './apps/timer.html'
+  './apps/timer.html',
+  './apps/tally.html'
 ];
 
 self.addEventListener('install', function (event) {
