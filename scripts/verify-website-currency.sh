@@ -187,6 +187,70 @@ elif [ "$play_bad" -eq 0 ]; then
 fi
 echo
 
+# --- Check 6 (Story 105): repo What's New heading names the newest tag ---
+# Same tag resolution as Check 2 (origin ls-remote at run time), but measured
+# on the repo mirror file so a stale tree fails the gate even when the served
+# copy is current. Both values print on failure.
+story105_tag="${latest_tag:-}"
+echo "Story 105 newest tag (runtime): ${story105_tag:-<none found>}"
+if [ -z "$story105_tag" ]; then
+  fail "Story 105 heading check: could not resolve newest tag (mirror heading unread)"
+else
+  story105_mirror_heading="$(grep -o '<h3>v[0-9][^<]*</h3>' "$MIRROR" | head -1 | sed 's/<[^>]*>//g')"
+  echo "Story 105 mirror heading: ${story105_mirror_heading:-<none>}"
+  story105_hit="$(grep -o "<h3>${story105_tag}[^<]*</h3>" "$MIRROR" | head -1 | sed 's/<[^>]*>//g')"
+  if [ -n "$story105_hit" ]; then
+    pass "Story 105 heading check: mirror heading names newest tag ${story105_tag} (heading: ${story105_hit})"
+  else
+    fail "Story 105 heading check: mirror heading does not name newest tag ${story105_tag} (heading: ${story105_mirror_heading:-<none>})"
+  fi
+fi
+echo
+
+# --- Check 7 (Story 105): CACHE_VERSION changed since the newest tag ---
+# Same-version-across-a-shell-asset-change is the v0.36.0 defect shape
+# (shipped a stale shell, repaired in v0.36.1). Both values print on failure.
+story105_cache_now="$(grep -E '^var CACHE_VERSION = ' "${REPO_ROOT}/website/sw.js" 2>/dev/null | sed 's/[^0-9]//g')"
+story105_cache_tag=""
+if [ -n "$story105_tag" ]; then
+  story105_cache_tag="$(git -C "$REPO_ROOT" show "${story105_tag}:website/sw.js" 2>/dev/null | grep -E '^var CACHE_VERSION = ' | sed 's/[^0-9]//g')"
+fi
+echo "Story 105 CACHE_VERSION now: ${story105_cache_now:-<none>}"
+echo "Story 105 CACHE_VERSION at ${story105_tag:-<no tag>}: ${story105_cache_tag:-<none>}"
+if [ -z "$story105_cache_now" ] || [ -z "$story105_cache_tag" ]; then
+  fail "Story 105 CACHE check: could not read CACHE_VERSION (now: ${story105_cache_now:-<none>}, at tag: ${story105_cache_tag:-<none>})"
+elif [ "$story105_cache_now" != "$story105_cache_tag" ]; then
+  pass "Story 105 CACHE check: CACHE_VERSION changed since ${story105_tag} (now: ${story105_cache_now}, at tag: ${story105_cache_tag})"
+else
+  fail "Story 105 CACHE check: CACHE_VERSION unchanged since ${story105_tag} (now: ${story105_cache_now} == at tag: ${story105_cache_tag})"
+fi
+echo
+
+# --- Check 8 (Story 105): every app-card link target is in PRECACHE_URLS ---
+# Both sides read at run time: card hrefs from the mirror HTML, entries from
+# website/sw.js. Nothing hardcoded, so a new app passes as long as its card
+# and its precache entry agree. The missing target is named on failure.
+story105_precache_bad=0
+story105_precache_count=0
+while IFS= read -r story105_href; do
+  [ -n "$story105_href" ] || continue
+  story105_precache_count=$((story105_precache_count + 1))
+  story105_entry="./${story105_href}"
+  if grep -qF "'${story105_entry}'" "${REPO_ROOT}/website/sw.js"; then
+    echo "  Story 105 precached: ${story105_href}"
+  else
+    fail "Story 105 precache check: app-card target missing from PRECACHE_URLS: ${story105_href}"
+    story105_precache_bad=$((story105_precache_bad + 1))
+  fi
+done < <(grep -o 'class="play-btn" href="apps/[^"]*"' "$MIRROR" | sed 's/.*href="//; s/"$//' | sort -u)
+echo "Story 105 app-card targets checked: ${story105_precache_count}"
+if [ "$story105_precache_count" -eq 0 ]; then
+  fail "Story 105 precache check: no app-card link targets found in mirror"
+elif [ "$story105_precache_bad" -eq 0 ]; then
+  pass "Story 105 precache check: all ${story105_precache_count} app-card targets present in PRECACHE_URLS"
+fi
+echo
+
 # --- Result ---
 if [ "$fails" -eq 0 ]; then
   echo "RESULT: PASS (all checks green)"
