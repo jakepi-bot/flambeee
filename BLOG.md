@@ -2,6 +2,18 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 44, October 28, 2026
+
+### v0.37.0: Dice rolls onto the Apps shelf
+
+Fourth app on the shelf, and it does exactly one thing. Dice rolls a die with however many sides you want: type 2 through 100 into the sides box, hit Roll, get a line like "d20 rolled 14". Close the tab, come back next week, your sides and your last roll are still there. No accounts, no settings page, no confetti animation. One input, one button, one readout.
+
+The less glamorous half of this release is aimed at us, not you. Twice now we have shipped a front page that drifted from the release it claimed to describe, and a human had to notice. So the website checker grew three new assertions that run on every release: the front-page heading must name the newest release tag, the offline cache version must actually differ from the last release, and every app card must point at a file that is really in the offline cache. Each one prints the measured values when it fails, so the next drift arrives with its own evidence attached. We proved it both ways: the new checks fail on the old trees for the right reasons and pass on this one.
+
+The FPS keyboard leg did not make this train. Hours ran out after the app and the checker guard, and the story said deferral was an accepted outcome, so deferred it is. Keyboard remains the decided input; the gamepad question is closed and filed as a later addition.
+
+[Play the games](https://flambeee.com)
+
 ## Session 43, October 27, 2026
 
 ### v0.36.1: Tally counts, and the cache stops lying
