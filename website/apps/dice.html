@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1a1a2e">
+<title>Dice | Flambeee Apps</title>
+<meta name="description" content="Dice by Flambeee Apps. One fair die, pick the sides, roll. No accounts, no server.">
+<link rel="icon" type="image/x-icon" href="../assets/favicon.ico">
+<style>
+  :root {
+    --bg: #0f1428;
+    --bg-2: #16213e;
+    --surface: #1a1a2e;
+    --surface-2: #1f2a4a;
+    --accent: #e94560;
+    --accent-2: #ff5a75;
+    --text: #eef2ff;
+    --text-dim: #9aa7d8;
+    --text-mute: #6b76a8;
+    --border: #2a3a6e;
+    --radius: 14px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  a { color: var(--accent-2); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 0 24px; width: 100%; }
+  header.top { padding: 28px 0 8px; }
+  header.top a.back { font-size: 0.9rem; }
+  h1 { font-size: clamp(1.8rem, 4vw, 2.4rem); font-weight: 800; margin: 12px 0 4px; }
+  .sub { color: var(--text-dim); margin-bottom: 28px; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .card h2 {
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent-2);
+    margin-bottom: 10px;
+  }
+  #diceResult {
+    font-size: 2.6rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+  #labelLine {
+    font-size: 1.1rem;
+    color: var(--text-dim);
+    margin-top: 8px;
+    min-height: 1.75em;
+    overflow-wrap: break-word;
+  }
+  .field-row { display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+  .field { flex: 1 1 140px; display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 0.85rem; color: var(--text-dim); }
+  .field input {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 1rem;
+    padding: 12px 14px;
+    outline: none;
+  }
+  .field input:focus { border-color: var(--accent-2); }
+  .btn-row { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+  button.action {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 24px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  button.action:hover { background: var(--accent-2); }
+  #diceStatus { color: var(--text-mute); font-size: 0.85rem; margin-top: 12px; min-height: 1.4em; }
+  footer { margin-top: auto; padding: 32px 0; text-align: center; color: var(--text-mute); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="back" href="../index.html">Back to Flambeee</a>
+    <h1>Dice</h1>
+    <p class="sub">One fair die. Pick the sides, roll. Flambeee Apps.</p>
+  </header>
+
+  <div class="card">
+    <h2>Last roll</h2>
+    <div id="diceResult" aria-live="polite">-</div>
+    <div id="labelLine" aria-live="polite"></div>
+  </div>
+
+  <div class="card">
+    <h2>Setup</h2>
+    <div class="field-row">
+      <div class="field">
+        <label for="sidesInput">Sides (2 to 100)</label>
+        <input id="sidesInput" type="number" min="2" max="100" step="1" value="6" inputmode="numeric" autocomplete="off">
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="action" id="rollBtn" type="button">Roll</button>
+    </div>
+    <p id="diceStatus" aria-live="polite"></p>
+  </div>
+</div>
+
+<footer>
+  <p>Flambeee Apps. No accounts. No server. Your last roll stays in this browser.</p>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  /* Story 103 storage key, fixed before first write. Only sides plus last roll persist. */
+  var PREFIX = 'flambeee-apps-';
+  var DICE_KEY = PREFIX + 'dice';
+
+  var resultEl = document.getElementById('diceResult');
+  var labelEl = document.getElementById('labelLine');
+  var sidesInput = document.getElementById('sidesInput');
+  var rollBtn = document.getElementById('rollBtn');
+  var statusEl = document.getElementById('diceStatus');
+
+  var lastRoll = null;
+
+  function parseSides(raw) {
+    var v = parseInt(String(raw).trim(), 10);
+    if (isNaN(v) || v < 2) v = 2;
+    if (v > 100) v = 100;
+    return v;
+  }
+
+  function invalidSides(raw) {
+    var t = String(raw).trim();
+    if (t === '') return true;
+    var v = parseInt(t, 10);
+    return isNaN(v) || v < 2 || v > 100;
+  }
+
+  function readSides() {
+    var bad = invalidSides(sidesInput.value);
+    var v = parseSides(sidesInput.value);
+    if (bad) {
+      sidesInput.value = String(v);
+      statusEl.textContent = 'Enter 2 to 100 sides. Using ' + v + '.';
+    }
+    return v;
+  }
+
+  function render(sides) {
+    resultEl.textContent = (lastRoll === null) ? '-' : String(lastRoll);
+    labelEl.textContent = (lastRoll === null) ? '' : ('d' + sides + ' rolled ' + lastRoll);
+  }
+
+  function save(sides) {
+    try {
+      localStorage.setItem(DICE_KEY, JSON.stringify({ sides: sides, last: lastRoll }));
+    } catch (e) { /* storage unavailable, dice still works */ }
+  }
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(DICE_KEY);
+      if (!raw) return 6;
+      var state = JSON.parse(raw);
+      var sides = 6;
+      if (state && typeof state.sides === 'number' && isFinite(state.sides)) {
+        sides = parseSides(state.sides);
+      }
+      if (state && typeof state.last === 'number' && isFinite(state.last)
+          && state.last >= 1 && state.last <= sides) {
+        lastRoll = Math.trunc(state.last);
+      }
+      return sides;
+    } catch (e) { return 6; }
+  }
+
+  rollBtn.addEventListener('click', function () {
+    statusEl.textContent = '';
+    var sides = readSides();
+    lastRoll = 1 + Math.floor(Math.random() * sides);
+    render(sides);
+    save(sides);
+  });
+
+  sidesInput.addEventListener('change', function () {
+    var sides = readSides();
+    save(sides);
+  });
+
+  var startSides = load();
+  sidesInput.value = String(startSides);
+  render(startSides);
+})();
+</script>
+</body>
+</html>
