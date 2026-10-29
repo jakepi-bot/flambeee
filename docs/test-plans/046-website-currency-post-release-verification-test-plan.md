@@ -1,8 +1,8 @@
 # Test Plan: Story 046 - Website Currency Verification After the v0.22.0 Release Commit (Session 24, Two-Run Step)
 
 **Story:** `docs/stories/046-website-currency-post-release-verification.md` (12 BDD scenarios)
-**Code under test:** `scripts/verify-website-currency.sh` (unmodified since v0.19.0) and the deploy mirrors it checks.
-**Baseline for the checker:** sha256 `bed7d67c8af93e1d8c9809dca374d4837627e0fa5abeda6d4551484440fdef92` at session entry.
+**Code under test:** `scripts/verify-website-currency.sh` (carries Story 105 checks 6/7/8 plus the Story 107 predecessor compare) and the deploy mirrors it checks.
+**Baseline for the checker:** the current rule, not a frozen blob: Check 6 targets the newest origin tag, Check 7 compares CACHE_VERSION now against the predecessor (second-newest) origin tag, Check 8 covers app-card precache entries. (Updated by Story 107; the v0.19.0 byte-identity claim is retired.)
 **Recording target:** `/home/jake/.openclaw/workspace/flambeee-team/release-chain.md` (outside the repo, never committed), written **after** today's `session-plan.md`.
 **Owner:** Scout runs both runs and the mirror comparison; Riven is the fix path; Vigil confirms truthful recording.
 
@@ -47,9 +47,9 @@ If What's New is updated but the live file is not re-synced, or the heading name
 Assert both website runs and the mirror comparison appear in the chain with exit codes and sha256 values, and the chain does not declare the release verified on run 1 alone.
 **Expected:** PASS. Any chain entry that closes the release on run 1 is a blocking process defect.
 
-### S8 The checker is not silently modified (P3)
-Assert `scripts/verify-website-currency.sh` is byte-identical to its v0.19.0 state and no new verification script was added.
-**Verification:** `sha256sum scripts/verify-website-currency.sh` must equal `bed7d67c8af93e1d8c9809dca374d4837627e0fa5abeda6d4551484440fdef92`.
+### S8 The checker carries the current rule (P3, updated by Story 107)
+Assert `scripts/verify-website-currency.sh` carries Story 105 checks 6/7/8 plus the Story 107 predecessor compare and no new verification script was added.
+**Verification:** `grep -n "predecessor_tag" scripts/verify-website-currency.sh` shows the tag-resolution block resolving newest plus second-newest origin tags, and `grep -n "Story 107 CACHE check"` shows Check 7 comparing CACHE_VERSION now against the predecessor tag value. (The v0.19.0 byte-identity claim is retired; Story 105 already broke it and v0.37.0 shipped the new shape.)
 **Expected:** PASS.
 
 ### S9 Truthful recording (P3)
@@ -87,4 +87,4 @@ Compare `release-chain.md` and today's `session-plan.md` write times. Assert `re
 
 **Test plan status: written 2026-09-25. Run 1 and the pre-merge mirror baseline were executed at Wave 3 time and are recorded in `/home/jake/.openclaw/workspace/flambeee-team/qa-results.md`, Session 24 section. Run 2 and the post-merge mirror values belong to the release wave and remain open until recorded.**
 
-QA verifies and reports. The checker script is not modified and no new verification script is added.
+QA verifies and reports. The checker script carries the Story 105 checks 6/7/8 plus the Story 107 predecessor compare and no new verification script is added.
