@@ -18,7 +18,7 @@
  */
 'use strict';
 
-var CACHE_VERSION = 13;
+var CACHE_VERSION = 14;
 var CACHE_NAME = 'flambeee-shell-v' + CACHE_VERSION;
 
 var PRECACHE_URLS = [
@@ -38,7 +38,8 @@ var PRECACHE_URLS = [
   './apps/index.html',
   './apps/timer.html',
   './apps/tally.html',
-  './apps/dice.html'
+  './apps/dice.html',
+  './apps/coin.html'
 ];
 
 self.addEventListener('install', function (event) {
