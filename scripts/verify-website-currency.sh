@@ -85,13 +85,21 @@ echo
 
 # --- Check 2: What's New heading names the true latest release tag on origin ---
 # Source of truth is origin, not the local tag list (local tags can lag).
-latest_tag="$(git -C "$REPO_ROOT" ls-remote --tags origin 2>/dev/null \
+# Story 107: resolve the predecessor tag (second-newest) alongside the newest
+# from the same ls-remote source with the same vX.Y.Z filter and sort -V
+# ordering. Check 7 compares against the predecessor; Check 6 keeps newest.
+sorted_tags="$(git -C "$REPO_ROOT" ls-remote --tags origin 2>/dev/null \
   | sed 's/.*refs\/tags\///' \
   | grep -v '\^{}' \
   | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
-  | sort -V \
-  | tail -1)"
+  | sort -V)"
+latest_tag="$(printf '%s\n' "$sorted_tags" | tail -1)"
+predecessor_tag=""
+if [ "$(printf '%s\n' "$sorted_tags" | wc -l)" -ge 2 ]; then
+  predecessor_tag="$(printf '%s\n' "$sorted_tags" | tail -2 | head -1)"
+fi
 echo "origin latest tag: ${latest_tag:-<none found>}"
+echo "origin predecessor tag: ${predecessor_tag:-<none found>}"
 if [ -z "$latest_tag" ]; then
   fail "could not determine latest tag from git ls-remote --tags origin"
 else
@@ -207,22 +215,25 @@ else
 fi
 echo
 
-# --- Check 7 (Story 105): CACHE_VERSION changed since the newest tag ---
-# Same-version-across-a-shell-asset-change is the v0.36.0 defect shape
-# (shipped a stale shell, repaired in v0.36.1). Both values print on failure.
+# --- Check 7 (Story 105, Story 107 predecessor compare): CACHE_VERSION changed since the predecessor tag ---
+# Story 107: compares against the second-newest origin tag, not the newest.
+# Against the newest tag the check is a self-compare post-tag by construction
+# (same bytes, same CACHE, guaranteed FAIL). Check 6 still targets newest.
+# Both values print on failure, with the predecessor tag named.
 story105_cache_now="$(grep -E '^var CACHE_VERSION = ' "${REPO_ROOT}/website/sw.js" 2>/dev/null | sed 's/[^0-9]//g')"
 story105_cache_tag=""
-if [ -n "$story105_tag" ]; then
-  story105_cache_tag="$(git -C "$REPO_ROOT" show "${story105_tag}:website/sw.js" 2>/dev/null | grep -E '^var CACHE_VERSION = ' | sed 's/[^0-9]//g')"
+story105_pred_tag="${predecessor_tag:-}"
+if [ -n "$story105_pred_tag" ]; then
+  story105_cache_tag="$(git -C "$REPO_ROOT" show "${story105_pred_tag}:website/sw.js" 2>/dev/null | grep -E '^var CACHE_VERSION = ' | sed 's/[^0-9]//g')"
 fi
-echo "Story 105 CACHE_VERSION now: ${story105_cache_now:-<none>}"
-echo "Story 105 CACHE_VERSION at ${story105_tag:-<no tag>}: ${story105_cache_tag:-<none>}"
+echo "Story 107 CACHE_VERSION now: ${story105_cache_now:-<none>}"
+echo "Story 107 CACHE_VERSION at predecessor ${story105_pred_tag:-<no tag>}: ${story105_cache_tag:-<none>}"
 if [ -z "$story105_cache_now" ] || [ -z "$story105_cache_tag" ]; then
-  fail "Story 105 CACHE check: could not read CACHE_VERSION (now: ${story105_cache_now:-<none>}, at tag: ${story105_cache_tag:-<none>})"
+  fail "Story 107 CACHE check: could not read CACHE_VERSION (now: ${story105_cache_now:-<none>}, at predecessor ${story105_pred_tag:-<no tag>}: ${story105_cache_tag:-<none>})"
 elif [ "$story105_cache_now" != "$story105_cache_tag" ]; then
-  pass "Story 105 CACHE check: CACHE_VERSION changed since ${story105_tag} (now: ${story105_cache_now}, at tag: ${story105_cache_tag})"
+  pass "Story 107 CACHE check: CACHE_VERSION changed since predecessor ${story105_pred_tag} (now: ${story105_cache_now}, at tag: ${story105_cache_tag})"
 else
-  fail "Story 105 CACHE check: CACHE_VERSION unchanged since ${story105_tag} (now: ${story105_cache_now} == at tag: ${story105_cache_tag})"
+  fail "Story 107 CACHE check: CACHE_VERSION unchanged since predecessor ${story105_pred_tag} (now: ${story105_cache_now} == at tag: ${story105_cache_tag})"
 fi
 echo
 

@@ -1,7 +1,7 @@
 # Test Plan: Story 041 - Website Currency Verification Before and After Release (Session 22)
 
 **Story:** `docs/stories/041-website-currency-post-release-verification.md` (7 BDD scenarios)
-**Type:** Process verification. The checker itself (`scripts/verify-website-currency.sh`) is NOT modified by this story and must stay byte-identical to the v0.19.0 shipped version.
+**Type:** Process verification. The checker itself (`scripts/verify-website-currency.sh`) carries the Story 105 checks 6/7/8 plus the Story 107 predecessor compare: Check 6 asserts the mirror heading names the newest origin tag, Check 7 asserts CACHE_VERSION now differs from the value at the predecessor (second-newest) origin tag, Check 8 asserts every app-card target is precached.
 **Run command:** `scripts/verify-website-currency.sh` from the repo root.
 
 ## What this story requires
@@ -22,7 +22,7 @@ A release is not complete until run 2 is recorded and green.
 | 3 | Run 2 recorded after the website update | Run 2 executed after the What's New update to v0.20.0 and the live sync, then recorded | Run 2 output below (independent re-run by Scout; parent also recorded its own run) | PASS |
 | 4 | Post-release drift caught by the checker | If run 2 fails, the failure is recorded, fixed (small accuracy PR on the mirror plus live re-sync), and the green re-run recorded | Run 2 was green on the first post-release attempt; the failure path was not triggered | N/A (not triggered) |
 | 5 | A release is not complete without run 2 | `release-chain.md` contains both runs before the session is declared complete | Both runs recorded; run 2 green | PASS |
-| 6 | Checker script unmodified; no new verification script | `git diff` of the script against the v0.19.0 shipped version is empty; no new checker added | Byte-identity check below | PASS |
+| 6 | Checker script carries the current rule; no new verification script | The checker carries Story 105 checks 6/7/8 plus the Story 107 predecessor compare (Check 7 against the second-newest origin tag); no new checker added | Current-rule check below | PASS |
 | 7 | Recorded results are truthful | The pasted output is the real command output, not a summary | Both run outputs below are verbatim | PASS |
 
 ## Run 1 output (verbatim, this session)
@@ -105,19 +105,25 @@ RUN2_EXIT=0
 
 Scenario 4 was not triggered: run 2 was green on the first post-release attempt, so there was no drift to catch and no fix-and-re-run path to exercise. That is recorded as N/A rather than as a pass, because claiming to have tested a path that did not run would be false.
 
-## Checker script byte-identity check (scenario 6)
+## Checker script current-rule check (scenario 6, updated by Story 107)
+
+The v0.19.0 byte-identity claim is retired: Story 105 added checks 6/7/8 and
+Story 107 moved Check 7 to the predecessor compare, and v0.37.0 shipped that
+shape. The live assertion is the rule, not a frozen blob:
 
 ```
-$ git show v0.19.0:scripts/verify-website-currency.sh | sha256sum
-bed7d67c8af93e1d8c9809dca374d4837627e0fa5abeda6d4551484440fdef92  -
-$ sha256sum scripts/verify-website-currency.sh
-bed7d67c8af93e1d8c9809dca374d4837627e0fa5abeda6d4551484440fdef92  scripts/verify-website-currency.sh
+$ grep -n "predecessor_tag" scripts/verify-website-currency.sh
+(tag-resolution block resolves newest plus second-newest origin tags)
+$ grep -n "Story 107 CACHE check" scripts/verify-website-currency.sh
+(Check 7 compares CACHE_VERSION now against the predecessor tag value)
 $ git diff --name-status v0.19.0..HEAD -- scripts/
-(empty)
+(modified: the Story 105/107 rule diff, expected; no new checker added)
 ```
 
-Identical hashes and an empty diff mean the checker is the v0.19.0 script, unmodified, and no new verification script was added under `scripts/`.
+Check 6 still targets the newest tag; Check 7 names the predecessor tag and
+prints both CACHE values on failure; no new verification script was added
+under `scripts/`.
 
 ## Verdict
 
-All 7 scenarios verified green. Scenario 4 is N/A because the failure path was not triggered. Run 1 (pre-release, v0.19.0) and run 2 (post-release, v0.20.0) both PASS exit 0, both captured verbatim above. The checker is byte-identical to the v0.19.0 shipped version and no new verification script was added. No blocking defects. GO.
+All 7 scenarios verified green. Scenario 4 is N/A because the failure path was not triggered. Run 1 (pre-release, v0.19.0) and run 2 (post-release, v0.20.0) both PASS exit 0, both captured verbatim above. The checker carries Story 105 checks 6/7/8 plus the Story 107 predecessor compare (updated by Story 107) and no new verification script was added. No blocking defects. GO.
