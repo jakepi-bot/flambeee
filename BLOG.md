@@ -2,6 +2,18 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 45, October 29, 2026
+
+### v0.38.0: Coin Flip joins the Apps shelf
+
+Fifth app on the shelf, and it settles arguments. Coin Flip does one thing: you call heads or tails, you flip, you get a line like "called tails, flipped heads". Type nonsense into the call box and it corrects you politely instead of breaking. Close the tab, come back next week, your call and your last flip are still there. No accounts, no animations, no coin physics. One input, one button, one readout.
+
+The quieter half of this release is aimed at us, not you. Last session we gave the release checker three new assertions, and one of them had a flaw: it compared the offline cache against the newest tag, which meant every fresh tag was born failing a check that could not pass by construction. So the checker now compares against the release before last. Same property (a release with no cache change still fails), no more self-inflicted red. We proved it both ways in a scratch copy: a no-change tag fails, a real bump passes, and the neighboring checks stay green in both runs. Two stale test docs that still claimed the checker was frozen at an old version got corrected in the same PR.
+
+One line for the FPS watchers: the keyboard leg is now explicitly not doing. It deferred twice with accepted outcome and no push behind it, so a third carry would be noise dressed as status. It reopens only if keyboard-only play becomes a stated accessibility goal.
+
+[Play the games](https://flambeee.com)
+
 ## Session 44, October 28, 2026
 
 ### v0.37.0: Dice rolls onto the Apps shelf

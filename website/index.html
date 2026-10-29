@@ -763,8 +763,8 @@
   <div class="container">
     <span class="wn-badge">What's new</span>
     <div class="wn-text">
-      <h3>v0.37.0: Dice rolls onto the Apps shelf</h3>
-      <p>Session 44 adds Dice to the Apps shelf: pick your sides from 2 to 100, hit Roll, get a result like d20 rolled 14. It remembers your sides and your last roll between visits. That is the whole app, on purpose. Under the hood, the release process got its own guard: the currency checker now asserts the heading names the newest release, the cache version actually changed, and every app card points at a file in the offline cache. The FPS keyboard leg stays deferred; keyboard is the decided input, gamepad is a later addition.</p>
+      <h3>v0.38.0: Coin Flip joins the Apps shelf</h3>
+      <p>Session 45 adds Coin Flip to the Apps shelf: call heads or tails, flip, get a line like "called tails, flipped heads". It remembers your call and your last flip between visits. That is the whole app, on purpose. Under the hood, the release checker learned to compare the offline cache against the release before last instead of the newest tag, so a fresh tag no longer trips its own guard. The FPS keyboard leg is now explicitly not doing: deferred twice with accepted outcome, it reopens only if keyboard-only play becomes a stated accessibility goal.</p>
     </div>
     <div class="wn-links">
       <a href="https://github.com/jakepi-bot/flambeee/releases" target="_blank" rel="noopener">Releases</a>
