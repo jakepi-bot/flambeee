@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1a1a2e">
+<title>Convert | Flambeee Apps</title>
+<meta name="description" content="Convert by Flambeee Apps. One everyday unit conversion, cups to ml and more. No accounts, no server.">
+<link rel="icon" type="image/x-icon" href="../assets/favicon.ico">
+<style>
+  :root {
+    --bg: #0f1428;
+    --bg-2: #16213e;
+    --surface: #1a1a2e;
+    --surface-2: #1f2a4a;
+    --accent: #e94560;
+    --accent-2: #ff5a75;
+    --text: #eef2ff;
+    --text-dim: #9aa7d8;
+    --text-mute: #6b76a8;
+    --border: #2a3a6e;
+    --radius: 14px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  a { color: var(--accent-2); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 0 24px; width: 100%; }
+  header.top { padding: 28px 0 8px; }
+  header.top a.back { font-size: 0.9rem; }
+  h1 { font-size: clamp(1.8rem, 4vw, 2.4rem); font-weight: 800; margin: 12px 0 4px; }
+  .sub { color: var(--text-dim); margin-bottom: 28px; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .card h2 {
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent-2);
+    margin-bottom: 10px;
+  }
+  #convertResult {
+    font-size: 2.2rem;
+    font-weight: 800;
+    overflow-wrap: break-word;
+  }
+  #labelLine {
+    font-size: 1.1rem;
+    color: var(--text-dim);
+    margin-top: 8px;
+    min-height: 1.75em;
+    overflow-wrap: break-word;
+  }
+  .field-row { display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+  .field { flex: 1 1 140px; display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 0.85rem; color: var(--text-dim); }
+  .field input, .field select {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 1rem;
+    padding: 12px 14px;
+    outline: none;
+  }
+  .field input:focus, .field select:focus { border-color: var(--accent-2); }
+  .btn-row { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+  button.action {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 24px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  button.action:hover { background: var(--accent-2); }
+  #convertStatus { color: var(--text-mute); font-size: 0.85rem; margin-top: 12px; min-height: 1.4em; }
+  footer { margin-top: auto; padding: 32px 0; text-align: center; color: var(--text-mute); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="back" href="../index.html">Back to Flambeee</a>
+    <h1>Convert</h1>
+    <p class="sub">One everyday conversion. Type a number, pick the pair. Flambeee Apps.</p>
+  </header>
+
+  <div class="card">
+    <h2>Answer</h2>
+    <div id="convertResult" aria-live="polite">-</div>
+    <div id="labelLine" aria-live="polite"></div>
+  </div>
+
+  <div class="card">
+    <h2>Setup</h2>
+    <div class="field-row">
+      <div class="field">
+        <label for="amountInput">Amount</label>
+        <input id="amountInput" type="text" inputmode="decimal" value="1" maxlength="12" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="field">
+        <label for="pairSelect">Unit pair</label>
+        <select id="pairSelect">
+          <option value="cups-ml">cups to ml</option>
+          <option value="ml-cups">ml to cups</option>
+          <option value="tbsp-ml">tbsp to ml</option>
+          <option value="km-mi">km to miles</option>
+          <option value="mi-km">miles to km</option>
+          <option value="cm-in">cm to inches</option>
+          <option value="in-cm">inches to cm</option>
+          <option value="kg-lb">kg to lb</option>
+          <option value="lb-kg">lb to kg</option>
+          <option value="c-f">C to F</option>
+          <option value="f-c">F to C</option>
+        </select>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="action" id="convertBtn" type="button">Convert</button>
+    </div>
+    <p id="convertStatus" aria-live="polite"></p>
+  </div>
+</div>
+
+<footer>
+  <p>Flambeee Apps. No accounts. No server. Your last conversion stays in this browser.</p>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  /* Story 108 storage key, fixed before first write. Only pair plus last amount persist. */
+  var PREFIX = 'flambeee-apps-';
+  var CONVERT_KEY = PREFIX + 'convert';
+
+  var PAIRS = {
+    'cups-ml': { from: 'cups', to: 'ml', fn: function (x) { return x * 236.588; } },
+    'ml-cups': { from: 'ml', to: 'cups', fn: function (x) { return x / 236.588; } },
+    'tbsp-ml': { from: 'tbsp', to: 'ml', fn: function (x) { return x * 14.7868; } },
+    'km-mi': { from: 'km', to: 'miles', fn: function (x) { return x * 0.621371; } },
+    'mi-km': { from: 'miles', to: 'km', fn: function (x) { return x / 0.621371; } },
+    'cm-in': { from: 'cm', to: 'inches', fn: function (x) { return x / 2.54; } },
+    'in-cm': { from: 'inches', to: 'cm', fn: function (x) { return x * 2.54; } },
+    'kg-lb': { from: 'kg', to: 'lb', fn: function (x) { return x * 2.20462; } },
+    'lb-kg': { from: 'lb', to: 'kg', fn: function (x) { return x / 2.20462; } },
+    'c-f': { from: 'C', to: 'F', fn: function (x) { return x * 9 / 5 + 32; } },
+    'f-c': { from: 'F', to: 'C', fn: function (x) { return (x - 32) * 5 / 9; } }
+  };
+
+  var resultEl = document.getElementById('convertResult');
+  var labelEl = document.getElementById('labelLine');
+  var amountInput = document.getElementById('amountInput');
+  var pairSelect = document.getElementById('pairSelect');
+  var convertBtn = document.getElementById('convertBtn');
+  var statusEl = document.getElementById('convertStatus');
+
+  function formatNum(x) {
+    if (!isFinite(x)) return 'n/a';
+    var r = Math.round(x * 10000) / 10000;
+    return String(r);
+  }
+
+  function parseAmount(raw) {
+    var v = parseFloat(String(raw).trim());
+    if (!isFinite(v)) return null;
+    if (v > 1000000000 || v < -1000000000) return null;
+    return v;
+  }
+
+  function currentPair() {
+    var key = pairSelect.value;
+    if (!PAIRS[key]) {
+      pairSelect.value = 'cups-ml';
+      return 'cups-ml';
+    }
+    return key;
+  }
+
+  function convert() {
+    statusEl.textContent = '';
+    var key = currentPair();
+    var pair = PAIRS[key];
+    var amount = parseAmount(amountInput.value);
+    if (amount === null) {
+      resultEl.textContent = '-';
+      labelEl.textContent = '';
+      statusEl.textContent = 'Type a plain number, like 2 or 0.5.';
+      return;
+    }
+    amountInput.value = String(amount);
+    var out = pair.fn(amount);
+    resultEl.textContent = formatNum(out) + ' ' + pair.to;
+    labelEl.textContent = formatNum(amount) + ' ' + pair.from + ' is ' + formatNum(out) + ' ' + pair.to;
+    save(key, amount);
+  }
+
+  function save(pairKey, amount) {
+    try {
+      localStorage.setItem(CONVERT_KEY, JSON.stringify({ pair: pairKey, amount: amount }));
+    } catch (e) { /* storage unavailable, converter still works */ }
+  }
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(CONVERT_KEY);
+      if (!raw) return;
+      var state = JSON.parse(raw);
+      if (state && PAIRS[state.pair]) pairSelect.value = state.pair;
+      if (state && isFinite(parseFloat(state.amount))) amountInput.value = String(parseFloat(state.amount));
+    } catch (e) { /* fresh start on bad stored state */ }
+  }
+
+  convertBtn.addEventListener('click', convert);
+  amountInput.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Enter') convert();
+  });
+  pairSelect.addEventListener('change', function () {
+    currentPair();
+    save(pairSelect.value, parseAmount(amountInput.value));
+  });
+
+  load();
+  convert();
+})();
+</script>
+</body>
+</html>
