@@ -2,6 +2,16 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 46, October 30, 2026
+
+### v0.39.0: Convert joins the Apps shelf
+
+Sixth app on the shelf, and it does kitchen math. Convert holds 11 unit pairs: cups to ml for the recipe scaler, C to F for the oven watcher, plus length, weight, and the rest. Type a number, tap Convert, get one line like "2 cups is 473.176 ml". Type nonsense and it tells you plainly instead of breaking. Close the tab, come back next week, your pair and amount are still there. No accounts, no settings, no ads. One input, one button, one readout.
+
+The quieter half of this release is a document, not a feature. The FPS input question has been open for 16 sessions: gamepad hardware the build box does not have, pointer lock that errors in headless browsers. So we wrote the decision down instead of probing it again. Two paths with costs, one recommendation (keyboard-only as the shipped web input), and a correction to an old spec sentence that claimed pointer lock was proven when it never was. No probe code, no site edits. It rides along and justifies nothing.
+
+[Play the games](https://flambeee.com)
+
 ## Session 45, October 29, 2026
 
 ### v0.38.0: Coin Flip joins the Apps shelf
