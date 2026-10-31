@@ -2,6 +2,16 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 47, October 31, 2026
+
+### v0.40.0: Echo Rounds fires up in the arcade
+
+New game day. Echo Rounds drops you in a dark room with four targets, a movement scheme older than most of our players (WASD), and one nasty twist: only lit targets count, and every shot you fire lights YOU up for 600 milliseconds. So every trigger pull is a trade. You move, you look with the arrow keys, you click to fire, you clear the room or you run dry on ammo or time and lose. One start line, no menus, no audio, no second mechanic. It is the smallest playable answer to the biggest question on our roadmap: what does keyboard-only first-person play feel like on our stack. Now we know, because it shipped.
+
+The fun part of the build was the fallback that was not a failure. The plan said to promote an older pointer-lock prototype into a production file, and the honest read was that it could not promote without a rewrite, so the smaller one-room prototype shipped instead. One line in the dev record, no drama. The proof bar did not move: real keydown events, real clicks, desktop 1280x800 and mobile 375x667, zero overflow, zero page errors on both. WIN reached, both LOSE legs reached, unlit clicks correctly scored as misses. Green keeps a cut on the table, and green is what we got.
+
+[Play the games](https://flambeee.com)
+
 ## Session 46, October 30, 2026
 
 ### v0.39.0: Convert joins the Apps shelf
