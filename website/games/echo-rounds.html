@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Echo Rounds | Flambeee</title>
+<style>
+  /* Echo Rounds (Session 47, Story 110). Single file, no build, no dependency. */
+  /* One dark room, one target type. Keyboard-only: WASD moves, arrow keys look, click fires. */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { max-width: 100%; overflow-x: hidden; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #060606;
+    color: #d8d8d8;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px;
+  }
+  .back-link { align-self: flex-start; color: #d8d8d8; text-decoration: none; font-size: 14px; opacity: 0.7; }
+  .back-link:hover { opacity: 1; }
+  h1 { margin: 12px 0 2px; font-size: 1.5rem; letter-spacing: 3px; color: #f0e6c0; }
+  .tagline { font-size: 0.85rem; opacity: 0.75; margin-bottom: 10px; text-align: center; max-width: 560px; }
+  .hud { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 10px; font-size: 0.9rem; }
+  .hud .item { background: #141414; padding: 5px 12px; border-radius: 8px; border: 1px solid #2a2a2a; white-space: nowrap; }
+  #wrap { width: 100%; max-width: 960px; }
+  canvas { display: block; width: 100%; height: auto; background: #050505; border: 1px solid #222; border-radius: 6px; }
+  .keys { margin-top: 10px; font-size: 0.8rem; opacity: 0.7; text-align: center; max-width: 560px; }
+</style>
+</head>
+<body>
+<a class="back-link" href="../index.html">Back to Flambeee</a>
+<h1>ECHO ROUNDS</h1>
+<p class="tagline">Keyboard-only: WASD moves, arrow keys look, click fires. Hits count on lit targets only.</p>
+<div class="hud">
+  <span class="item">Ammo: <span id="ammo">12</span></span>
+  <span class="item">Time: <span id="time">60</span>s</span>
+  <span class="item">Cleared: <span id="cleared">0</span>/4</span>
+  <span class="item" id="msg">Click to enter the dark room.</span>
+</div>
+<div id="wrap"><canvas id="c" width="960" height="600"></canvas></div>
+<p class="keys">WASD moves. Left and Right arrows turn your aim. Up and Down arrows adjust focus. Click fires light. Firing reveals you.</p>
+<script>
+'use strict';
+/* Echo Rounds: one dark room, one target type (echo cell). Fire light, not
+ * bullets. Each click emits a short light pulse from the player toward the
+ * click point. A click counts as a hit only when its target is lit at click
+ * time; clicks on unlit targets or empty space count as misses. Firing
+ * reveals the player in play. Clear every echo cell to win. Spending the
+ * ammo budget or letting the timer expire ends the round lost. */
+var canvas = document.getElementById('c');
+var ctx = canvas.getContext('2d');
+var ammoEl = document.getElementById('ammo');
+var timeEl = document.getElementById('time');
+var clearedEl = document.getElementById('cleared');
+var msgEl = document.getElementById('msg');
+
+var W = 960, H = 600, ROOM = 24;
+var params = new URLSearchParams(location.search);
+var AMMO_BUDGET = Math.max(1, parseInt(params.get('ammo') || '12', 10) || 12);
+var ROUND_MS = Math.max(1000, (parseInt(params.get('time') || '60', 10) || 60) * 1000);
+var TARGET_N = 4;
+var SPEED = 3.0, TURN = 0.09, PULSE_TTL = 500, REVEAL_MS = 600;
+var LIT_MS = 1400, DARK_MS = 1400;
+
+var player = { x: 120, y: 300, yaw: 0, focus: 0, visibleUntil: 0 };
+var keys = {};
+var targets = [
+  { x: 700, y: 150, phase: 0, cleared: false },
+  { x: 820, y: 320, phase: 700, cleared: false },
+  { x: 660, y: 470, phase: 1400, cleared: false },
+  { x: 480, y: 300, phase: 2100, cleared: false }
+];
+var pulses = [];
+var started = false, over = false, outcome = 'undecided', loseReason = '';
+var startAt = 0, ammoLeft = AMMO_BUDGET;
+var moveSteps = 0, lookEvents = 0, shots = 0;
+var litHits = 0, unlitShots = 0, unlitHits = 0, reveals = 0;
+
+function litAt(t, now) {
+  var cycle = LIT_MS + DARK_MS;
+  var e = (now - startAt + (cycle - (t.phase % cycle))) % cycle;
+  return e < LIT_MS;
+}
+function clearCount() {
+  var n = 0;
+  for (var i = 0; i < targets.length; i++) { if (targets[i].cleared) n++; }
+  return n;
+}
+function refreshHud() {
+  ammoEl.textContent = String(ammoLeft);
+  clearedEl.textContent = String(clearCount());
+}
+function endRound(win, reason) {
+  over = true;
+  outcome = win ? 'win' : 'lose';
+  loseReason = reason || '';
+  msgEl.textContent = win ? 'ROOM CLEAR. Every echo answered.' :
+    ('OUT OF LIGHT. ' + (reason === 'timer' ? 'Timer expired.' : 'Ammo spent.'));
+}
+function fire(sx, sy) {
+  if (!started || over) return;
+  var now = performance.now();
+  shots++;
+  ammoLeft--;
+  reveals++;
+  player.visibleUntil = now + REVEAL_MS;
+  var dx = sx - player.x, dy = sy - player.y;
+  var len = Math.sqrt(dx * dx + dy * dy) || 1;
+  var ux = dx / len, uy = dy / len;
+  var hit = null;
+  for (var i = 0; i < targets.length; i++) {
+    var t = targets[i];
+    if (t.cleared) continue;
+    var ex = t.x - sx, ey = t.y - sy;
+    if (ex * ex + ey * ey < 30 * 30) { hit = t; break; }
+  }
+  if (hit && litNow(hit, now)) {
+    litHits++;
+    hit.cleared = true;
+  } else {
+    unlitShots++;
+  }
+  pulses.push({ x: player.x, y: player.y, ux: ux, uy: uy, born: now });
+  for (var j = 0; j < targets.length; j++) {
+    var u = targets[j];
+    if (u.cleared) continue;
+    var rx = u.x - player.x, ry = u.y - player.y;
+    var along = rx * ux + ry * uy;
+    var perp = Math.abs(-rx * uy + ry * ux);
+    if (along >= 0 && along <= len + 60 && perp <= 70) { u.phase = 0; u.litBoostUntil = now + PULSE_TTL; }
+  }
+  refreshHud();
+  if (clearCount() === targets.length) { endRound(true, ''); return; }
+  if (ammoLeft <= 0) { endRound(false, 'ammo'); }
+}
+function litNow(t, now) {
+  if (t.litBoostUntil && now < t.litBoostUntil) return true;
+  return litAt(t, now);
+}
+
+window.addEventListener('keydown', function (e) {
+  if (e.code === 'ArrowLeft' || e.code === 'ArrowRight' ||
+      e.code === 'ArrowUp' || e.code === 'ArrowDown') {
+    e.preventDefault();
+    if (!e.repeat) {
+      lookEvents++;
+      if (e.code === 'ArrowLeft') player.yaw -= TURN;
+      if (e.code === 'ArrowRight') player.yaw += TURN;
+      if (e.code === 'ArrowUp') player.focus = Math.min(1, player.focus + 0.2);
+      if (e.code === 'ArrowDown') player.focus = Math.max(-1, player.focus - 0.2);
+    }
+    return;
+  }
+  keys[e.code] = true;
+});
+window.addEventListener('keyup', function (e) { keys[e.code] = false; });
+canvas.addEventListener('mousedown', function (e) {
+  if (!started) {
+    started = true;
+    startAt = performance.now();
+    for (var i = 0; i < targets.length; i++) { targets[i].phase = (i * 700) % (LIT_MS + DARK_MS); }
+    msgEl.textContent = 'Fire light. Lit targets count.';
+    requestAnimationFrame(step);
+    return;
+  }
+  var r = canvas.getBoundingClientRect();
+  var sx = (e.clientX - r.left) * (W / r.width);
+  var sy = (e.clientY - r.top) * (H / r.height);
+  fire(sx, sy);
+});
+
+var lastT = 0;
+function step(now) {
+  if (!started) return;
+  var elapsed = now - startAt;
+  var remain = Math.max(0, Math.ceil((ROUND_MS - elapsed) / 1000));
+  timeEl.textContent = String(remain);
+  if (!over && elapsed >= ROUND_MS) {
+    if (clearCount() === targets.length) endRound(true, '');
+    else endRound(false, 'timer');
+  }
+  if (!over) {
+    var mx = 0, my = 0;
+    if (keys.KeyW) my -= 1;
+    if (keys.KeyS) my += 1;
+    if (keys.KeyA) mx -= 1;
+    if (keys.KeyD) mx += 1;
+    if (mx || my) {
+      var ml = Math.sqrt(mx * mx + my * my);
+      player.x += (mx / ml) * SPEED;
+      player.y += (my / ml) * SPEED;
+      moveSteps++;
+    }
+    player.x = Math.max(ROOM + 12, Math.min(W - ROOM - 12, player.x));
+    player.y = Math.max(ROOM + 12, Math.min(H - ROOM - 12, player.y));
+  }
+  draw(now);
+  if (!over) { requestAnimationFrame(step); return; }
+  draw(now);
+}
+function draw(now) {
+  ctx.fillStyle = '#050505';
+  ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = '#1c1c1c';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(ROOM, ROOM, W - ROOM * 2, H - ROOM * 2);
+  var kept = [];
+  for (var p = 0; p < pulses.length; p++) {
+    var pu = pulses[p];
+    var age = now - pu.born;
+    if (age < PULSE_TTL) {
+      kept.push(pu);
+      var fade = 1 - age / PULSE_TTL;
+      var grad = ctx.createRadialGradient(pu.x, pu.y, 6, pu.x, pu.y, 240);
+      grad.addColorStop(0, 'rgba(255,240,180,' + (0.7 * fade).toFixed(3) + ')');
+      grad.addColorStop(1, 'rgba(255,240,180,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+      ctx.strokeStyle = 'rgba(255,240,180,' + (0.8 * fade).toFixed(3) + ')';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(player.x, player.y);
+      ctx.lineTo(player.x + pu.ux * 300, player.y + pu.uy * 300);
+      ctx.stroke();
+    }
+  }
+  pulses = kept;
+  for (var i = 0; i < targets.length; i++) {
+    var t = targets[i];
+    if (t.cleared) continue;
+    var lit = started && !over ? litNow(t, now) : litAt(t, now);
+    if (!started) lit = (i === 0);
+    ctx.fillStyle = lit ? '#ffdd66' : '#3a2a08';
+    ctx.fillRect(t.x - 15, t.y - 15, 30, 30);
+    if (lit) {
+      ctx.strokeStyle = '#ffdd66';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(t.x - 19, t.y - 19, 38, 38);
+    }
+  }
+  var revealed = now < player.visibleUntil;
+  ctx.fillStyle = revealed ? '#ff4444' : '#1f6b2a';
+  ctx.beginPath();
+  ctx.arc(player.x, player.y, 14, 0, 6.2832);
+  ctx.fill();
+  if (revealed) {
+    var rr = 14 + ((now - (player.visibleUntil - REVEAL_MS)) / REVEAL_MS) * 26;
+    ctx.strokeStyle = 'rgba(255,68,68,0.8)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, rr, 0, 6.2832);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = '#999';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(player.x, player.y);
+  ctx.lineTo(player.x + Math.cos(player.yaw) * 44, player.y + Math.sin(player.yaw) * 44);
+  ctx.stroke();
+  if (over) {
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.textAlign = 'center';
+    if (outcome === 'win') {
+      ctx.fillStyle = '#7dff9a';
+      ctx.font = '56px sans-serif';
+      ctx.fillText('ROOM CLEAR', W / 2, H / 2 - 10);
+      ctx.font = '20px sans-serif';
+      ctx.fillStyle = '#d8d8d8';
+      ctx.fillText('Every echo answered.', W / 2, H / 2 + 30);
+    } else {
+      ctx.fillStyle = '#ff6666';
+      ctx.font = '56px sans-serif';
+      ctx.fillText('OUT OF LIGHT', W / 2, H / 2 - 10);
+      ctx.font = '20px sans-serif';
+      ctx.fillStyle = '#d8d8d8';
+      ctx.fillText(loseReason === 'timer' ? 'Timer expired.' : 'Ammo spent.', W / 2, H / 2 + 30);
+    }
+    ctx.textAlign = 'left';
+  }
+  if (!started) {
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#f0e6c0';
+    ctx.font = '26px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Click to enter the dark room.', W / 2, H / 2);
+    ctx.textAlign = 'left';
+  }
+}
+
+/* Read-only probe surface for automated proof. Inputs in proof are real
+ * keydown and click events; this object only reports counts and geometry. */
+window.__echo = {
+  get started() { return started; },
+  get over() { return over; },
+  get outcome() { return outcome; },
+  get loseReason() { return loseReason; },
+  get moveSteps() { return moveSteps; },
+  get lookEvents() { return lookEvents; },
+  get shots() { return shots; },
+  get litHits() { return litHits; },
+  get unlitShots() { return unlitShots; },
+  get unlitHits() { return unlitHits; },
+  get reveals() { return reveals; },
+  get ammoLeft() { return ammoLeft; },
+  get player() { return { x: player.x, y: player.y, yaw: player.yaw }; },
+  target: function (i) {
+    var t = targets[i];
+    var now = performance.now();
+    return { x: t.x, y: t.y, cleared: t.cleared, lit: started && !over ? litNow(t, now) : false };
+  },
+  targetCount: function () { return targets.length; }
+};
+draw(performance.now());
+</script>
+</body>
+</html>
