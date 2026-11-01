@@ -19,11 +19,20 @@
 # Usage:
 #   scripts/verify-website-currency.sh
 #   FLAMBEEE_LIVE_URL=https://staging.example/ scripts/verify-website-currency.sh
+#   FLAMBEEE_POST_DEPLOY=1 scripts/verify-website-currency.sh
+#
+# Story 113 (Session 48): Check 1 (served-vs-mirror) is post-deploy-only.
+# Default runs skip-or-note the live leg: one NOTE line with both sha256,
+# never PASS, never FAIL, exit decided by Checks 2 through 8. Set
+# FLAMBEEE_POST_DEPLOY=1 to enforce Check 1 exactly as before (PASS on
+# match, FAIL plus non-zero exit on mismatch). Unreachable live copy is a
+# NOTE in default mode and a FAIL in post-deploy mode, as before.
 
 set -u
 set -o pipefail
 
 LIVE_URL="${FLAMBEEE_LIVE_URL:-https://flambeee.com/}"
+POST_DEPLOY="${FLAMBEEE_POST_DEPLOY:-0}"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MIRROR="${REPO_ROOT}/website/index.html"
 GAMES_DIR="${REPO_ROOT}/website/games"
@@ -50,22 +59,31 @@ fi
 SERVED="$(mktemp)"
 trap 'rm -f "$SERVED"' EXIT
 if ! http_status="$(curl -sS --max-time 25 -o "$SERVED" -w '%{http_code}' "$LIVE_URL")"; then
-  fail "live fetch failed: curl could not retrieve ${LIVE_URL}"
-  echo
-  echo "RESULT: FAIL (${fails} check(s) failed)"
-  exit 1
+  if [ "${POST_DEPLOY}" = "1" ]; then
+    fail "live fetch failed: curl could not retrieve ${LIVE_URL}"
+    echo
+    echo "RESULT: FAIL (${fails} check(s) failed)"
+    exit 1
+  fi
+  echo "NOTE: live fetch failed, curl could not retrieve ${LIVE_URL} (pre-merge run, live leg not enforced)"
+  http_status="000"
 fi
 echo "live HTTP status: ${http_status}"
-if [ "$http_status" != "200" ]; then
+if [ "$http_status" = "200" ]; then
+  pass "live fetch returned HTTP 200"
+elif [ "${POST_DEPLOY}" = "1" ]; then
   fail "live fetch returned HTTP ${http_status}, expected 200"
   echo
   echo "RESULT: FAIL (${fails} check(s) failed)"
   exit 1
+else
+  echo "NOTE: live fetch returned HTTP ${http_status}, expected 200 (pre-merge run, live leg not enforced)"
 fi
-pass "live fetch returned HTTP 200"
 echo
 
 # --- Check 1: served copy vs repo mirror, byte-identical ---
+# Story 113: post-deploy-only. Default pre-merge runs print one NOTE line
+# (never PASS, never FAIL); FLAMBEEE_POST_DEPLOY=1 enforces as before.
 served_sha="$(sha256sum "$SERVED" | awk '{print $1}')"
 mirror_sha="$(sha256sum "$MIRROR" | awk '{print $1}')"
 echo "served sha256: ${served_sha}"
@@ -73,11 +91,15 @@ echo "mirror sha256: ${mirror_sha}"
 cmp -s "$SERVED" "$MIRROR"
 cmp_rc=$?
 echo "cmp exit code: ${cmp_rc}"
-if [ "$cmp_rc" -eq 0 ]; then
-  pass "served and repo mirror are byte-identical (MATCH, cmp exit 0)"
+if [ "${POST_DEPLOY}" = "1" ]; then
+  if [ "$cmp_rc" -eq 0 ]; then
+    pass "served and repo mirror are byte-identical (MATCH, cmp exit 0)"
+  else
+    fail "served and repo mirror differ (MISMATCH, cmp exit ${cmp_rc})"
+    cmp "$SERVED" "$MIRROR" 2>&1 | head -3 | sed 's/^/      /'
+  fi
 else
-  fail "served and repo mirror differ (MISMATCH, cmp exit ${cmp_rc})"
-  cmp "$SERVED" "$MIRROR" 2>&1 | head -3 | sed 's/^/      /'
+  echo "NOTE: Check 1 live leg not enforced pre-merge (served sha256 ${served_sha} vs mirror sha256 ${mirror_sha}; live copy unsyncable by construction until the post-release Caddy sync)"
 fi
 echo "served lines:   $(wc -l < "$SERVED")"
 echo "mirror lines: $(wc -l < "$MIRROR")"
