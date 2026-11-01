@@ -144,6 +144,7 @@
   var statusEl = document.getElementById('diceStatus');
 
   var lastRoll = null;
+  var pendingNote = '';
 
   function parseSides(raw) {
     var v = parseInt(String(raw).trim(), 10);
@@ -155,6 +156,8 @@
   function invalidSides(raw) {
     var t = String(raw).trim();
     if (t === '') return true;
+    var n = Number(t);
+    if (!isFinite(n) || Math.trunc(n) !== n) return true;
     var v = parseInt(t, 10);
     return isNaN(v) || v < 2 || v > 100;
   }
@@ -164,7 +167,10 @@
     var v = parseSides(sidesInput.value);
     if (bad) {
       sidesInput.value = String(v);
-      statusEl.textContent = 'Enter 2 to 100 sides. Using ' + v + '.';
+      pendingNote = 'Enter 2 to 100 sides. Using ' + v + '.';
+      statusEl.textContent = pendingNote;
+    } else {
+      pendingNote = '';
     }
     return v;
   }
@@ -198,11 +204,16 @@
   }
 
   rollBtn.addEventListener('click', function () {
+    var corrected = (pendingNote !== '');
+    pendingNote = '';
     statusEl.textContent = '';
     var sides = readSides();
     lastRoll = 1 + Math.floor(Math.random() * sides);
     render(sides);
     save(sides);
+    if (corrected || pendingNote !== '') {
+      statusEl.textContent = 'Enter 2 to 100 sides. Using ' + sides + '.';
+    }
   });
 
   sidesInput.addEventListener('change', function () {
