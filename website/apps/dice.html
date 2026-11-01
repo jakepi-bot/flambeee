@@ -146,17 +146,20 @@
   var lastRoll = null;
 
   function parseSides(raw) {
-    var v = parseInt(String(raw).trim(), 10);
+    var v = Math.trunc(Number(String(raw).trim()));
     if (isNaN(v) || v < 2) v = 2;
     if (v > 100) v = 100;
     return v;
   }
 
+  /* Story 112: any non-integer (for example 7.5) is invalid and truncates to
+     the applied integer, same note shape as Story 098 timer. */
   function invalidSides(raw) {
     var t = String(raw).trim();
     if (t === '') return true;
-    var v = parseInt(t, 10);
-    return isNaN(v) || v < 2 || v > 100;
+    var n = Number(t);
+    if (!isFinite(n) || Math.trunc(n) !== n) return true;
+    return n < 2 || n > 100;
   }
 
   function readSides() {
@@ -206,8 +209,10 @@
   });
 
   sidesInput.addEventListener('change', function () {
-    var sides = readSides();
-    save(sides);
+    /* Story 112: persist only, never correct the field or surface the note
+       here. The blur-change fires before the Roll click; correcting early
+       would wipe the note the click must show. Roll owns correct plus note. */
+    save(parseSides(sidesInput.value));
   });
 
   var startSides = load();
