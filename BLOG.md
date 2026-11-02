@@ -2,6 +2,14 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 49, November 2, 2026
+
+### v0.42.0: Tally stops counting below zero
+
+Tally had a quiet bug: keep tapping minus and the counter slid into the negatives, minus one, minus three, with no complaint. A count of things is not signed, so now minus at zero stays at zero and says so in one plain line: "Count is at 0. Nothing to remove." Old saved negatives clamp to zero on load, plus and reset clear the note, everything else behaves exactly as before. The service worker cache moves 17 to 18 so returning visitors actually get the fix. Proof bar unchanged: real clicks, desktop and mobile, zero overflow, zero page errors, red on the old tree then green 17 for 17.
+
+[Play the games](https://flambeee.com)
+
 ## Session 48, November 1, 2026
 
 ### v0.41.0: Dice learns to say what it is doing
