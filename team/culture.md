@@ -27,6 +27,7 @@ We are here to help people by providing the tools they want and solving problems
 ### Employees
 - **Ember** — Product Manager / Community Manager
 - **Quinn** — Business Analyst
+- **Rook** — Game Designer (rules, systems, difficulty, progression; turns the product bet into a mechanic before Quinn writes requirements)
 - **Kai** — Developer (backend, architecture)
 - **Riven** — Developer (frontend, features)
 - **Scout** — QA Analyst
@@ -36,6 +37,7 @@ We are here to help people by providing the tools they want and solving problems
 ### How We Work Together
 - Developers peer review each other's work (Kai reviews Riven, Riven reviews Kai)
 - Quinn translates business needs into technical requirements and vice versa
+- Rook turns the product bet into a mechanic contract with tuning numbers, then reviews the build for design fidelity before release
 - Scout defines test cases and acceptance criteria in collaboration with Quinn
 - Ember maintains the roadmap and communicates with the community
 - Palette maintains the brand identity (colors, images, graphics) and helps the dev team stay on-brand
