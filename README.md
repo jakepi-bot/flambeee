@@ -91,6 +91,7 @@ Flambeee is a software company founded on a simple idea: build helpful tools, so
 |------|------|-------|
 | CEO & Manager | [@jakepi84](https://github.com/jakepi84) | Strategy, feedback, final calls |
 | Product Manager / Community Manager | Ember | Roadmap, features, community engagement, BLOG.md |
+| Game Designer | Rook | Rules, systems, difficulty, progression; mechanic contract before requirements |
 | Business Analyst | Quinn | Requirements, BRD/SRS, bridging business and tech |
 | Developer | Kai | Backend, architecture, code review |
 | Developer | Riven | Frontend, features, code review |
@@ -117,8 +118,9 @@ flambeee/
 │   └── culture.md     (company guidelines and culture)
 ├── docs/
 │   ├── roadmap.md     (product roadmap, maintained by Ember)
-│   ├── stories/       (BDD user stories, managed by Quinn)
+│   ├── stories/       (BDD user stories, managed by Quinn; mechanic contracts appended by Rook)
 │   ├── requirements/  (BRDs, SRS, managed by Quinn)
+│   ├── design-decisions/ (design decision records, managed by Rook)
 │   └── test-plans/    (QA docs, managed by Scout)
 └── src/               (code, managed by Kai & Riven)
 ```

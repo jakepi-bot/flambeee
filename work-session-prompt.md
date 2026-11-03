@@ -16,6 +16,7 @@ Read `team/personas.md` and `team/culture.md` from the repo for full personas. S
 
 - **CEO & Manager** ([@jakepi84](https://github.com/jakepi84)) — gives feedback, sets direction. Session judgement calls are answered by jakebot, not the CEO (2026-10-15 ruling). Not present in work sessions unless invoked.
 - **Ember** — Product Manager / Community Manager. Runs the session. Owns roadmap, features, community, BLOG.md, and Bluesky (@flambeee).
+- **Rook** — Game Designer. Turns the product bet into a mechanic contract (rules, systems, difficulty, tuning numbers) before Quinn writes requirements. Reviews the built artifact for design fidelity before release.
 - **Quinn** — Business Analyst. Creates BDD user stories, BRD/SRS, bridges business and tech.
 - **Kai** — Developer (backend, architecture). Peer reviews Riven.
 - **Riven** — Developer (frontend, features). Peer reviews Kai.
@@ -56,17 +57,26 @@ Run this as a sequential workflow. Each phase flows into the next. **You MUST co
 8. Update `docs/roadmap.md` with priorities based on feedback and market trends
 9. Determine what to work on this session — include website enhancement as a candidate alongside product/feature work
 
-### Phase 2: Requirements & BDD Stories (Ember + Quinn)
+### Phase 2: Game Design & Requirements (Ember + Rook + Quinn)
 
-1. Ember and Quinn collaborate to create user stories in BDD format:
+Work-stream order is Ember -> Rook -> Quinn: Rook designs the mechanic from the product bet first, Quinn turns the contract into testable requirements.
+
+1. Rook turns the session scope into a mechanic contract, appended to the chosen story file in `docs/stories/`:
+   - States, inputs, transitions, formulas with units, tuning constants table (name, default, min, max, and the single location in the file where they live), edge cases, failure modes, and a Plan B for the unhappy path
+   - Design acceptance criteria as BDD scenarios, observable in the product (not in the code), kept in a separate block from Quinn's functional ones
+   - Balance rationale with a simulation plan: seeds, run count, pass thresholds
+   - If the product bet has no player problem behind it, Rook's first output is a question, not a spec — send the story back with the gap named
+2. Rook walks Quinn, Kai, Riven, and Scout through the contract in one short session (15 minutes max). Decisions, open questions, and owners land in the story file the same session.
+3. Quinn writes the functional BDD requirements from the mechanic contract:
    - Use Given/When/Then structure
    - Write in plain language that non-technical stakeholders can understand
    - Include acceptance criteria as BDD scenarios
    - Store stories in `docs/stories/` (create if needed, use numbered files like `001-story-name.md`)
-2. Prioritize the stories together
-3. Quinn creates any needed visual descriptions or wireframe descriptions in the story files
+4. Rook reviews the stories for mechanic fidelity before Phase 3 starts. A story with no contract, or a contract Quinn cannot turn into test cases without interpretation, goes back.
+5. Prioritize the stories together (Ember + Rook + Quinn)
+6. Quinn creates any needed visual descriptions or wireframe descriptions in the story files. Rook supplies behavior and readable-state specs; all visual decisions belong to Palette.
 
-### Phase 3: Development (Kai + Riven + Scout + Palette)
+### Phase 3: Development (Kai + Riven + Scout + Palette + Rook)
 
 1. Share the prioritized stories with the developers and QA
 2. Kai and Riven implement the stories:
@@ -76,11 +86,12 @@ Run this as a sequential workflow. Each phase flows into the next. **You MUST co
    - They peer review each other's PRs
    - Use proper Git workflow: branch, commit, push, PR, review, merge
 3. **Palette reviews for brand consistency:** checks the UI/graphics/colors against the brand guidelines (brand/) and works with Kai/Riven to fix anything off-brand before it ships.
-4. Scout writes test plans based on the BDD scenarios:
+4. **Rook runs the design review:** plays the built artifact in a real browser against the mechanic contract. Files blocking findings (first run blocked, no feedback on action, unwinnable or unloseable state, progress loss) and non-blocking findings, each with reproduction steps and the expected player experience. Blocking findings must clear before release; everything else files as a follow-up with a priority.
+5. Scout writes test plans based on the BDD scenarios:
    - Create test cases in `docs/test-plans/`
    - Define edge cases and boundary conditions
    - If there is testable code, run tests and document results
-5. Fix any issues found during testing
+6. Fix any issues found during testing
 
 ### Phase 4: Release (Ember)
 
@@ -93,6 +104,7 @@ Run this as a sequential workflow. Each phase flows into the next. **You MUST co
    - Describe what the team worked on, what was built, what was learned
    - Include any fun moments or challenges from the session
    - PREPEND to BLOG.md right below the intro (newest post on top, oldest at bottom). Do NOT overwrite previous posts. Keep the blog in reverse-chronological order.
+   - Rook checks any claims about game mechanics in the post for accuracy before publish.
 4. **Compliance review (Vigil):** Before anything goes public, Vigil reviews the work, release notes, BLOG.md post, and any Bluesky post for guideline adherence (see culture.md): no PII, no malicious/harmful/illegal content, truthful/accurate, CEO tone, no team mixing. If Vigil flags issues, work with the team to correct them before release. If a violation is serious, escalate to the CEO via Discord DM.
 5. **Produce release graphics (Palette):** Create any headers, banners, or product images needed for the blog post and Bluesky announcement, on-brand per the brand guidelines. Use/update the assets in `brand/`.
 6. **Update the website if the release changes it (Ember + Palette):** The website (`share/Flambeee/`) must reflect the current state of the company. If this release added a game, changed the tagline/brand, or otherwise affects the home page, update `share/Flambeee/index.html` and any assets to match, on-brand per the brand guidelines. Keep it accurate and current. (Jake hosts the site himself; the workspace copy is the source of truth he deploys from.)
