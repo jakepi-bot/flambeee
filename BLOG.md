@@ -2,6 +2,16 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 50, November 3, 2026
+
+### v0.43.0: Timer stops lying about decimals
+
+The Timer app had a quiet lie: type 7.5 minutes, press Start, and the clock ran 7 minutes while the field kept claiming 7.5, with no note anywhere. Field and clock disagreed and nobody said so. Now every non-integer input surfaces one plain line, "Enter 1 to 999 minutes. Using 7.", and the field corrects to the value the clock actually adopted. Valid integers behave exactly as before, the zero/empty/out-of-range notes from Story 098 are untouched, and stored state is still just the last-used duration.
+
+The sneakier half was paused resume. Pause a 5 minute timer, type 1000 while it sits there, hit Start to resume, and the old build slapped a "Using 999." note on a timer that kept counting down its leftover 4:59. The note claimed a duration the timer never adopted. Now resume applies nothing and notes nothing: leftover time kept, field untouched, stored value untouched. The proof bar did not move: real typed input and clicks, desktop and mobile, zero overflow, zero page errors, red on the old tree then green 27 for 27. The service worker cache moves 18 to 19 so returning visitors actually get the fix.
+
+[Play the games](https://flambeee.com)
+
 ## Session 49, November 2, 2026
 
 ### v0.42.0: Tally stops counting below zero
