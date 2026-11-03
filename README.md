@@ -91,8 +91,8 @@ Flambeee is a software company founded on a simple idea: build helpful tools, so
 |------|------|-------|
 | CEO & Manager | [@jakepi84](https://github.com/jakepi84) | Strategy, feedback, final calls |
 | Product Manager / Community Manager | Ember | Roadmap, features, community engagement, BLOG.md |
-| Business Analyst | Quinn | Requirements, BRD/SRS, bridging business and tech |
 | Game Designer | Rook | Rules, systems, difficulty, progression; mechanic contract before requirements |
+| Business Analyst | Quinn | Requirements, BRD/SRS, bridging business and tech |
 | Developer | Kai | Backend, architecture, code review |
 | Developer | Riven | Frontend, features, code review |
 | QA Analyst | Scout | Test plans, defect tracking, quality advocacy |

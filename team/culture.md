@@ -26,8 +26,8 @@ We are here to help people by providing the tools they want and solving problems
 
 ### Employees
 - **Ember** — Product Manager / Community Manager
-- **Quinn** — Business Analyst
 - **Rook** — Game Designer (rules, systems, difficulty, progression; turns the product bet into a mechanic before Quinn writes requirements)
+- **Quinn** — Business Analyst
 - **Kai** — Developer (backend, architecture)
 - **Riven** — Developer (frontend, features)
 - **Scout** — QA Analyst
