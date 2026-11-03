@@ -156,6 +156,12 @@
   var totalSeconds = 5 * 60;
   var remainingMs = totalSeconds * 1000;
   var running = false;
+  /* Story 115: true only while a paused countdown waits to resume. Fresh
+     loads and expired timers leave it false, so start() can tell a fresh
+     start (apply the field, note when bad) from a paused resume (keep the
+     leftover time, note nothing). A bare remainingMs check cannot tell
+     them apart: fresh loads start at 5:00, never <= 0. */
+  var paused = false;
   var endAt = 0;
   var tickId = null;
 
@@ -189,16 +195,19 @@
   }
 
   /* Story 098 polish: one input-validation message. Out-of-range minutes are
-     corrected to the nearest valid value and the status line says so. */
+     corrected to the nearest valid value and the status line says so.
+     Story 115: non-integers count as invalid too, mirroring dice
+     invalidSides (Number plus Math.trunc). */
   function invalidMinutes(raw) {
     var t = String(raw).trim();
     if (t === '') return true;
-    var v = parseInt(t, 10);
-    return isNaN(v) || v < 1 || v > 999;
+    var n = Number(t);
+    if (!isFinite(n) || Math.trunc(n) !== n) return true;
+    return n < 1 || n > 999;
   }
 
   function parseMinutes(raw) {
-    var v = parseInt(String(raw).trim(), 10);
+    var v = Math.trunc(Number(String(raw).trim()));
     if (isNaN(v) || v < 1) v = 1;
     if (v > 999) v = 999;
     return v;
@@ -232,20 +241,23 @@
     } catch (e) { /* keep defaults */ }
   }
 
+  /* Story 115: start() only applies the field value and only notes on a
+     fresh start (expired, or never paused since the last fresh apply).
+     On a paused resume the leftover time is kept and the field contents
+     are neither applied nor noted, so the note can never claim a
+     duration the timer did not adopt. */
   function start() {
-    var badInput = invalidMinutes(minutesInput.value);
     statusEl.textContent = '';
-    if (remainingMs <= 0) {
-      totalSeconds = readMinutes() * 60;
+    if (remainingMs <= 0 || !paused) {
+      var minutes = readMinutes();
+      totalSeconds = minutes * 60;
       remainingMs = totalSeconds * 1000;
+      saveDuration(minutes);
     }
-    saveDuration(readMinutes());
+    paused = false;
     labelEl.textContent = nameInput.value.trim();
     running = true;
     endAt = Date.now() + remainingMs;
-    if (badInput) {
-      statusEl.textContent = 'Enter 1 to 999 minutes. Using ' + readMinutes() + '.';
-    }
     stopTick();
     tickId = setInterval(tick, 250);
     render();
@@ -255,6 +267,7 @@
     remainingMs = endAt - Date.now();
     if (remainingMs < 0) remainingMs = 0;
     running = false;
+    paused = true;
     stopTick();
     render();
   }
@@ -265,6 +278,7 @@
 
   resetBtn.addEventListener('click', function () {
     running = false;
+    paused = false;
     stopTick();
     var badInput = invalidMinutes(minutesInput.value);
     statusEl.textContent = '';
