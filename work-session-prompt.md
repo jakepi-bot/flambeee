@@ -52,11 +52,12 @@ Run this as a sequential workflow. Each phase flows into the next. **You MUST co
    - Any community feedback
 4. Use web_search to analyze current market trends relevant to the product: run the seed queries in `scripts/ember_hot_ideas.py` (DEFAULT_QUERIES), aimed at recent/new web game concepts and trends
 5. Rank the search results to exactly three hot-idea records with `scripts/ember_hot_ideas.py`: load `docs/ember-seen-sources.json` and drop any result whose canonical URL was seen before or whose domain is still inside its 4-session cooldown (never reuse a previous source), then record the three used sources back to the store
-6. **Read `memory/flambeee-community.md`** (workspace) for all community interactions logged since the last session — GitHub issues AND Bluesky mentions/replies. These are a first-class product-direction input.
-7. Read the current roadmap (if it exists in `docs/roadmap.md`) and product state
-8. **Review the live website** (`share/Flambeee/index.html`) — check it's current with the latest release(s), games, and brand. Identify any enhancements or fixes needed (content, layout, new games, links, accuracy). The website is a brand surface and a standing focus of weekly work; the team decides its direction.
-9. Update `docs/roadmap.md` with priorities based on feedback, market trends, and the three hot-idea records from step 5
-10. Determine what to work on this session — include website enhancement as a candidate alongside product/feature work
+6. Generate the opposite of each hot idea with `scripts/ember_invert.py`: save the step 5 records to `docs/ember-hot-ideas.json`, then run `python3 scripts/ember_invert.py --ideas docs/ember-hot-ideas.json --out docs/ember-inverted.json --axes "<a>,<b>,<c>"`. Pass `--axes` explicitly and never leave it unset: the default hashes the axis, and on the real six-idea run that hash picked monetization twice. Choose three distinct axes for those three ideas from `mechanic`, `audience`, `session length`, `social mode`, `monetization`, `theme`, judged against the idea rather than by hash: skip `theme` when the source is already grim (it emitted a Rust reskin for 6 of 6 ideas) and skip `monetization` unless a pay model is actually on the table. Quote the whole `--axes` value, `session length` and `social mode` contain spaces.
+7. **Read `memory/flambeee-community.md`** (workspace) for all community interactions logged since the last session — GitHub issues AND Bluesky mentions/replies. These are a first-class product-direction input.
+8. Read the current roadmap (if it exists in `docs/roadmap.md`) and product state
+9. **Review the live website** (`share/Flambeee/index.html`) — check it's current with the latest release(s), games, and brand. Identify any enhancements or fixes needed (content, layout, new games, links, accuracy). The website is a brand surface and a standing focus of weekly work; the team decides its direction.
+10. Update `docs/roadmap.md` with priorities based on feedback, market trends, the three hot-idea records from step 5, and the three inverted concepts from step 6
+11. Determine what to work on this session — include website enhancement as a candidate alongside product/feature work
 
 ### Phase 2: Game Design & Requirements (Ember + Rook + Quinn)
 
