@@ -50,12 +50,13 @@ Run this as a sequential workflow. Each phase flows into the next. **You MUST co
    - Open issues with enhancement requests or feature requests
    - Comments on recent releases or PRs
    - Any community feedback
-4. Use web_search to analyze current market trends relevant to the product
-5. **Read `memory/flambeee-community.md`** (workspace) for all community interactions logged since the last session — GitHub issues AND Bluesky mentions/replies. These are a first-class product-direction input.
-6. Read the current roadmap (if it exists in `docs/roadmap.md`) and product state
-7. **Review the live website** (`share/Flambeee/index.html`) — check it's current with the latest release(s), games, and brand. Identify any enhancements or fixes needed (content, layout, new games, links, accuracy). The website is a brand surface and a standing focus of weekly work; the team decides its direction.
-8. Update `docs/roadmap.md` with priorities based on feedback and market trends
-9. Determine what to work on this session — include website enhancement as a candidate alongside product/feature work
+4. Use web_search to analyze current market trends relevant to the product: run the seed queries in `scripts/ember_hot_ideas.py` (DEFAULT_QUERIES), aimed at recent/new web game concepts and trends
+5. Rank the search results to exactly three hot-idea records with `scripts/ember_hot_ideas.py`: load `docs/ember-seen-sources.json` and drop any result whose canonical URL was seen before or whose domain is still inside its 4-session cooldown (never reuse a previous source), then record the three used sources back to the store
+6. **Read `memory/flambeee-community.md`** (workspace) for all community interactions logged since the last session — GitHub issues AND Bluesky mentions/replies. These are a first-class product-direction input.
+7. Read the current roadmap (if it exists in `docs/roadmap.md`) and product state
+8. **Review the live website** (`share/Flambeee/index.html`) — check it's current with the latest release(s), games, and brand. Identify any enhancements or fixes needed (content, layout, new games, links, accuracy). The website is a brand surface and a standing focus of weekly work; the team decides its direction.
+9. Update `docs/roadmap.md` with priorities based on feedback, market trends, and the three hot-idea records from step 5
+10. Determine what to work on this session — include website enhancement as a candidate alongside product/feature work
 
 ### Phase 2: Game Design & Requirements (Ember + Rook + Quinn)
 
