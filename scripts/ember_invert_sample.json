@@ -1,0 +1,32 @@
+[
+  {
+    "title": "Harbor Idle",
+    "source_url": "https://example.com/harbor-idle-cozy-fishing",
+    "source_domain": "example.com",
+    "why_hot": "2M players this month tap through short daily tides",
+    "core_mechanic": "tap to catch fish and grow the harbor",
+    "audience": "casual mobile players",
+    "monetization": "free with ads plus a cosmetic shop",
+    "retrieved_at": "2026-11-04T06:00:00Z"
+  },
+  {
+    "title": "Neon Drift Rivals",
+    "source_url": "https://example.org/neon-drift-rivals-racing",
+    "source_domain": "example.org",
+    "why_hot": "500K wishlists after a viral clip of a live final with 40 racers",
+    "core_mechanic": "high-speed drift races against live rivals",
+    "audience": "competitive teens",
+    "monetization": "free with a battle pass of cosmetics",
+    "retrieved_at": "2026-11-04T06:00:00Z"
+  },
+  {
+    "title": "Dungeon Pact",
+    "source_url": "https://example.net/dungeon-pact-coop-crawler",
+    "source_domain": "example.net",
+    "why_hot": "sold 300K copies in its debut week on desktop charts",
+    "core_mechanic": "four-player co-op dungeon crawls with shared loot",
+    "audience": "friend groups on desktop",
+    "monetization": "one-time purchase, no shop",
+    "retrieved_at": "2026-11-04T06:00:00Z"
+  }
+]
