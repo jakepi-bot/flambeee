@@ -1,1 +1,26 @@
-{}
+{
+  "https://aiidelist.com/blog/destroy-any-website": {
+    "domain": "aiidelist.com",
+    "first_seen": "2026-11-05",
+    "reuse_cooldown_sessions": 4,
+    "session": "session-52",
+    "sourced_idea": "URL-to-level destruction sandbox",
+    "title_used": "Viral September 2026 breakout with a portable trick: user-supplied content as le"
+  },
+  "https://innovation-village.com/nigerian-developer-turns-lagos-danfo-into-viral-game": {
+    "domain": "innovation-village.com",
+    "first_seen": "2026-11-05",
+    "reuse_cooldown_sessions": 4,
+    "session": "session-52",
+    "sourced_idea": "Local-culture-as-mechanic driving game",
+    "title_used": "September 2026 proof that an original mechanic can come from lived culture: 7000"
+  },
+  "https://poki.com/blog/state-of-web-gaming-report-2026": {
+    "domain": "poki.com",
+    "first_seen": "2026-11-05",
+    "reuse_cooldown_sessions": 4,
+    "session": "session-52",
+    "sourced_idea": "Daily-seed calm logic puzzles",
+    "title_used": "Hard 2026 numbers (37% multi-daily, 100m monthly portal users): daily-seed habit"
+  }
+}
