@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Typewreck | Flambeee</title>
+<style>
+  /* Typewreck (Session 52, Story 119). Single file, no build, no dependency.
+   * Paste-to-fortress demolition: pasted text becomes an 8-row fortress where
+   * each character sets one block's HP by a public rarity rule; the bottom
+   * cannon fires piercing shots that spend a fixed damage budget traveling
+   * in a straight line. SETUP/AIM/FLYING/RESOLVE/WIN/LOSE. No network after
+   * load: the pasted string is level material only, hashed locally.
+   * Tuning (contract defaults, all live here): GRID_COLS 10, GRID_ROWS 8,
+   * CELL_PX 32, LAUNCHER_PX 120, PEN 12, SHOTS 28, AIM_MIN_DEG -70,
+   * AIM_MAX_DEG 70, AIM_KEY_STEP_DEG 2, LAUNCH_PX_PER_S 700,
+   * HIT_PAUSE_MS 250, PASTE_MAX 500, WIN_BONUS_PER_SHOT 2.
+   * Test hooks (read-only plus drivers, gameplay-neutral): ?seed= deal
+   * override, ?text= paste override, ?start=1 autostart, ?fast=1 shortens
+   * flight and resolve timing only. window.__tw exposes state readouts. */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { max-width: 100%; overflow-x: hidden; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #10131c;
+    color: #e8e4d8;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px;
+  }
+  .back-link { align-self: flex-start; color: #e8e4d8; text-decoration: none; font-size: 14px; opacity: 0.7; }
+  .back-link:hover { opacity: 1; }
+  h1 { margin: 12px 0 2px; font-size: 1.5rem; letter-spacing: 3px; color: #ffb74d; }
+  .tagline { font-size: 0.85rem; opacity: 0.75; margin-bottom: 10px; text-align: center; max-width: 560px; }
+  .hud { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 10px; font-size: 0.9rem; }
+  .hud .item { background: #1a1e2b; padding: 5px 12px; border-radius: 8px; border: 1px solid #2a3350; white-space: nowrap; }
+  #setup, #play, #end { width: 100%; max-width: 420px; display: flex; flex-direction: column; align-items: center; }
+  #paste {
+    width: 100%; min-height: 76px; resize: vertical;
+    background: #1a1e2b; color: #e8e4d8; border: 1px solid #2a3350;
+    border-radius: 8px; padding: 10px; font-size: 0.9rem;
+    font-family: inherit;
+  }
+  #paste:focus { outline: 2px solid #e94560; outline-offset: 1px; }
+  .row { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 10px; }
+  button {
+    background: #e94560; color: #fff; border: none; border-radius: 8px;
+    padding: 10px 22px; font-size: 0.95rem; font-weight: 700; cursor: pointer;
+  }
+  button:hover { background: #ff5a75; }
+  button.secondary { background: transparent; border: 1px solid #2a3350; color: #e8e4d8; }
+  button.secondary:hover { border-color: #ff5a75; color: #ff5a75; }
+  button:focus-visible { outline: 2px solid #ff5a75; outline-offset: 2px; }
+  #preview { margin-top: 10px; font-size: 0.9rem; color: #9aa7d8; text-align: center; }
+  #note { margin-top: 8px; font-size: 0.85rem; color: #ffb74d; min-height: 1.2em; text-align: center; }
+  #best { margin-top: 6px; font-size: 0.85rem; color: #9aa7d8; text-align: center; }
+  .rule { margin-top: 10px; font-size: 0.8rem; opacity: 0.7; text-align: center; max-width: 420px; }
+  canvas {
+    display: block; width: 100%; max-width: 360px; height: auto;
+    background: #0a0d15; border: 1px solid #2a3350; border-radius: 6px;
+    touch-action: none;
+  }
+  #msg { margin-top: 8px; font-size: 0.85rem; color: #9aa7d8; min-height: 1.2em; text-align: center; }
+  #endTitle { font-size: 1.6rem; letter-spacing: 2px; margin: 14px 0 6px; }
+  #endLines { font-size: 0.95rem; color: #e8e4d8; text-align: center; line-height: 1.7; }
+  .keys { margin-top: 12px; font-size: 0.8rem; opacity: 0.7; text-align: center; max-width: 560px; }
+</style>
+</head>
+<body>
+<a class="back-link" href="../index.html">Back to Flambeee</a>
+<h1>TYPEWRECK</h1>
+<p class="tagline">Paste text to raise a fortress. Wreck it with piercing shots.</p>
+
+<div id="setup">
+  <textarea id="paste" rows="3" maxlength="2000" placeholder="Paste a URL, a sentence, anything. The text becomes the wall."></textarea>
+  <div class="row">
+    <button id="startBtn" type="button">Start wrecking</button>
+    <button id="randomBtn" class="secondary" type="button">Random Wall</button>
+  </div>
+  <div id="preview">No wall dealt yet.</div>
+  <div id="note" role="status"></div>
+  <div id="best"></div>
+  <p class="rule">Soft: space and vowels. Medium: other small letters and digits. Armor: capitals, punctuation, everything exotic.</p>
+</div>
+
+<div id="play" hidden>
+  <div class="hud">
+    <span class="item">Shots: <span id="shots">28</span></span>
+    <span class="item">Blocks: <span id="blocks">80</span></span>
+    <span class="item">Score: <span id="score">0</span></span>
+    <span class="item">Aim: <span id="aim">0</span> deg</span>
+  </div>
+  <canvas id="c" width="320" height="376"></canvas>
+  <div id="msg"></div>
+  <div class="row">
+    <button id="restartBtn" class="secondary" type="button">Restart wall (R)</button>
+    <button id="changeBtn" class="secondary" type="button">Change wall</button>
+  </div>
+</div>
+
+<div id="end" hidden>
+  <div id="endTitle"></div>
+  <div id="endLines"></div>
+  <div class="row">
+    <button id="againBtn" type="button">Replay wall</button>
+    <button id="changeBtn2" class="secondary" type="button">Change wall</button>
+  </div>
+</div>
+
+<p class="keys">Move the pointer over the board to aim, click or tap to fire. Arrow keys aim (2 deg per press), Space fires, R restarts the wall.</p>
+
+<script>
+'use strict';
+/* ---------- Tuning constants (contract table, defaults) ---------- */
+var GRID_COLS = 10;        /* columns, count (8..12) */
+var GRID_ROWS = 8;         /* rows, count (6..10) */
+var CELL_PX = 32;          /* px (28..40) */
+var LAUNCHER_PX = 120;     /* px (80..160) */
+var PEN = 12;              /* HP per shot, count (8..16) */
+var SHOTS = 28;            /* shots, count (20..40) */
+var AIM_MIN_DEG = -70;     /* degrees (-85..-45) */
+var AIM_MAX_DEG = 70;      /* degrees (45..85) */
+var AIM_KEY_STEP_DEG = 2;  /* degrees/press (1..5) */
+var LAUNCH_PX_PER_S = 700; /* px/s (400..960) */
+var HIT_PAUSE_MS = 250;    /* ms (150..600) */
+var PASTE_MAX = 500;       /* chars, count (100..2000) */
+var WIN_BONUS_PER_SHOT = 2;/* points/shot, count (0..5) */
+
+var BEST_KEY = 'flambeee-typewreck-best';
+var BOARD_W = GRID_COLS * CELL_PX;   /* 320 px */
+var BOARD_H = GRID_ROWS * CELL_PX;   /* 256 px */
+var TOTAL_H = BOARD_H + LAUNCHER_PX; /* 376 px */
+var CANNON = { x: BOARD_W / 2, y: TOTAL_H - 60 }; /* bottom center, 60 px above bottom edge */
+var NCELL = GRID_COLS * GRID_ROWS;   /* 80 */
+
+/* ---------- Pure logic (no DOM; node harness evals this file) ---------- */
+function hpForChar(ch) {
+  if (ch === ' ' || ch === 'a' || ch === 'e' || ch === 'i' || ch === 'o' || ch === 'u') return 1;
+  var code = ch.codePointAt(0);
+  if ((code >= 97 && code <= 122) || (code >= 48 && code <= 57)) return 2; /* other a-z, 0-9 */
+  return 3; /* uppercase, punctuation, symbol, any other code point */
+}
+
+function fnv1aHex(str) {
+  var h = 0x811c9dc5;
+  for (var i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = (h * 0x01000193) >>> 0;
+  }
+  var s = h.toString(16);
+  while (s.length < 8) s = '0' + s;
+  return s;
+}
+
+function mulberry32(seed) {
+  var a = seed >>> 0;
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    var t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/* Paste wall: code points of text (truncated to PASTE_MAX UTF-16 units)
+ * repeat to fill 80 cells row-major. Returns {hp, totalHP, hash}. */
+function dealPasteWall(text) {
+  var t = text.length > PASTE_MAX ? text.slice(0, PASTE_MAX) : text;
+  var cps = Array.from(t);
+  var hp = new Array(NCELL);
+  var total = 0;
+  for (var i = 0; i < NCELL; i++) {
+    var h = hpForChar(cps[i % cps.length]);
+    hp[i] = h;
+    total += h;
+  }
+  return { hp: hp, totalHP: total, hash: fnv1aHex(t), len: t.length };
+}
+
+/* Random wall: seeded roll, u < 0.45 -> 1, u < 0.85 -> 2, else 3. */
+function dealRandomWall(seed) {
+  var rnd = mulberry32(seed);
+  var hp = new Array(NCELL);
+  var total = 0;
+  for (var i = 0; i < NCELL; i++) {
+    var u = rnd();
+    var h = u < 0.45 ? 1 : (u < 0.85 ? 2 : 3);
+    hp[i] = h;
+    total += h;
+  }
+  return { hp: hp, totalHP: total, seed: seed };
+}
+
+/* Ray cells in path order for an aim angle in degrees from vertical.
+ * March step is 0.02 cell units (0.64 px), well under one cell, so fast
+ * shallow rays cannot tunnel through cells. Stops when the ray exits the
+ * board region (sides or top). Returns {cells, lengthPx}. */
+function rayCells(thetaDeg) {
+  var th = thetaDeg * Math.PI / 180;
+  var dx = Math.sin(th), dy = -Math.cos(th);
+  var step = 0.02 * CELL_PX;
+  var x = CANNON.x, y = CANNON.y;
+  var cells = [];
+  var seen = {};
+  var traveled = 0;
+  for (var n = 0; n < 4000; n++) {
+    x += dx * step; y += dy * step; traveled += step;
+    if (x < 0 || x > BOARD_W || y < 0 || traveled > 1500) break;
+    if (y >= BOARD_H) continue; /* still in the launcher zone */
+    var col = Math.floor(x / CELL_PX), row = Math.floor(y / CELL_PX);
+    if (col < 0 || col >= GRID_COLS || row < 0 || row >= GRID_ROWS) continue;
+    var idx = row * GRID_COLS + col;
+    if (!seen[idx]) { seen[idx] = 1; cells.push(idx); }
+  }
+  return { cells: cells, lengthPx: traveled };
+}
+
+/* Apply one shot to a wall HP array (mutated). Occupied cells absorb
+ * min(hp, penLeft) in path order; destroyed cells absorb 0, so they no
+ * longer block penetration within the same shot. Returns damage dealt. */
+function applyShot(hp, cells, pen) {
+  var penLeft = pen;
+  var dealt = 0;
+  for (var k = 0; k < cells.length; k++) {
+    if (penLeft <= 0) break;
+    var i = cells[k];
+    if (hp[i] > 0) {
+      var d = hp[i] < penLeft ? hp[i] : penLeft;
+      hp[i] -= d;
+      penLeft -= d;
+      dealt += d;
+    }
+  }
+  return dealt;
+}
+
+function countBlocks(hp) {
+  var n = 0;
+  for (var i = 0; i < hp.length; i++) { if (hp[i] > 0) n++; }
+  return n;
+}
+
+/* Expose pure logic for the node balance harness (browser-safe guard). */
+var TW = {
+  C: {
+    GRID_COLS: GRID_COLS, GRID_ROWS: GRID_ROWS, CELL_PX: CELL_PX,
+    LAUNCHER_PX: LAUNCHER_PX, PEN: PEN, SHOTS: SHOTS,
+    AIM_MIN_DEG: AIM_MIN_DEG, AIM_MAX_DEG: AIM_MAX_DEG,
+    AIM_KEY_STEP_DEG: AIM_KEY_STEP_DEG, LAUNCH_PX_PER_S: LAUNCH_PX_PER_S,
+    HIT_PAUSE_MS: HIT_PAUSE_MS, PASTE_MAX: PASTE_MAX,
+    WIN_BONUS_PER_SHOT: WIN_BONUS_PER_SHOT
+  },
+  hpForChar: hpForChar, fnv1aHex: fnv1aHex, mulberry32: mulberry32,
+  dealPasteWall: dealPasteWall, dealRandomWall: dealRandomWall,
+  rayCells: rayCells, applyShot: applyShot, countBlocks: countBlocks
+};
+if (typeof module !== 'undefined' && module.exports) { module.exports = TW; }
+
+/* ---------- DOM game (skipped by the node harness) ---------- */
+if (typeof document !== 'undefined') (function () {
+  var params = new URLSearchParams(location.search);
+  var FAST = params.get('fast') === '1';
+  var FLIGHT_MS_SCALE = FAST ? 0.05 : 1;
+  var RESOLVE_MS = FAST ? 20 : HIT_PAUSE_MS;
+
+  var setupEl = document.getElementById('setup');
+  var playEl = document.getElementById('play');
+  var endEl = document.getElementById('end');
+  var pasteEl = document.getElementById('paste');
+  var startBtn = document.getElementById('startBtn');
+  var randomBtn = document.getElementById('randomBtn');
+  var previewEl = document.getElementById('preview');
+  var noteEl = document.getElementById('note');
+  var bestEl = document.getElementById('best');
+  var canvas = document.getElementById('c');
+  var ctx = canvas.getContext('2d');
+  var shotsEl = document.getElementById('shots');
+  var blocksEl = document.getElementById('blocks');
+  var scoreEl = document.getElementById('score');
+  var aimEl = document.getElementById('aim');
+  var msgEl = document.getElementById('msg');
+  var restartBtn = document.getElementById('restartBtn');
+  var changeBtn = document.getElementById('changeBtn');
+  var endTitle = document.getElementById('endTitle');
+  var endLines = document.getElementById('endLines');
+  var againBtn = document.getElementById('againBtn');
+  var changeBtn2 = document.getElementById('changeBtn2');
+
+  var G = {
+    state: 'SETUP', hp: [], totalHP: 0,
+    shotsFired: 0, destroyed: 0, score: 0,
+    aimDeg: 0, source: null, pendingText: null,
+    animId: 0, resolveTimer: 0, proj: null
+  };
+
+  function note(s) { noteEl.textContent = s || ''; }
+  function msg(s) { msgEl.textContent = s || ''; }
+
+  function seedLabel() {
+    if (!G.source) return '-';
+    return G.source.kind === 'random' ? String(G.source.seed) : G.source.hash;
+  }
+
+  function loadBest() {
+    try {
+      var raw = localStorage.getItem(BEST_KEY);
+      if (!raw) return null;
+      var b = JSON.parse(raw);
+      if (!b || typeof b.score !== 'number' || typeof b.seed === 'undefined') return null;
+      return { score: b.score, seed: b.seed };
+    } catch (e) { return null; }
+  }
+
+  function renderBest() {
+    var b = loadBest();
+    bestEl.textContent = b ? ('Best: ' + b.score + ' (seed ' + b.seed + ')') : '';
+  }
+
+  function saveBestIfBeats() {
+    var prev = loadBest();
+    if (!prev || G.score > prev.score) {
+      try { localStorage.setItem(BEST_KEY, JSON.stringify({ score: G.score, seed: seedLabel() })); } catch (e) {}
+    }
+    renderBest();
+  }
+
+  function previewFor(text) {
+    if (!text) return 'No wall dealt yet.';
+    var w = dealPasteWall(text);
+    return 'Wall: ' + w.totalHP + ' HP over 80 blocks. Shots: ' + SHOTS + ', damage ' + PEN + ' per shot.';
+  }
+
+  function refreshPreview() {
+    if (G.pendingText) {
+      var w = dealPasteWall(G.pendingText);
+      previewEl.textContent = 'Wall: ' + w.totalHP + ' HP over 80 blocks. Shots: ' + SHOTS + ', damage ' + PEN + ' per shot.';
+    } else if (!pasteEl.value) {
+      previewEl.textContent = 'No wall dealt yet.';
+    } else {
+      previewEl.textContent = previewFor(pasteEl.value);
+    }
+  }
+
+  function shotsLeft() { return SHOTS - G.shotsFired; }
+  function blocksLeft() { return countBlocks(G.hp); }
+
+  function refreshHud() {
+    shotsEl.textContent = String(shotsLeft());
+    blocksEl.textContent = String(blocksLeft());
+    scoreEl.textContent = String(G.score);
+    aimEl.textContent = String(G.aimDeg);
+  }
+
+  function hpColor(h) {
+    if (h >= 3) return '#e94560';
+    if (h === 2) return '#e08a3c';
+    return '#8a93b8';
+  }
+
+  function draw(projPos) {
+    ctx.clearRect(0, 0, BOARD_W, TOTAL_H);
+    ctx.fillStyle = '#0a0d15';
+    ctx.fillRect(0, 0, BOARD_W, TOTAL_H);
+    for (var r = 0; r < GRID_ROWS; r++) {
+      for (var c = 0; c < GRID_COLS; c++) {
+        var h = G.hp[r * GRID_COLS + c];
+        var x = c * CELL_PX, y = r * CELL_PX;
+        ctx.strokeStyle = '#232a45';
+        ctx.strokeRect(x + 0.5, y + 0.5, CELL_PX - 1, CELL_PX - 1);
+        if (h > 0) {
+          ctx.fillStyle = hpColor(h);
+          ctx.fillRect(x + 2, y + 2, CELL_PX - 4, CELL_PX - 4);
+          ctx.fillStyle = '#0a0d15';
+          ctx.font = 'bold 15px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(String(h), x + CELL_PX / 2, y + CELL_PX / 2 + 1);
+        }
+      }
+    }
+    /* aim indicator */
+    if (G.state === 'AIM' || G.state === 'FLYING') {
+      var th = G.aimDeg * Math.PI / 180;
+      ctx.strokeStyle = '#ffb74d';
+      ctx.setLineDash([6, 5]);
+      ctx.beginPath();
+      ctx.moveTo(CANNON.x, CANNON.y);
+      ctx.lineTo(CANNON.x + Math.sin(th) * 90, CANNON.y - Math.cos(th) * 90);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    /* cannon */
+    ctx.fillStyle = '#e8e4d8';
+    ctx.beginPath();
+    ctx.arc(CANNON.x, CANNON.y, 10, 0, Math.PI * 2);
+    ctx.fill();
+    /* projectile */
+    if (projPos) {
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(projPos.x, projPos.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function showOnly(which) {
+    setupEl.hidden = which !== 'SETUP';
+    playEl.hidden = !(which === 'AIM' || which === 'FLYING' || which === 'RESOLVE');
+    endEl.hidden = !(which === 'WIN' || which === 'LOSE');
+  }
+
+  function dealCurrent() {
+    var w;
+    if (G.source.kind === 'random') {
+      w = dealRandomWall(G.source.seed);
+    } else {
+      w = dealPasteWall(G.source.text);
+    }
+    G.hp = w.hp;
+    G.totalHP = w.totalHP;
+  }
+
+  function startAiming() {
+    G.shotsFired = 0;
+    G.destroyed = 0;
+    G.score = 0;
+    G.aimDeg = 0;
+    dealCurrent();
+    G.state = 'AIM';
+    showOnly('AIM');
+    msg('Wall: ' + G.totalHP + ' HP. Budget: ' + (SHOTS * PEN) + ' damage over ' + SHOTS + ' shots.');
+    refreshHud();
+    draw(null);
+  }
+
+  function cancelFlight() {
+    if (G.animId) { cancelAnimationFrame(G.animId); G.animId = 0; }
+    if (G.resolveTimer) { clearTimeout(G.resolveTimer); G.resolveTimer = 0; }
+    G.proj = null;
+  }
+
+  function fire() {
+    if (G.state !== 'AIM') return false;
+    if (shotsLeft() <= 0) return false;
+    var path = rayCells(G.aimDeg);
+    G.shotsFired++;
+    G.state = 'FLYING';
+    refreshHud();
+    var th = G.aimDeg * Math.PI / 180;
+    var dx = Math.sin(th), dy = -Math.cos(th);
+    var dist = path.lengthPx;
+    var durMs = (dist / LAUNCH_PX_PER_S) * 1000 * FLIGHT_MS_SCALE;
+    if (durMs < 30) durMs = 30;
+    var t0 = performance.now();
+    msg('');
+    (function step(now) {
+      var t = (now - t0) / durMs;
+      if (t >= 1) {
+        G.animId = 0;
+        resolveShot(path.cells);
+        return;
+      }
+      draw({ x: CANNON.x + dx * dist * t, y: CANNON.y + dy * dist * t });
+      G.animId = requestAnimationFrame(step);
+    })(t0);
+    return true;
+  }
+
+  function resolveShot(cells) {
+    G.state = 'RESOLVE';
+    var before = blocksLeft();
+    applyShot(G.hp, cells, PEN);
+    var after = blocksLeft();
+    var newly = before - after;
+    G.destroyed += newly;
+    G.score += newly;
+    refreshHud();
+    draw(null);
+    G.resolveTimer = setTimeout(function () {
+      G.resolveTimer = 0;
+      if (after === 0) {
+        var bonus = shotsLeft() * WIN_BONUS_PER_SHOT;
+        G.score += bonus;
+        G.state = 'WIN';
+        showOnly('WIN');
+        endTitle.textContent = 'WRECKED';
+        endTitle.style.color = '#7ee787';
+        endLines.innerHTML = 'Score: ' + G.score + ' (bonus +' + bonus + ')<br>' +
+          'Shots used: ' + G.shotsFired + ' of ' + SHOTS + '<br>' +
+          'Seed: ' + seedLabel();
+        saveBestIfBeats();
+      } else if (shotsLeft() <= 0) {
+        G.state = 'LOSE';
+        showOnly('LOSE');
+        endTitle.textContent = 'STILL STANDING';
+        endTitle.style.color = '#e94560';
+        endLines.innerHTML = 'Reason: shots. Out of shots with blocks left.<br>' +
+          'Score: ' + G.score + ', blocks left: ' + after + '<br>' +
+          'Seed: ' + seedLabel();
+        saveBestIfBeats();
+      } else {
+        G.state = 'AIM';
+        showOnly('AIM');
+        refreshHud();
+        draw(null);
+      }
+    }, RESOLVE_MS);
+  }
+
+  function restartWall() {
+    cancelFlight();
+    startAiming();
+  }
+
+  function toSetup() {
+    cancelFlight();
+    G.state = 'SETUP';
+    G.pendingText = null;
+    showOnly('SETUP');
+    note('');
+    refreshPreview();
+    renderBest();
+    draw(null);
+  }
+
+  function clampAim(d) {
+    if (d < AIM_MIN_DEG) return AIM_MIN_DEG;
+    if (d > AIM_MAX_DEG) return AIM_MAX_DEG;
+    return Math.round(d);
+  }
+
+  function aimFromPoint(clientX, clientY) {
+    var r = canvas.getBoundingClientRect();
+    var x = (clientX - r.left) * (BOARD_W / r.width);
+    var y = (clientY - r.top) * (TOTAL_H / r.height);
+    var dx = x - CANNON.x, dy = CANNON.y - y;
+    if (dy <= 0) dy = 1;
+    var deg = Math.atan2(dx, dy) * 180 / Math.PI;
+    G.aimDeg = clampAim(deg);
+    if (G.state === 'AIM') { refreshHud(); draw(null); }
+  }
+
+  canvas.addEventListener('pointermove', function (e) {
+    if (G.state === 'AIM' || G.state === 'FLYING') aimFromPoint(e.clientX, e.clientY);
+  });
+  canvas.addEventListener('pointerdown', function (e) {
+    if (G.state !== 'AIM') return;
+    e.preventDefault();
+    aimFromPoint(e.clientX, e.clientY);
+    fire();
+  });
+
+  window.addEventListener('keydown', function (e) {
+    var tag = (e.target && e.target.tagName) || '';
+    if (tag === 'TEXTAREA' || tag === 'INPUT') return;
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      if (G.state === 'AIM' || G.state === 'FLYING') {
+        G.aimDeg = clampAim(G.aimDeg + (e.key === 'ArrowRight' ? AIM_KEY_STEP_DEG : -AIM_KEY_STEP_DEG));
+        if (G.state === 'AIM') { refreshHud(); draw(null); }
+      }
+    } else if (e.code === 'Space') {
+      e.preventDefault();
+      fire();
+    } else if (e.key === 'r' || e.key === 'R') {
+      if (G.state !== 'SETUP') restartWall();
+    }
+  });
+
+  pasteEl.addEventListener('input', function () {
+    note('');
+    G.pendingText = null;
+    refreshPreview();
+  });
+
+  randomBtn.addEventListener('click', function () {
+    var seed = Math.floor(Math.random() * 2147483648);
+    G.pendingText = null;
+    G.source = { kind: 'random', seed: seed };
+    var w = dealRandomWall(seed);
+    previewEl.textContent = 'Wall: ' + w.totalHP + ' HP over 80 blocks. Shots: ' + SHOTS + ', damage ' + PEN + ' per shot. Seed: ' + seed;
+    note('Random wall dealt. Seed ' + seed + '. Press Start.');
+  });
+
+  startBtn.addEventListener('click', function () {
+    var raw = pasteEl.value;
+    if (!raw) {
+      if (G.source && G.source.kind === 'random' && !G.pendingText) {
+        startAiming();
+        return;
+      }
+      note('Paste some text or deal a random wall.');
+      return;
+    }
+    var t = raw.length > PASTE_MAX ? raw.slice(0, PASTE_MAX) : raw;
+    if (raw.length > PASTE_MAX) note('Using the first 500 characters.');
+    else note('');
+    G.source = { kind: 'paste', text: t, hash: fnv1aHex(t) };
+    G.pendingText = t;
+    startAiming();
+  });
+
+  restartBtn.addEventListener('click', restartWall);
+  changeBtn.addEventListener('click', toSetup);
+  againBtn.addEventListener('click', restartWall);
+  changeBtn2.addEventListener('click', toSetup);
+
+  /* Read-only test hooks plus small drivers for the scenario script. */
+  window.__tw = {
+    get state() { return G.state; },
+    get shotsFired() { return G.shotsFired; },
+    get shotsLeft() { return shotsLeft(); },
+    get score() { return G.score; },
+    get destroyed() { return G.destroyed; },
+    get aim() { return G.aimDeg; },
+    get seedLabel() { return seedLabel(); },
+    get totalHP() { return G.totalHP; },
+    wallHP: function () { return G.hp.slice(); },
+    blocksLeft: function () { return blocksLeft(); },
+    noteText: function () { return noteEl.textContent; },
+    previewText: function () { return previewEl.textContent; },
+    bestText: function () { return bestEl.textContent; },
+    setAim: function (d) {
+      G.aimDeg = clampAim(d);
+      if (G.state === 'AIM') { refreshHud(); draw(null); }
+      return G.aimDeg;
+    },
+    consts: function () {
+      return {
+        GRID_COLS: GRID_COLS, GRID_ROWS: GRID_ROWS, CELL_PX: CELL_PX,
+        LAUNCHER_PX: LAUNCHER_PX, PEN: PEN, SHOTS: SHOTS,
+        AIM_MIN_DEG: AIM_MIN_DEG, AIM_MAX_DEG: AIM_MAX_DEG,
+        AIM_KEY_STEP_DEG: AIM_KEY_STEP_DEG, LAUNCH_PX_PER_S: LAUNCH_PX_PER_S,
+        HIT_PAUSE_MS: HIT_PAUSE_MS, PASTE_MAX: PASTE_MAX,
+        WIN_BONUS_PER_SHOT: WIN_BONUS_PER_SHOT
+      };
+    }
+  };
+
+  /* Query overrides for deterministic proofs. */
+  (function queryBoot() {
+    var qSeed = params.get('seed');
+    var qText = params.get('text');
+    renderBest();
+    refreshPreview();
+    draw(null);
+    if (qText !== null) {
+      pasteEl.value = qText;
+      var t = qText.length > PASTE_MAX ? qText.slice(0, PASTE_MAX) : qText;
+      G.source = { kind: 'paste', text: t, hash: fnv1aHex(t) };
+      G.pendingText = t;
+      refreshPreview();
+    } else if (qSeed !== null && qSeed !== '') {
+      var s = parseInt(qSeed, 10) || 0;
+      G.source = { kind: 'random', seed: s };
+      var w = dealRandomWall(s);
+      previewEl.textContent = 'Wall: ' + w.totalHP + ' HP over 80 blocks. Shots: ' + SHOTS + ', damage ' + PEN + ' per shot. Seed: ' + s;
+    }
+    if (params.get('start') === '1' && G.source) startAiming();
+  })();
+})();
+</script>
+</body>
+</html>
