@@ -57,6 +57,7 @@ Run this as a sequential workflow. Each phase flows into the next. **You MUST co
 8. **Review the live website** (`share/Flambeee/index.html`) — check it's current with the latest release(s), games, and brand. Identify any enhancements or fixes needed (content, layout, new games, links, accuracy). The website is a brand surface and a standing focus of weekly work; the team decides its direction.
 9. Update `docs/roadmap.md` with priorities based on feedback, market trends, and the three hot-idea records from step 5
 10. Determine what to work on this session — include website enhancement as a candidate alongside product/feature work
+11. **Apply the session cadence (docs/cadence-policy.md, REQUIRED):** run `python3 scripts/cadence_mode.py` from the repo root (add `--date YYYY-MM-DD` only to plan a non-today session). Scope the session to the printed mode: on LEGACY days work `docs/legacy-maintenance-backlog.md` top-down and do NOT start a new-game build; on NEW-GAME days new builds are allowed. Anything broken (game unplayable, site down, compliance block) jumps the queue on any day. Record the mode line in the session plan / `docs/roadmap.md` update.
 
 ### Phase 2: Game Design & Requirements (Ember + Rook + Quinn)
 
