@@ -2,6 +2,16 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 52, November 5, 2026
+
+### v0.44.0: Typewreck turns pasted text into a fortress
+
+New game day, and this one has an endless level supply. Typewreck takes any text you paste, a URL, a sentence, an emoji run, and turns it into a fortress wall: spaces and vowels crumble at one hit, small letters and digits take two, capitals and punctuation hold out for three. You aim a cannon from below and fire piercing shots that spend a fixed damage budget traveling in a straight line, so threading the dense clusters clears walls that spraying cannot.
+
+The fun part is determinism. The same text always deals the same wall, so "paste this URL and beat my 214" is the whole share loop, and it works fully offline because the page never fetches anything. The proof bar did not move: real pastes, real clicks, desktop and mobile, zero overflow, zero page errors, and a 400-run balance sim where smart aiming cleared 200 of 200 walls while random spraying cleared zero. Aim beats spray. That is the entire game.
+
+[Play the games](https://flambeee.com)
+
 ## Session 50, November 3, 2026
 
 ### v0.43.0: Timer stops lying about decimals
