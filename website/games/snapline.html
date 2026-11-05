@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="data:,">
+<title>Snapline | Flambeee</title>
+<style>
+  /* Snapline (Session 51, Story 116). Single file, no build, no dependency. */
+  /* Load-breaking ceiling shooter: every orb sticks and adds one load. */
+  /* A strand detaches when its orb count exceeds its anchor strength. */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { max-width: 100%; overflow-x: hidden; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0b0b0e;
+    color: #d8d8d8;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px;
+  }
+  .back-link { align-self: flex-start; color: #d8d8d8; text-decoration: none; font-size: 14px; opacity: 0.7; }
+  .back-link:hover { opacity: 1; }
+  h1 { margin: 12px 0 2px; font-size: 1.5rem; letter-spacing: 4px; color: #f0e6c0; }
+  .tagline { font-size: 0.85rem; opacity: 0.75; margin-bottom: 10px; text-align: center; max-width: 560px; }
+  .hud { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 10px; font-size: 0.9rem; }
+  .hud .item { background: #141418; padding: 5px 12px; border-radius: 8px; border: 1px solid #2a2a2e; white-space: nowrap; }
+  #strains { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-bottom: 10px; font-size: 0.8rem; max-width: 560px; }
+  #strains .strand { background: #141418; padding: 3px 9px; border-radius: 6px; border: 1px solid #2a2a2e; white-space: nowrap; }
+  #strains .strand.warn { border-color: #c9a227; color: #ffe9a8; }
+  #stage { position: relative; width: 320px; max-width: 100%; }
+  canvas { display: block; width: 100%; height: auto; background: #08080a; border: 1px solid #222; border-radius: 6px; touch-action: none; }
+  .overlay {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center;
+    background: rgba(8, 8, 10, 0.88); border-radius: 6px; padding: 20px; gap: 8px;
+  }
+  .overlay[hidden] { display: none; }
+  .overlay h2 { letter-spacing: 4px; color: #f0e6c0; font-size: 1.6rem; }
+  .overlay p { font-size: 0.9rem; opacity: 0.85; max-width: 260px; }
+  .overlay .seedline { font-size: 0.8rem; opacity: 0.7; }
+  .overlay button {
+    margin-top: 6px; font-size: 1rem; padding: 8px 26px; border-radius: 8px;
+    border: 1px solid #c9a227; background: #1c1a10; color: #ffe9a8; cursor: pointer;
+  }
+  .overlay button:hover { background: #2a2616; }
+  .keys { margin-top: 10px; font-size: 0.8rem; opacity: 0.7; text-align: center; max-width: 560px; }
+</style>
+</head>
+<body>
+<a class="back-link" href="../index.html">Back to Flambeee</a>
+<h1>SNAPLINE</h1>
+<p class="tagline">Every shot sticks and adds weight. Overload a strand past its anchor strength and it snaps.</p>
+<div class="hud">
+  <span class="item">Score: <span id="score">0</span></span>
+  <span class="item">Shots: <span id="shots">40</span></span>
+  <span class="item">Seed: <span id="seed">-</span></span>
+  <span class="item">Best: <span id="best">-</span></span>
+</div>
+<div id="strains" aria-live="polite"></div>
+<div id="stage">
+  <canvas id="c" width="320" height="520"></canvas>
+  <div class="overlay" id="titleOv">
+    <h2>SNAPLINE</h2>
+    <p>Every shot sticks and adds weight. Overload a strand past its anchor strength and it snaps.</p>
+    <p class="seedline">Seed: <span id="titleSeed">-</span></p>
+    <button id="startBtn" type="button">Start</button>
+  </div>
+  <div class="overlay" id="endOv" hidden>
+    <h2 id="endTitle">WIN</h2>
+    <p id="endReason"></p>
+    <p class="seedline" id="endStats"></p>
+    <button id="restartBtn" type="button">Restart</button>
+  </div>
+</div>
+<p class="keys">Move pointer or tap to aim and fire. Arrows aim, Space fires, R restarts. Warn strands show ! plus strain.</p>
+<script>
+'use strict';
+/* Snapline: load-breaking ceiling shooter (Session 51, Story 116).
+ * Spine: aim from the bottom launcher, fire orbs upward into a ceiling-hung
+ * square lattice. Every fired orb sticks permanently and adds exactly one
+ * unit of load to the ceiling-hung strand it joins. A strand detaches and
+ * scores when its orb count exceeds its anchor strength. The ceiling
+ * descends on a fixed shot clock. WIN by clearing the board. LOSE by
+ * letting any orb reach the line row or by running out of shots.
+ * Tuning, states, formulas, and edge cases follow Rook's Session 51
+ * contract exactly (see flambeee-team/design-handoff.md). */
+
+/* ---- Tuning constants (contract table as retreated per Plan B, Session 51:
+ * FILL_P 0.65, STR_MAX 9. Rook's fail branch: defaults failed the greedy
+ * threshold (98/200), Plan B run passed it (124/200) with random, median,
+ * and trivial all green, so the file carries the retreat. Do not retune
+ * further without a story.) ---- */
+var GRID_COLS = 8;        /* columns, count */
+var GRID_ROWS = 10;       /* rows, count */
+var CELL_PX = 40;         /* px */
+var LAUNCH_PX_PER_S = 640;/* px/s */
+var AIM_MIN_DEG = -75;    /* degrees */
+var AIM_MAX_DEG = 75;     /* degrees */
+var AIM_KEY_STEP_DEG = 2; /* degrees/press */
+var START_ROWS = 3;       /* rows, count */
+var FILL_P = 0.65;        /* probability, unitless (Plan B retreat from 0.55) */
+var STR_MIN = 6;          /* orbs, count */
+var STR_MAX = 9;          /* orbs, count (Plan B retreat from 10) */
+var SHOTS = 40;           /* shots, count */
+var DROP_EVERY = 8;       /* shots/row */
+var LINE_ROW = 8;         /* row index, count */
+var SNAP_PAUSE_MS = 350;  /* ms */
+var STRAIN_WARN = 0.75;   /* ratio, unitless */
+var BEST_KEY = 'flambeee-snapline-best';
+var BOARD_W = GRID_COLS * CELL_PX; /* 320 px */
+var BOARD_H = GRID_ROWS * CELL_PX; /* 400 px */
+var LAUNCHER_PX = 120;
+var LAUNCH_X = BOARD_W / 2;
+var LAUNCH_Y = BOARD_H + 90;
+var ORB_R = 17;
+
+/* ---- Seeded RNG (mulberry32) ---- */
+function makeRng(seed) {
+  var a = seed >>> 0;
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    var t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/* ---- Pure board logic (also extracted verbatim for the balance harness) ---- */
+function emptyGrid() {
+  var g = [];
+  for (var r = 0; r < GRID_ROWS; r++) { g.push([0,0,0,0,0,0,0,0]); }
+  return g;
+}
+
+/* Components: 4-neighborhood flood fill from all ceiling-touch cells
+ * (cells in the current ceiling row; the ceiling descends with the drops).
+ * load = orb count. strength = sum of STR over ceiling-touch cells. */
+function findComponents(grid, anchors, ceilRow) {
+  if (ceilRow == null) ceilRow = 0;
+  var seen = [];
+  for (var r = 0; r < GRID_ROWS; r++) { seen.push([false,false,false,false,false,false,false,false]); }
+  var comps = [];
+  for (var c = 0; c < GRID_COLS; c++) {
+    if (!grid[ceilRow][c] || seen[ceilRow][c]) continue;
+    var cells = [];
+    var stack = [[ceilRow, c]];
+    seen[ceilRow][c] = true;
+    while (stack.length) {
+      var cell = stack.pop();
+      var rr = cell[0], cc = cell[1];
+      cells.push(cell);
+      var nb = [[rr-1,cc],[rr+1,cc],[rr,cc-1],[rr,cc+1]];
+      for (var i = 0; i < 4; i++) {
+        var nr = nb[i][0], nc = nb[i][1];
+        if (nr < 0 || nr >= GRID_ROWS || nc < 0 || nc >= GRID_COLS) continue;
+        if (!grid[nr][nc] || seen[nr][nc]) continue;
+        seen[nr][nc] = true;
+        stack.push([nr, nc]);
+      }
+    }
+    var strength = 0;
+    for (var j = 0; j < cells.length; j++) {
+      if (cells[j][0] === ceilRow) strength += anchors[cells[j][1]];
+    }
+    comps.push({ cells: cells, load: cells.length, strength: strength,
+      strain: strength > 0 ? cells.length / strength : 0 });
+  }
+  return comps;
+}
+
+function orbCount(grid) {
+  var n = 0;
+  for (var r = 0; r < GRID_ROWS; r++)
+    for (var c = 0; c < GRID_COLS; c++) if (grid[r][c]) n++;
+  return n;
+}
+
+/* Generation: random fill of START_ROWS, then guarantee at least one
+ * component at or above STRAIN_WARN by topping up the closest-to-snapping
+ * component (the weakest column gains orbs until it qualifies). Top-up
+ * orbs go only in rows below the dealt fill: those rows start empty, so
+ * new orbs only ever touch the strand being fed, anchor strength stays
+ * fixed, and the gap closes by exactly one per orb. Cells at or below
+ * LINE_ROW are never used. */
+function generate(seed) {
+  var rng = makeRng(seed);
+  var anchors = [];
+  for (var c = 0; c < GRID_COLS; c++) {
+    anchors.push(STR_MIN + Math.floor(rng() * (STR_MAX - STR_MIN + 1)));
+  }
+  var grid = emptyGrid();
+  for (var r = 0; r < START_ROWS; r++) {
+    for (var cc = 0; cc < GRID_COLS; cc++) {
+      if (rng() < FILL_P) grid[r][cc] = 1;
+    }
+  }
+  if (!grid[0].some(function (v) { return v === 1; })) {
+    grid[0][Math.floor(rng() * GRID_COLS)] = 1;
+  }
+  for (var iter = 0; iter < 80; iter++) {
+    var comps = findComponents(grid, anchors, 0);
+    var done = false;
+    var order = comps.slice().sort(function (a, b) {
+      return (a.strength - a.load) - (b.strength - b.load);
+    });
+    for (var i = 0; i < order.length; i++) {
+      if (order[i].strain >= STRAIN_WARN) { done = true; break; }
+    }
+    if (done || !order.length) break;
+    var placed = false;
+    for (var w = 0; w < order.length && !placed; w++) {
+      var target = order[w];
+      var member = [];
+      for (var mr = 0; mr < GRID_ROWS; mr++) { member.push([false,false,false,false,false,false,false,false]); }
+      for (var j = 0; j < target.cells.length; j++) member[target.cells[j][0]][target.cells[j][1]] = true;
+      var bestCell = null;
+      for (var r2 = 0; r2 < LINE_ROW; r2++) {
+        for (var c2 = 0; c2 < GRID_COLS; c2++) {
+          if (grid[r2][c2]) continue;
+          var adjSelf = false, adjForeign = false;
+          var nb = [[r2-1,c2],[r2+1,c2],[r2,c2-1],[r2,c2+1]];
+          for (var n = 0; n < 4; n++) {
+            var nr = nb[n][0], nc = nb[n][1];
+            if (nr < 0 || nr >= GRID_ROWS || nc < 0 || nc >= GRID_COLS) continue;
+            if (!grid[nr][nc]) continue;
+            if (member[nr][nc]) adjSelf = true;
+            else adjForeign = true;
+          }
+          if (!adjSelf || adjForeign) continue;
+          if (bestCell === null || r2 < bestCell[0]) bestCell = [r2, c2];
+        }
+      }
+      if (bestCell) {
+        grid[bestCell[0]][bestCell[1]] = 1;
+        placed = true;
+      }
+    }
+    if (!placed) break;
+  }
+  return { grid: grid, anchors: anchors };
+}
+
+/* Nearest empty cell to (row, col) by BFS; ties break toward the ceiling
+ * (smaller row first). Used for ceiling sticks and full-neighborhood falls. */
+function nearestEmpty(grid, row, col) {
+  var seen = [];
+  for (var r = 0; r < GRID_ROWS; r++) { seen.push([false,false,false,false,false,false,false,false]); }
+  var queue = [[row, col]];
+  var cc = Math.max(0, Math.min(GRID_COLS - 1, col));
+  var rr = Math.max(0, Math.min(GRID_ROWS - 1, row));
+  queue = [[rr, cc]];
+  seen[rr][cc] = true;
+  while (queue.length) {
+    var cell = queue.shift();
+    if (!grid[cell[0]][cell[1]]) return cell;
+    var nb = [[cell[0]-1,cell[1]],[cell[0],cell[1]-1],[cell[0],cell[1]+1],[cell[0]+1,cell[1]]];
+    for (var i = 0; i < 4; i++) {
+      var nr = nb[i][0], nc = nb[i][1];
+      if (nr < 0 || nr >= GRID_ROWS || nc < 0 || nc >= GRID_COLS || seen[nr][nc]) continue;
+      seen[nr][nc] = true;
+      queue.push([nr, nc]);
+    }
+  }
+  return null;
+}
+
+/* Orb-contact stick: nearest empty 4-neighbor of the contacted cell to the
+ * contact point; ties break toward the ceiling. */
+function stickNear(grid, hitRow, hitCol, px, py) {
+  var best = null, bestD = Infinity, bestR = Infinity;
+  var nb = [[hitRow-1,hitCol],[hitRow+1,hitCol],[hitRow,hitCol-1],[hitRow,hitCol+1]];
+  for (var i = 0; i < 4; i++) {
+    var nr = nb[i][0], nc = nb[i][1];
+    if (nr < 0 || nr >= GRID_ROWS || nc < 0 || nc >= GRID_COLS) continue;
+    if (grid[nr][nc]) continue;
+    var cx = (nc + 0.5) * CELL_PX, cy = (nr + 0.5) * CELL_PX;
+    var d = (cx - px) * (cx - px) + (cy - py) * (cy - py);
+    if (d < bestD - 1e-9 || (Math.abs(d - bestD) <= 1e-9 && nr < bestR)) {
+      bestD = d; bestR = nr; best = [nr, nc];
+    }
+  }
+  if (best) return best;
+  return nearestEmpty(grid, hitRow, hitCol);
+}
+
+/* One RESOLVE step on the board. Returns { detached, win, loseReason }.
+ * Snap: every component with load strictly greater than strength detaches.
+ * Gravity: cells with no 4-neighborhood path to the ceiling detach too.
+ * WIN takes precedence over shots-exhausted LOSE. */
+function resolveBoard(grid, anchors, ceilRow, shotsLeft) {
+  var comps = findComponents(grid, anchors, ceilRow);
+  var drop = [];
+  for (var i = 0; i < comps.length; i++) {
+    if (comps[i].load > comps[i].strength) drop.push(comps[i]);
+  }
+  var inDrop = [];
+  for (var r = 0; r < GRID_ROWS; r++) { inDrop.push([false,false,false,false,false,false,false,false]); }
+  for (var d = 0; d < drop.length; d++) {
+    var cells = drop[d].cells;
+    for (var j = 0; j < cells.length; j++) inDrop[cells[j][0]][cells[j][1]] = true;
+  }
+  var compsLeft = findComponents(grid.map(function (row, ri) {
+    return row.map(function (v, ci) { return inDrop[ri][ci] ? 0 : v; });
+  }), anchors, ceilRow);
+  var kept = [];
+  for (var rr = 0; rr < GRID_ROWS; rr++) { kept.push([false,false,false,false,false,false,false,false]); }
+  for (var c = 0; c < compsLeft.length; c++) {
+    var cl = compsLeft[c].cells;
+    for (var k = 0; k < cl.length; k++) kept[cl[k][0]][cl[k][1]] = true;
+  }
+  var detached = 0;
+  for (var gr = 0; gr < GRID_ROWS; gr++) {
+    for (var gc = 0; gc < GRID_COLS; gc++) {
+      if (grid[gr][gc] && (inDrop[gr][gc] || !kept[gr][gc])) {
+        grid[gr][gc] = 0;
+        detached++;
+      }
+    }
+  }
+  var remaining = orbCount(grid);
+  var win = remaining === 0;
+  var loseReason = null;
+  if (!win) {
+    var lineHit = false;
+    for (var lr = LINE_ROW; lr < GRID_ROWS; lr++) {
+      for (var lc = 0; lc < GRID_COLS; lc++) {
+        if (grid[lr][lc]) { lineHit = true; break; }
+      }
+      if (lineHit) break;
+    }
+    if (lineHit) loseReason = 'line';
+    else if (shotsLeft <= 0) loseReason = 'shots';
+  }
+  return { detached: detached, win: win, loseReason: loseReason };
+}
+
+/* Ceiling drop: total rows = floor(shotsFired / DROP_EVERY). Shift all orb
+ * cells down by (target - applied). */
+function applyDrop(grid, shotsFired, applied) {
+  var target = Math.floor(shotsFired / DROP_EVERY);
+  var shift = target - applied;
+  if (shift <= 0) return applied;
+  for (var r = GRID_ROWS - 1; r >= 0; r--) {
+    for (var c = 0; c < GRID_COLS; c++) {
+      if (!grid[r][c]) continue;
+      grid[r][c] = 0;
+      var nr = r + shift;
+      if (nr > GRID_ROWS - 1) nr = GRID_ROWS - 1;
+      grid[nr][c] = 1;
+    }
+  }
+  return target;
+}
+
+/* ---- Game state ---- */
+var G = {
+  state: 'TITLE', grid: emptyGrid(), anchors: [], ceil: 0,
+  seed: 0, score: 0, shotsFired: 0, appliedDrops: 0,
+  aimDeg: 0, proj: null, resolveEndsAt: 0, pending: null, flash: null
+};
+
+var canvas = document.getElementById('c');
+var ctx = canvas.getContext('2d');
+var scoreEl = document.getElementById('score');
+var shotsEl = document.getElementById('shots');
+var seedEl = document.getElementById('seed');
+var bestEl = document.getElementById('best');
+var strainsEl = document.getElementById('strains');
+var titleOv = document.getElementById('titleOv');
+var endOv = document.getElementById('endOv');
+var endTitle = document.getElementById('endTitle');
+var endReason = document.getElementById('endReason');
+var endStats = document.getElementById('endStats');
+var titleSeed = document.getElementById('titleSeed');
+
+function readBest() {
+  try {
+    var raw = localStorage.getItem(BEST_KEY);
+    if (!raw) return null;
+    var b = JSON.parse(raw);
+    if (b && typeof b.score === 'number' && typeof b.seed === 'number') return b;
+    return null;
+  } catch (e) { return null; }
+}
+
+function writeBest(score, seed) {
+  try { localStorage.setItem(BEST_KEY, JSON.stringify({ score: score, seed: seed })); }
+  catch (e) { /* storage unavailable: best display simply stays empty */ }
+}
+
+function refreshHud() {
+  scoreEl.textContent = String(G.score);
+  shotsEl.textContent = String(SHOTS - G.shotsFired);
+  seedEl.textContent = String(G.seed);
+  var b = readBest();
+  bestEl.textContent = b ? (b.score + ' (seed ' + b.seed + ')') : '-';
+}
+
+function refreshStrains(comps) {
+  strainsEl.innerHTML = '';
+  var list = (comps || findComponents(G.grid, G.anchors, G.ceil)).slice();
+  list.sort(function (a, b) { return b.strain - a.strain; });
+  for (var i = 0; i < list.length; i++) {
+    var s = document.createElement('span');
+    var warn = list[i].strain >= STRAIN_WARN;
+    s.className = 'strand' + (warn ? ' warn' : '');
+    s.textContent = 'S' + (i + 1) + ' ' + list[i].load + '/' + list[i].strength +
+      (warn ? ' ! WARN ' + list[i].strain.toFixed(2) : ' ' + list[i].strain.toFixed(2));
+    strainsEl.appendChild(s);
+  }
+}
+
+function newRun(seed) {
+  var gen = generate(seed);
+  G.grid = gen.grid;
+  G.anchors = gen.anchors;
+  G.ceil = 0;
+  G.seed = seed;
+  G.score = 0;
+  G.shotsFired = 0;
+  G.appliedDrops = 0;
+  G.aimDeg = 0;
+  G.proj = null;
+  G.pending = null;
+  G.flash = null;
+  G.state = 'AIM';
+  titleOv.hidden = true;
+  endOv.hidden = true;
+  titleSeed.textContent = String(seed);
+  refreshHud();
+  refreshStrains();
+}
+
+function startFromTitle() {
+  var seed = Math.floor(Math.random() * Math.pow(2, 31));
+  newRun(seed);
+}
+
+function clampAim(d) {
+  if (d < AIM_MIN_DEG) return AIM_MIN_DEG;
+  if (d > AIM_MAX_DEG) return AIM_MAX_DEG;
+  return d;
+}
+
+function aimAngleRad() { return G.aimDeg * Math.PI / 180; }
+
+function fire() {
+  if (G.state !== 'AIM') return false;
+  G.shotsFired++;
+  var a = aimAngleRad();
+  G.proj = { x: LAUNCH_X, y: LAUNCH_Y,
+    vx: Math.sin(a) * LAUNCH_PX_PER_S, vy: -Math.cos(a) * LAUNCH_PX_PER_S };
+  G.state = 'FLYING';
+  refreshHud();
+  return true;
+}
+
+function stepProjectile(dt) {
+  var p = G.proj;
+  var remaining = LAUNCH_PX_PER_S * dt;
+  while (remaining > 0 && G.state === 'FLYING') {
+    var hop = Math.min(4, remaining);
+    var len = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+    p.x += (p.vx / len) * hop;
+    p.y += (p.vy / len) * hop;
+    remaining -= hop;
+    if (p.x < ORB_R) { p.x = ORB_R; p.vx = Math.abs(p.vx); }
+    if (p.x > BOARD_W - ORB_R) { p.x = BOARD_W - ORB_R; p.vx = -Math.abs(p.vx); }
+    if (p.y - ORB_R <= G.ceil * CELL_PX) {
+      var col = Math.max(0, Math.min(GRID_COLS - 1, Math.floor(p.x / CELL_PX)));
+      var cell = nearestEmpty(G.grid, G.ceil, col) || [G.ceil, col];
+      stickAt(cell[0], cell[1]);
+      return;
+    }
+    if (p.y >= 0 && p.y < BOARD_H) {
+      var c = Math.floor(p.x / CELL_PX);
+      var r = Math.floor(p.y / CELL_PX);
+      if (c >= 0 && c < GRID_COLS && r >= 0 && r < GRID_ROWS && G.grid[r][c]) {
+        var spot = stickNear(G.grid, r, c, p.x, p.y) || nearestEmpty(G.grid, r, c);
+        if (spot) stickAt(spot[0], spot[1]);
+        else {
+          G.proj = null;
+          G.flash = null;
+          G.pending = resolveBoard(G.grid, G.anchors, G.ceil, SHOTS - G.shotsFired);
+          enterResolve();
+        }
+        return;
+      }
+    }
+    if (p.y > BOARD_H + LAUNCHER_PX + 40) { G.proj = null; G.state = 'AIM'; return; }
+  }
+}
+
+function enterResolve() {
+  G.state = 'RESOLVE';
+  G.resolveEndsAt = performance.now() + SNAP_PAUSE_MS;
+  refreshStrains();
+}
+
+function stickAt(r, c) {
+  G.grid[r][c] = 1;
+  G.proj = null;
+  G.flash = { row: r, col: c, until: performance.now() + SNAP_PAUSE_MS };
+  var res = resolveBoard(G.grid, G.anchors, G.ceil, SHOTS - G.shotsFired);
+  G.pending = res;
+  enterResolve();
+}
+
+function finishResolve() {
+  var res = G.pending || { detached: 0, win: false, loseReason: null };
+  G.pending = null;
+  if (res.detached > 0) {
+    G.score += res.detached;
+    G.flash = null;
+  }
+  G.appliedDrops = applyDrop(G.grid, G.shotsFired, G.appliedDrops);
+  G.ceil = G.appliedDrops;
+  refreshHud();
+  refreshStrains();
+  var lineHit = false;
+  for (var r = LINE_ROW; r < GRID_ROWS; r++) {
+    for (var c = 0; c < GRID_COLS; c++) {
+      if (G.grid[r][c]) { lineHit = true; break; }
+    }
+    if (lineHit) break;
+  }
+  if (res.win) endRun(true, '');
+  else if (lineHit) endRun(false, 'line');
+  else if (res.loseReason) endRun(false, res.loseReason);
+  else { G.state = 'AIM'; }
+}
+
+function endRun(win, reason) {
+  G.state = win ? 'WIN' : 'LOSE';
+  var b = readBest();
+  if (!b || G.score > b.score) writeBest(G.score, G.seed);
+  endTitle.textContent = win ? 'WIN' : 'LOSE';
+  endReason.textContent = win ? 'Board cleared.' :
+    (reason === 'line' ? 'Reason: line. An orb reached the marked row.' :
+     'Reason: shots. Out of shots with orbs left.');
+  endStats.textContent = 'Score ' + G.score + ', shots used ' + G.shotsFired + ', seed ' + G.seed;
+  endOv.hidden = false;
+  refreshHud();
+}
+
+/* ---- Rendering ---- */
+function drawOrb(x, y, warn, label) {
+  ctx.beginPath();
+  ctx.arc(x, y, ORB_R - 1, 0, Math.PI * 2);
+  ctx.fillStyle = warn ? '#8f8f96' : '#9a9a9a';
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = warn ? '#c9a227' : '#55555c';
+  ctx.stroke();
+  if (warn && label) {
+    ctx.fillStyle = '#0b0b0e';
+    ctx.fillRect(x - 19, y - ORB_R - 15, 38, 14);
+    ctx.fillStyle = '#ffe9a8';
+    ctx.font = 'bold 10px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(label, x, y - ORB_R - 4);
+  }
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#08080a';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  var comps = findComponents(G.grid, G.anchors, G.ceil);
+  var warnKey = {};
+  for (var i = 0; i < comps.length; i++) {
+    if (comps[i].strain >= STRAIN_WARN) {
+      for (var j = 0; j < comps[i].cells.length; j++) {
+        warnKey[comps[i].cells[j][0] + ',' + comps[i].cells[j][1]] =
+          '! ' + comps[i].strain.toFixed(2);
+      }
+    }
+  }
+  for (var r = 0; r < GRID_ROWS; r++) {
+    for (var c = 0; c < GRID_COLS; c++) {
+      if (!G.grid[r][c]) continue;
+      var x = (c + 0.5) * CELL_PX, y = (r + 0.5) * CELL_PX;
+      var k = r + ',' + c;
+      drawOrb(x, y, (k in warnKey), warnKey[k]);
+    }
+  }
+  /* line row marker */
+  ctx.strokeStyle = '#7a2e2e';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 4]);
+  ctx.beginPath();
+  ctx.moveTo(0, LINE_ROW * CELL_PX);
+  ctx.lineTo(BOARD_W, LINE_ROW * CELL_PX);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#a06868';
+  ctx.font = '10px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('LINE', 4, LINE_ROW * CELL_PX - 4);
+  /* ceiling (descends with the drops) */
+  ctx.fillStyle = '#2a2a2e';
+  ctx.fillRect(0, G.ceil * CELL_PX, BOARD_W, 4);
+  /* launcher + aim indicator */
+  var a = aimAngleRad();
+  ctx.strokeStyle = '#c9a227';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(LAUNCH_X, LAUNCH_Y);
+  ctx.lineTo(LAUNCH_X + Math.sin(a) * 70, LAUNCH_Y - Math.cos(a) * 70);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(LAUNCH_X, LAUNCH_Y, ORB_R - 1, 0, Math.PI * 2);
+  ctx.fillStyle = '#9a9a9a';
+  ctx.fill();
+  ctx.strokeStyle = '#55555c';
+  ctx.stroke();
+  if (G.proj) {
+    ctx.beginPath();
+    ctx.arc(G.proj.x, G.proj.y, ORB_R - 1, 0, Math.PI * 2);
+    ctx.fillStyle = '#cfcfcf';
+    ctx.fill();
+    ctx.strokeStyle = '#55555c';
+    ctx.stroke();
+  }
+  if (G.state === 'RESOLVE' && G.flash) {
+    ctx.strokeStyle = '#ffe9a8';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(G.flash.col * CELL_PX + 3, G.flash.row * CELL_PX + 3, CELL_PX - 6, CELL_PX - 6);
+  }
+}
+
+var lastT = 0;
+function loop(t) {
+  var dt = Math.min(0.05, (t - lastT) / 1000 || 0);
+  lastT = t;
+  if (G.state === 'FLYING' && G.proj) stepProjectile(dt);
+  if (G.state === 'RESOLVE' && performance.now() >= G.resolveEndsAt) finishResolve();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+/* ---- Input ---- */
+function aimFromPoint(px, py) {
+  var rect = canvas.getBoundingClientRect();
+  var x = (px - rect.left) * (canvas.width / rect.width);
+  var y = (py - rect.top) * (canvas.height / rect.height);
+  var dx = x - LAUNCH_X, dy = LAUNCH_Y - y;
+  if (dy <= 0) dy = 1;
+  var deg = Math.atan2(dx, dy) * 180 / Math.PI;
+  G.aimDeg = clampAim(deg);
+}
+
+canvas.addEventListener('pointermove', function (e) {
+  if (G.state === 'AIM' || G.state === 'FLYING') aimFromPoint(e.clientX, e.clientY);
+});
+canvas.addEventListener('pointerdown', function (e) {
+  if (G.state === 'AIM' || G.state === 'FLYING') aimFromPoint(e.clientX, e.clientY);
+  fire();
+});
+
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+    e.preventDefault();
+    if (G.state === 'AIM' || G.state === 'FLYING') {
+      G.aimDeg = clampAim(G.aimDeg + (e.key === 'ArrowLeft' ? -AIM_KEY_STEP_DEG : AIM_KEY_STEP_DEG));
+    }
+  } else if (e.key === ' ') {
+    e.preventDefault();
+    fire();
+  } else if (e.key === 'r' || e.key === 'R') {
+    startFromTitle();
+  }
+});
+
+document.getElementById('startBtn').addEventListener('click', startFromTitle);
+document.getElementById('restartBtn').addEventListener('click', startFromTitle);
+
+/* ---- Boot (?seed= override and ?start=1 autostart are test conveniences;
+ * default is random deal on TITLE) ---- */
+(function boot() {
+  var m = /[?&]seed=(\d+)/.exec(location.search);
+  var seed = m ? (parseInt(m[1], 10) >>> 0) % Math.pow(2, 31)
+    : Math.floor(Math.random() * Math.pow(2, 31));
+  var autostart = /[?&]start=1/.test(location.search);
+  if (autostart) { newRun(seed); }
+  else {
+    var gen = generate(seed);
+    G.grid = gen.grid;
+    G.anchors = gen.anchors;
+    G.seed = seed;
+    titleSeed.textContent = String(seed);
+    seedEl.textContent = String(seed);
+  }
+  refreshHud();
+  refreshStrains();
+  requestAnimationFrame(loop);
+})();
+
+/* Test and harness hooks: state readout plus real input paths. */
+window.__snapline = {
+  get state() { return G.state; },
+  get score() { return G.score; },
+  get shotsFired() { return G.shotsFired; },
+  get shotsLeft() { return SHOTS - G.shotsFired; },
+  get seed() { return G.seed; },
+  get aimDeg() { return G.aimDeg; },
+  cell: function (r, c) { return (G.grid[r] && G.grid[r][c]) ? 1 : 0; },
+  anchors: function () { return G.anchors.slice(); },
+  tuning: function () {
+    return { GRID_COLS: GRID_COLS, GRID_ROWS: GRID_ROWS, CELL_PX: CELL_PX,
+      LAUNCH_PX_PER_S: LAUNCH_PX_PER_S, AIM_MIN_DEG: AIM_MIN_DEG,
+      AIM_MAX_DEG: AIM_MAX_DEG, AIM_KEY_STEP_DEG: AIM_KEY_STEP_DEG,
+      START_ROWS: START_ROWS, FILL_P: FILL_P, STR_MIN: STR_MIN,
+      STR_MAX: STR_MAX, SHOTS: SHOTS, DROP_EVERY: DROP_EVERY,
+      LINE_ROW: LINE_ROW, SNAP_PAUSE_MS: SNAP_PAUSE_MS, STRAIN_WARN: STRAIN_WARN };
+  },
+  components: function () {
+    return findComponents(G.grid, G.anchors, G.ceil).map(function (cp) {
+      var cols = {};
+      var lowRow = -1, lowCol = -1;
+      for (var i = 0; i < cp.cells.length; i++) {
+        cols[cp.cells[i][1]] = true;
+        if (cp.cells[i][0] > lowRow) { lowRow = cp.cells[i][0]; lowCol = cp.cells[i][1]; }
+      }
+      return { load: cp.load, strength: cp.strength, strain: cp.strain,
+        warn: cp.strain >= STRAIN_WARN,
+        columns: Object.keys(cols).map(Number), lowRow: lowRow, lowCol: lowCol };
+    });
+  },
+  aimAtColumn: function (col, row) {
+    var tx = (col + 0.5) * CELL_PX;
+    var ty = ((row == null ? 2 : row) + 0.5) * CELL_PX;
+    var dx = tx - LAUNCH_X, dy = LAUNCH_Y - ty;
+    G.aimDeg = clampAim(Math.atan2(dx, Math.max(1, dy)) * 180 / Math.PI);
+    return G.aimDeg;
+  },
+  setAim: function (d) { G.aimDeg = clampAim(d); return G.aimDeg; },
+  fire: fire,
+  start: startFromTitle
+};
+</script>
+</body>
+</html>
