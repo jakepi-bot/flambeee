@@ -24,47 +24,71 @@ Mirror the existing best trio discipline in typewreck.html
 read with try/catch plus sanitize, write with try/catch,
 render on boot and after each increment.
 
-One game-agnostic shape. Copy it, rename nothing but the
-slug, the element, and the hook call site:
+One shipped shape, copied from Typewreck as built (Story 121, PR 220).
+Helper names below are the shipped Typewreck names: keep them,
+change only the key slug, the display element, and the hook call site:
 
 ```js
 var COUNT_KEY = 'flambeee-<slug>-plays';
 var COUNT_CAP = 9007199254740991; /* max safe integer, increment stops here, never wraps */
-var plays = 0;
+var playsMem = 0;
+
+function sanitizePlays(v) {
+  if (typeof v === 'number') {
+    if (!isFinite(v) || Math.floor(v) !== v || v < 0 || v > COUNT_CAP) return 0;
+    return v;
+  }
+  if (typeof v === 'string' && v !== '') {
+    var n = Number(v);
+    if (!isFinite(n) || Math.floor(n) !== n || n < 0 || n > COUNT_CAP) return 0;
+    return n;
+  }
+  return 0;
+}
 
 function loadPlays() {
   try {
     var raw = localStorage.getItem(COUNT_KEY);
-    if (raw === null || raw === undefined || raw === '') return 0;
-    var v = JSON.parse(raw);
-    if (typeof v !== 'number' || !isFinite(v) || Math.floor(v) !== v || v < 0) return 0;
-    return Math.min(v, COUNT_CAP);
+    if (raw === null || typeof raw === 'undefined') return 0;
+    var parsed;
+    try { parsed = JSON.parse(raw); } catch (e) { return 0; }
+    if (parsed === null || typeof parsed === 'undefined') return 0;
+    return sanitizePlays(parsed);
   } catch (e) { return 0; }
 }
 
 function renderPlays() {
-  playsEl.textContent = 'Plays on this browser: ' + plays;
+  playsEl.textContent = 'Plays on this browser: ' + playsMem;
 }
 
-function countPlay() {
-  plays = Math.min(plays + 1, COUNT_CAP);
-  try { localStorage.setItem(COUNT_KEY, JSON.stringify(plays)); } catch (e) {}
+function bumpPlays() {
+  playsMem = Math.min(playsMem + 1, COUNT_CAP);
+  try { localStorage.setItem(COUNT_KEY, JSON.stringify(playsMem)); } catch (e) {}
   renderPlays();
 }
 
-/* boot: load, then render once (renders 0 on a first visit) */
-plays = loadPlays();
+/* boot: load, then render once (renders 0 on a first visit).
+   Boot load precedes any autostart, so autostart counts from the loaded total. */
+playsMem = loadPlays();
 renderPlays();
 
 /* run-start hook, after the validation gate (Typewreck: inside startAiming()): */
-countPlay();
+bumpPlays();
 ```
+
+Typewreck reference: COUNT_KEY is 'flambeee-typewreck-plays',
+element is #plays beside #best, hook is bumpPlays() inside startAiming().
 
 Notes on the snippet:
 
 - `loadPlays` parallels `loadBest`: try/catch read, sanitize, 0 fallback.
-- `countPlay` parallels `saveBestIfBeats`: try/catch write, then render.
-- `renderPlays` runs on boot and after every increment. No other render site.
+- `bumpPlays` parallels `saveBestIfBeats`: capped increment, try/catch write, then render.
+- `renderPlays` runs on boot, after every increment, and on
+  return-to-setup (re-render of the unchanged total). No other render site.
+- `sanitizePlays` accepts plain numbers and plain numeric strings
+  that are non-negative integers within the cap. Anything else
+  (bad JSON, wrong shape, float, non-numeric string, null,
+  negative, over-cap) resets to 0.
 - `COUNT_CAP` is 9007199254740991. The increment is
   `P := min(P + 1, 9007199254740991)` and never wraps.
 
@@ -125,7 +149,7 @@ Copy this table into the game PR. Every row must be filled before merge.
 |---|---|---|---|
 | 1 | Key suffix (middle slug) | `flambeee-typewreck-plays` | Change only the slug: `flambeee-<slug>-plays` |
 | 2 | Display element id and placement | `#plays` line on the setup screen, adjacent to `#best` | New id per game, placed on that game's setup surface next to its best line |
-| 3 | Run-start hook name | `startAiming()` (typewreck.html line 425), single `countPlay()` call after the validation gate | That game's function that resets score and enters play. Never a click handler, never a page-load path |
+| 3 | Run-start hook name | `startAiming()`, single `bumpPlays()` call inside it, reached only after the Start click-handler validation gate | That game's function that resets score and enters play. Never a click handler, never a page-load path |
 | 4 | CACHE_VERSION +1 bump in `website/sw.js` | 20 to 21, same PR as the game change | Bump by 1 in the same PR whenever a precached game file changes |
 | 5 | No-network grep | `git diff` grepped for fetch, XMLHttpRequest, sendBeacon, WebSocket, new external URLs: clean | Must read clean on every copy. No network call, no aggregation, no identity |
 
@@ -142,7 +166,7 @@ Summary of design-handoff.md section 6. Behavior per condition:
 |---|---|
 | Storage blocked or throwing | Stay silent. Keep an in-memory P from 0, keep incrementing and rendering it for the session. No error note, no page-attributable console error |
 | Quota exceeded on write | Same as blocked. In-memory P still increments and renders; the write drops silently. Next boot re-reads the last persisted value |
-| Corrupt stored value (bad JSON, wrong shape, float, string, null) | Treat as 0, apply the current increment normally, overwrite with the clean value. Never renders garbage |
+| Corrupt stored value (bad JSON, wrong shape, float, non-numeric string, null) | Treat as 0, apply the current increment normally, overwrite with the clean value. Never renders garbage. Plain numeric strings are accepted at their value by sanitizePlays |
 | Negative stored value | Treat as 0, same path as corrupt |
 | Absurd but valid integer (for example 999999999) | Accept and increment from it. Only non-finite, non-integer, or negative values reset to 0. The cap bounds growth |
 | Two tabs open at once | Last write wins. Each tab holds its own in-memory P. At most one count lost. Documented as acceptable; never add locking |
@@ -152,7 +176,10 @@ Summary of design-handoff.md section 6. Behavior per condition:
 
 ## Consistency
 
-This doc is consistent with Story 121 as specified in
-design-handoff.md sections 1-10. Story 121 was still in progress
-when this doc was written; any conflict between this doc and
-Story 121 as built resolves in favor of Story 121 as built.
+Reconciled against Story 121 as built (PR 220, peer-review pass):
+helper names are the shipped typewreck.html names (playsMem,
+sanitizePlays, loadPlays, renderPlays, bumpPlays), the snippet
+matches the shipped logic including numeric-string sanitize and
+the return-to-setup re-render, and the boot load precedes autostart.
+Any remaining conflict between this doc and Story 121 as built
+resolves in favor of Story 121 as built.
