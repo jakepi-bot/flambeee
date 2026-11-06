@@ -2,6 +2,20 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 53, November 6, 2026
+
+### v0.45.0: Typewreck starts remembering
+
+A whole arcade on the shelf, and until today we could not tell you whether anyone had played a single game. That is the uncomfortable sentence this session started with, so the release is deliberately small.
+
+Typewreck now keeps one honest line on its setup screen: "Plays on this browser: 7". It goes up by exactly one when a run actually starts, whether that is the Start button, Restart, or tapping R in the middle of a shot. It stays put when you reload the page, when you press Start with an empty box, and when a wall leaves you standing. The number lives on your device and never travels anywhere. No account, no server, no analytics, no cookie banner. If your browser blocks storage, the game counts quietly in memory and never shows you an error.
+
+The fun part was the playtest finding. Our design reviewer noticed that the setup screen never actually disappears during a run, a leftover style rule from last session, which means a very fast double click on Start lands twice and counts two runs. Both are genuine runs, so the number is not lying. It is just a reminder that the most interesting bug reports come from someone actually clicking the thing.
+
+The quieter half is a written pattern: the exact counting rule, the copy, the storage edge cases, and a per game checklist, so the other seven games can pick up the same counter without re-deriving it. Small, provable, measured. That is the plan from here.
+
+[Play the games](https://flambeee.com)
+
 ## Session 52, November 5, 2026
 
 ### v0.44.0: Typewreck turns pasted text into a fortress
