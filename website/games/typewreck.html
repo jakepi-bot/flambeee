@@ -55,7 +55,7 @@
   button:focus-visible { outline: 2px solid #ff5a75; outline-offset: 2px; }
   #preview { margin-top: 10px; font-size: 0.9rem; color: #9aa7d8; text-align: center; }
   #note { margin-top: 8px; font-size: 0.85rem; color: #ffb74d; min-height: 1.2em; text-align: center; }
-  #best { margin-top: 6px; font-size: 0.85rem; color: #9aa7d8; text-align: center; }
+  #best, #plays { margin-top: 6px; font-size: 0.85rem; color: #9aa7d8; text-align: center; }
   .rule { margin-top: 10px; font-size: 0.8rem; opacity: 0.7; text-align: center; max-width: 420px; }
   canvas {
     display: block; width: 100%; max-width: 360px; height: auto;
@@ -82,6 +82,7 @@
   <div id="preview">No wall dealt yet.</div>
   <div id="note" role="status"></div>
   <div id="best"></div>
+  <div id="plays"></div>
   <p class="rule">Soft: space and vowels. Medium: other small letters and digits. Armor: capitals, punctuation, everything exotic.</p>
 </div>
 
@@ -129,6 +130,8 @@ var PASTE_MAX = 500;       /* chars, count (100..2000) */
 var WIN_BONUS_PER_SHOT = 2;/* points/shot, count (0..5) */
 
 var BEST_KEY = 'flambeee-typewreck-best';
+var COUNT_KEY = 'flambeee-typewreck-plays';
+var COUNT_CAP = 9007199254740991; /* max safe integer; increment stops at cap, never wraps */
 var BOARD_W = GRID_COLS * CELL_PX;   /* 320 px */
 var BOARD_H = GRID_ROWS * CELL_PX;   /* 256 px */
 var TOTAL_H = BOARD_H + LAUNCHER_PX; /* 376 px */
@@ -274,6 +277,7 @@ if (typeof document !== 'undefined') (function () {
   var previewEl = document.getElementById('preview');
   var noteEl = document.getElementById('note');
   var bestEl = document.getElementById('best');
+  var playsEl = document.getElementById('plays');
   var canvas = document.getElementById('c');
   var ctx = canvas.getContext('2d');
   var shotsEl = document.getElementById('shots');
@@ -324,6 +328,44 @@ if (typeof document !== 'undefined') (function () {
       try { localStorage.setItem(BEST_KEY, JSON.stringify({ score: G.score, seed: seedLabel() })); } catch (e) {}
     }
     renderBest();
+  }
+
+  /* Local play counter (Story 121). Stored as a plain JSON number under
+   * COUNT_KEY. In-memory playsMem always renders, even when storage throws. */
+  var playsMem = 0;
+
+  function sanitizePlays(v) {
+    if (typeof v === 'number') {
+      if (!isFinite(v) || Math.floor(v) !== v || v < 0 || v > COUNT_CAP) return 0;
+      return v;
+    }
+    if (typeof v === 'string' && v !== '') {
+      var n = Number(v);
+      if (!isFinite(n) || Math.floor(n) !== n || n < 0 || n > COUNT_CAP) return 0;
+      return n;
+    }
+    return 0;
+  }
+
+  function loadPlays() {
+    try {
+      var raw = localStorage.getItem(COUNT_KEY);
+      if (raw === null || typeof raw === 'undefined') return 0;
+      var parsed;
+      try { parsed = JSON.parse(raw); } catch (e) { return 0; }
+      if (parsed === null || typeof parsed === 'undefined') return 0;
+      return sanitizePlays(parsed);
+    } catch (e) { return 0; }
+  }
+
+  function renderPlays() {
+    playsEl.textContent = 'Plays on this browser: ' + playsMem;
+  }
+
+  function bumpPlays() {
+    playsMem = Math.min(playsMem + 1, COUNT_CAP);
+    try { localStorage.setItem(COUNT_KEY, JSON.stringify(playsMem)); } catch (e) {}
+    renderPlays();
   }
 
   function previewFor(text) {
@@ -423,6 +465,7 @@ if (typeof document !== 'undefined') (function () {
   }
 
   function startAiming() {
+    bumpPlays();
     G.shotsFired = 0;
     G.destroyed = 0;
     G.score = 0;
@@ -522,6 +565,7 @@ if (typeof document !== 'undefined') (function () {
     note('');
     refreshPreview();
     renderBest();
+    renderPlays();
     draw(null);
   }
 
@@ -622,6 +666,7 @@ if (typeof document !== 'undefined') (function () {
     noteText: function () { return noteEl.textContent; },
     previewText: function () { return previewEl.textContent; },
     bestText: function () { return bestEl.textContent; },
+    playsText: function () { return playsEl.textContent; },
     setAim: function (d) {
       G.aimDeg = clampAim(d);
       if (G.state === 'AIM') { refreshHud(); draw(null); }
@@ -644,6 +689,8 @@ if (typeof document !== 'undefined') (function () {
     var qSeed = params.get('seed');
     var qText = params.get('text');
     renderBest();
+    playsMem = loadPlays();
+    renderPlays();
     refreshPreview();
     draw(null);
     if (qText !== null) {

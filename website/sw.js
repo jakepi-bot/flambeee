@@ -18,7 +18,7 @@
  */
 'use strict';
 
-var CACHE_VERSION = 20;
+var CACHE_VERSION = 21;
 var CACHE_NAME = 'flambeee-shell-v' + CACHE_VERSION;
 
 var PRECACHE_URLS = [
