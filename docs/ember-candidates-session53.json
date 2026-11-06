@@ -1,0 +1,62 @@
+[
+  {
+    "title": "5 High-Demand HTML5 Game Genres Indie Developers Should Build in 2026",
+    "snippet": "2026 portal search data: same-keyboard 2-player local duels are the fastest-growing trend, with session durations 3x higher than single-player titles because every defeat prompts a rematch.",
+    "url": "https://bentotiles.com/en/blog/top-html5-game-genres-to-build-for-browser-players",
+    "idea_title": "Same-keyboard 2-player local duels as the growth category",
+    "why_hot": "2026 portal search data: 2-player local titles run about 3x the session duration of single-player because every defeat asks for a rematch, and they need no accounts, no server, no lobby.",
+    "core_mechanic": "Two players share one physical keyboard and one screen; one controls movement, the other aims, and a 60-second round ends in an instant rematch.",
+    "audience": "Students on shared laptops, siblings on a family desktop, anyone in the same room as a second player.",
+    "monetization": "None on site; portal ad revenue is the surrounding model."
+  },
+  {
+    "title": "Browser game domains more than doubled as monthly player sessions grew 77.5% in 1H: Nitro report",
+    "snippet": "Nitro's 2026 benchmark covers 4.17 billion sessions across 806 domains: monthly browser game sessions rose from 18.4 million to 32.6 million, revenue per session 176% above network average, daily-ritual titles hold 40 to 50 percent at Day 7 and Day 30.",
+    "url": "https://gamesbeat.com/brown-game-domains-more-than-doubled-as-monthly-player-sessions-grew-77-5-in-1h-nitro-reort/",
+    "idea_title": "Daily-ritual retention as the measured browser advantage",
+    "why_hot": "Measured across 4.17 billion sessions in 2026: daily-ritual titles hold 40 to 50 percent of players at Day 7 and Day 30 while hyper-casual mobile loses 70 to 80 percent by Day 7.",
+    "core_mechanic": "One deterministic challenge per day plus a streak that only survives if the player returns.",
+    "audience": "Habit players who open the same portal several times a day.",
+    "monetization": "Ad-supported portal distribution."
+  },
+  {
+    "title": "The Browser Game Renaissance of 2026, Explained",
+    "snippet": "2026 category survey names five growing classes and puts single-mechanic browser games, one rule polished and browser-only, alongside daily puzzles and .io arenas as a format with a large audience and a high ceiling.",
+    "url": "https://dinogame.gg/blog/browser-game-renaissance-2026/",
+    "idea_title": "Single-mechanic browser games as a durable format",
+    "why_hot": "2026 category survey lists single-mechanic browser games as a growing class: one rule learned in five seconds, with the depth pushed into level design rather than a second system.",
+    "core_mechanic": "One rule, learned in five seconds, with depth pushed into level design rather than a second system.",
+    "audience": "Casual browser players who bounce off anything with a tutorial.",
+    "monetization": "None; distribution and audience first."
+  },
+  {
+    "title": "Why browser games are the next billion-dollar bet",
+    "snippet": "HTML5 releases in H1 2025 almost tripled year on year to 15,000, 4.9 times the H1 2023 number; Poki reports 100m monthly active users in 2026 against 10m in 2020, and 46% of developers name discoverability as the reason to ship on web.",
+    "url": "https://mcvuk.com/business-news/why-browser-games-are-the-next-billion-dollar-bet/",
+    "idea_title": "Distribution is the bottleneck, not the platform",
+    "why_hot": "2026 numbers: 15,000 HTML5 releases in H1 2025, Poki at 100m monthly active users, and developers naming discoverability rather than platform access as the reason to build for browsers.",
+    "core_mechanic": "Not a mechanic: a distribution fact. Zero-install play is the growth channel, so the product problem is being findable inside it.",
+    "audience": "Portal and search traffic.",
+    "monetization": "Portal advertising and licensing."
+  },
+  {
+    "title": "Best Browser Games 2026: 32 Free Games Ranked, No Ads",
+    "snippet": "A 2026 ranking where the durable leaders are old one-mechanic classics such as 2048: no account, no install, one input verb, replayed for years.",
+    "url": "https://weeklyarcade.games/best-browser-games-2026/",
+    "idea_title": "The durable browser hits are old one-mechanic classics",
+    "why_hot": "2026 ranking still leads with 2048 and its neighbours: the durable browser hits are one-mechanic games with no account and no install, which is a direct read on what keeps getting played.",
+    "core_mechanic": "Merge or match on a grid, one input verb, no meta progression.",
+    "audience": "Broad casual traffic arriving from search.",
+    "monetization": "Ad-supported."
+  },
+  {
+    "title": "Browser Games That Went Viral Overnight",
+    "snippet": "Case list led by Agar.io: a deceptively simple concept that is describable in one sentence and screenshot-shareable, with the visible size number acting as the scoreboard.",
+    "url": "https://unihfygames.com/blog/games-that-went-viral",
+    "idea_title": "One legible rule plus a visible growth number",
+    "why_hot": "Case list led by Agar.io: every viral browser case shares one rule plus a visible growth curve that doubles as the scoreboard and the shareable screenshot.",
+    "core_mechanic": "Eat, grow, and the visible size number becomes the scoreboard.",
+    "audience": "Multiplayer browser players arriving from a shared link.",
+    "monetization": "Skins and ads."
+  }
+]
