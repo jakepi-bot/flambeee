@@ -1,6 +1,6 @@
 # Story 124: Archive src/ duplicate game copies and wordpress mockup (Session 54, P1b, repo hygiene)
 
-**Status:** Ready for development (Session 54, 2026-11-07).
+**Status:** **Deferred** (Session 54, 2026-11-07, jakebot advisory). Prepared and ready for the next LEGACY day; do not build in Session 54.
 **Author:** parent overseer (Wave 2 absorbed; see session-plan.md process incident).
 **Priority:** P1b. Backlog item M-1 (issue #213).
 **Assigned to:** **Kai**, sole owner. Same PR also carries Story 125. No other dev touches these paths.
