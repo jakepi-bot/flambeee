@@ -445,6 +445,7 @@ Both accepted per `flambeee-team/CEO-DIRECTIVES.md` section 7 (Bluesky DM convo 
 - Repo mirror What's New backfilled to v0.11.0 as part of the release.
 
 ### Future
+- Session cadence (policy `docs/cadence-policy.md`, enforced by `scripts/cadence_mode.py`): Mon/Wed/Fri are NEW-GAME days, Tue/Thu/Sat/Sun are LEGACY days working `docs/legacy-maintenance-backlog.md` (M-1 src/archive cleanup, M-2 GOTW rotation for Echo Rounds + Typewreck, M-3 play counter, M-4 Cinder QA bar). Broken jumps the queue any day. Revisit on the three tripwires in the policy.
 - Afterglow daily UTC-seeded mode (Story 063, deferred from Session 29 at OPTIONAL priority). One UTC-day level sequence per day, the same for every player, seeded from the UTC day index exactly as Wordfire's daily word is. Cheap once Afterglow's seeded generator exists; it was not built because the mechanic and the verification stories consumed the session. The mechanic leads; this must not gate it.
 - Multiplayer games (WebSocket-based)
 - Community-submitted games
