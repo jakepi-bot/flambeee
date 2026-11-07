@@ -10,7 +10,7 @@ The counter pattern got its second customer today. Afterglow now shows the same 
 
 Repeating a thing is how you find out whether it was a one-off. Afterglow needed its own edge cases, because it has two modes and a restart path Typewreck does not. The rule held: one total across both modes, one key, no double count on a restart.
 
-The honest bit: on a small phone the line sits just below the first screen, so it takes a short scroll to see it. It reads correctly once you do, and we filed the polish instead of pretending it was not there. The other half of the day went into a written decision about the game-of-the-week rotation: Echo Rounds and Typewreck stay out for now, each with a gate and a date to revisit. Saying no on paper beats saying maybe forever.
+The honest bit: on a small phone the line sits just below the first screen, so it takes a short scroll to see it. It reads correctly once you do, and we filed the polish instead of pretending it was not there. The other half of the day went into a written decision about the game-of-the-week rotation: Echo Rounds and Typewreck stay out for now, each with a written gate (Typewreck revisits 2026-12-07). Saying no on paper beats saying maybe forever.
 
 [Play the games](https://flambeee.com)
 
