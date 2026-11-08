@@ -1,32 +1,32 @@
 [
   {
-    "audience": "Portal and search traffic.",
-    "core_mechanic": "Not a mechanic: a distribution fact. Zero-install play is the growth channel, so the product problem is being findable inside it.",
-    "monetization": "Portal advertising and licensing.",
-    "retrieved_at": "2026-11-06T07:12:54Z",
-    "source_domain": "mcvuk.com",
-    "source_url": "https://mcvuk.com/business-news/why-browser-games-are-the-next-billion-dollar-bet",
-    "title": "Distribution is the bottleneck, not the platform",
-    "why_hot": "2026 numbers: 15,000 HTML5 releases in H1 2025, Poki at 100m monthly active users, and developers naming discoverability rather than platform access as the reason to build for browsers."
+    "audience": "Commuter and coffee-break players on phones, 2 to 5 minute sessions",
+    "core_mechanic": "A one-screen daily microgame that opens straight into play, keeps a local streak, and shares a spoiler-free result link with zero signup.",
+    "monetization": "None in-product; brand surface for the catalog",
+    "retrieved_at": "2026-11-08T07:12:41Z",
+    "source_domain": "trendintel.io",
+    "source_url": "https://trendintel.io/trends/1126-frictionless-browser-microgames",
+    "title": "Account-free daily microgames with a deliberate no-monetization stance",
+    "why_hot": "23 signals in one week, momentum 35/100, rising since 2026-11-03: the frictionless no-account microgame format is being tracked as its own trend, not a niche."
   },
   {
-    "audience": "Habit players who open the same portal several times a day.",
-    "core_mechanic": "One deterministic challenge per day plus a streak that only survives if the player returns.",
-    "monetization": "Ad-supported portal distribution.",
-    "retrieved_at": "2026-11-06T07:12:54Z",
-    "source_domain": "gamesbeat.com",
-    "source_url": "https://gamesbeat.com/brown-game-domains-more-than-doubled-as-monthly-player-sessions-grew-77-5-in-1h-nitro-reort",
-    "title": "Daily-ritual retention as the measured browser advantage",
-    "why_hot": "Measured across 4.17 billion sessions in 2026: daily-ritual titles hold 40 to 50 percent of players at Day 7 and Day 30 while hyper-casual mobile loses 70 to 80 percent by Day 7."
+    "audience": "Exploration and cozy-game players, desktop and mobile browser",
+    "core_mechanic": "A bounded curved world with no map screen: progress is spatial and memorable because the whole world fits in the player's head.",
+    "monetization": "Premium game sold on web, no ads",
+    "retrieved_at": "2026-11-08T07:12:41Z",
+    "source_domain": "wtf.me.uk",
+    "source_url": "https://www.wtf.me.uk/2026/06/messenger-tiny-browser-game-that-went.html",
+    "title": "Tiny planet you can circumnavigate in minutes",
+    "why_hot": "Viral in June 2026 from one tweet: the hook is a world small enough to walk all the way around in minutes, and the multiplayer layer is presence only, no chat and no competition."
   },
   {
-    "audience": "Students on shared laptops, siblings on a family desktop, anyone in the same room as a second player.",
-    "core_mechanic": "Two players share one physical keyboard and one screen; one controls movement, the other aims, and a 60-second round ends in an instant rematch.",
-    "monetization": "None on site; portal ad revenue is the surrounding model.",
-    "retrieved_at": "2026-11-06T07:12:54Z",
-    "source_domain": "bentotiles.com",
-    "source_url": "https://bentotiles.com/en/blog/top-html5-game-genres-to-build-for-browser-players",
-    "title": "Same-keyboard 2-player local duels as the growth category",
-    "why_hot": "2026 portal search data: 2-player local titles run about 3x the session duration of single-player because every defeat asks for a rematch, and they need no accounts, no server, no lobby."
+    "audience": "Arcade racing fans on desktop browsers with gamepad or keyboard",
+    "core_mechanic": "Drift-and-boost kart racing against AI on a procedural circuit, with power-up pickups and a single-file zero-dependency build.",
+    "monetization": "MIT open source, no monetization",
+    "retrieved_at": "2026-11-08T07:12:41Z",
+    "source_domain": "github.com",
+    "source_url": "https://github.com/atiqur-rahman-pro/claude-kart",
+    "title": "Single-file 3D kart racer on WebGPU",
+    "why_hot": "WebGPU became baseline in 2026 and this shows the ceiling of one-file browser games: 800 lines, no build, procedural audio, playable instantly."
   }
 ]

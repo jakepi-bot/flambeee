@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://trendintel.io/trends/1126-frictionless-browser-microgames",
+    "idea_title": "Account-free daily microgames with a deliberate no-monetization stance",
+    "snippet": "Rising since Nov 3 2026: lightweight casual games that run instantly in browsers with no downloads, no accounts and no ads, built around daily habits and social sharing. 23 signals this week from 4 sources, momentum 35/100.",
+    "why_hot": "23 signals in one week, momentum 35/100, rising since 2026-11-03: the frictionless no-account microgame format is being tracked as its own trend, not a niche.",
+    "core_mechanic": "A one-screen daily microgame that opens straight into play, keeps a local streak, and shares a spoiler-free result link with zero signup.",
+    "audience": "Commuter and coffee-break players on phones, 2 to 5 minute sessions",
+    "monetization": "None in-product; brand surface for the catalog"
+  },
+  {
+    "url": "https://www.wtf.me.uk/2026/06/messenger-tiny-browser-game-that-went.html",
+    "idea_title": "Tiny planet you can circumnavigate in minutes",
+    "snippet": "Messenger is a free browser exploration game where players deliver letters across a tiny stylized planet whose curvature is visible a few steps ahead. Went viral on 2026-06-15 after a single tweet, 5.7 MB initial load, multiplayer presence limited to emoji.",
+    "why_hot": "Viral in June 2026 from one tweet: the hook is a world small enough to walk all the way around in minutes, and the multiplayer layer is presence only, no chat and no competition.",
+    "core_mechanic": "A bounded curved world with no map screen: progress is spatial and memorable because the whole world fits in the player's head.",
+    "audience": "Exploration and cozy-game players, desktop and mobile browser",
+    "monetization": "Premium game sold on web, no ads"
+  },
+  {
+    "url": "https://github.com/atiqur-rahman-pro/claude-kart",
+    "idea_title": "Single-file 3D kart racer on WebGPU",
+    "snippet": "Claude Kart: a Mario Kart-inspired 3D browser racing game, three.js r174 plus WebGPU and TSL, procedural track, drift mechanics and power-ups, entire game in one index.html of about 800 lines with zero build step. Claims WebGPU is baseline across major browsers in 2026.",
+    "why_hot": "WebGPU became baseline in 2026 and this shows the ceiling of one-file browser games: 800 lines, no build, procedural audio, playable instantly.",
+    "core_mechanic": "Drift-and-boost kart racing against AI on a procedural circuit, with power-up pickups and a single-file zero-dependency build.",
+    "audience": "Arcade racing fans on desktop browsers with gamepad or keyboard",
+    "monetization": "MIT open source, no monetization"
+  },
+  {
+    "url": "https://dev.to/crushforce/i-built-a-one-button-game-in-vanilla-js-canvas-single-file-no-engine-plays-in-your-browser-2gn0",
+    "idea_title": "One-button bank-or-crash game with a score brag link",
+    "snippet": "A one-button vanilla JS canvas game: hold to bank, risk a crash, screen shake and particle feedback. The viral hook is one URL parameter, ?s=<score>, so whoever opens a shared link sees 'a friend banked $4,200, beat them' with no backend and no accounts.",
+    "why_hot": "The whole social layer is a score in a URL: no backend, no accounts, and the challenge line is generated from the link. Zero-friction virality in about 2k lines of single-file JS.",
+    "core_mechanic": "Press-and-hold risk timing: the longer you hold the higher the multiplier and the closer the crash, with one decision per run.",
+    "audience": "Casual arcade players on phones, 30 second sessions",
+    "monetization": "None, open source demo"
+  },
+  {
+    "url": "https://indiegamebusiness.com/web-gaming-for-indie-developers/",
+    "idea_title": "Poki's review bar: retention first, no death in the first three minutes",
+    "snippet": "Poki reviews every submitted game. Retention is the single most important metric; the first three minutes decide it, and players should not be able to die in that window. File size is a dealbreaker and touch controls matter. A game built around one mechanic executed well is a legitimate web game.",
+    "why_hot": "A portal that reviews every submission states the actual bar in numbers: retention first, no failure in the first three minutes, small files, touch-first. That is a testable acceptance list.",
+    "core_mechanic": "Difficulty curve shaped so the first three minutes are unloseable, then ramps once the player has committed.",
+    "audience": "Portal-scale casual web players, mostly mobile browsers",
+    "monetization": "Portal ad revenue share"
+  },
+  {
+    "url": "https://github.com/42-evey/browser-games/blob/main/GAME-RESEARCH.md",
+    "idea_title": "Prestige loop as the retention engine for browser incrementals",
+    "snippet": "Research synthesis on browser game addiction and viral mechanics: compulsion loops, prestige as the single most important retention mechanic in incremental games, and three original single-file concepts under 50KB with localStorage saves and no dependencies.",
+    "why_hot": "Names prestige as the strongest retention mechanic in the incremental genre and pairs it with a single-file, under-50KB, no-dependency constraint that matches this repo's shipping model.",
+    "core_mechanic": "Reset-for-permanent-multiplier progression: the player voluntarily restarts with a compounding bonus, so every session makes the next one faster.",
+    "audience": "Idle and incremental players, long-tail desktop sessions",
+    "monetization": "None"
+  }
+]
