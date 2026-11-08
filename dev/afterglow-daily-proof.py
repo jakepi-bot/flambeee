@@ -2,8 +2,8 @@
 """
 Afterglow daily-seed proof harness (Story 064, Session 30, Kai scope).
 
-Executes the REAL extracted pure logic from src/afterglow.html in Node. It does
-not re-implement the generator; it pulls the marked AFTERGLOW-PURE block out of
+Executes the REAL extracted pure logic from website/games/afterglow.html in
+Node. It does not re-implement the generator; it pulls the marked AFTERGLOW-PURE block out of
 the shipped file and runs it. That is what makes a green exit a claim about the
 product rather than about a copy of the product.
 
@@ -30,7 +30,8 @@ to the canonical derivation for the generator-readiness demonstration, and the
 entry-point failure still forces exit 1.
 
 Usage:
-  python3 dev/afterglow-daily-proof.py [/path/to/flambeee]
+  python3 dev/afterglow-daily-proof.py [/path/to/repo]
+  # default repo: derived from this file, $REPO wins; argv[1] wins over $REPO
 """
 
 import json
@@ -39,8 +40,28 @@ import re
 import subprocess
 import sys
 
-REPO = sys.argv[1] if len(sys.argv) > 1 else "/home/jake/.hermes/flambeee/flambeee"
-SRC = os.path.join(REPO, "src", "afterglow.html")
+HERE = os.path.dirname(os.path.abspath(__file__))
+
+
+def _repo_root():
+    """Repo root at run time: argv[1], then $REPO, else walk up from this file."""
+    if len(sys.argv) > 1:
+        return sys.argv[1]
+    env = os.environ.get("REPO")
+    if env:
+        return env
+    d = HERE
+    while True:
+        if os.path.exists(os.path.join(d, ".git")):
+            return d
+        parent = os.path.dirname(d)
+        if parent == d:
+            return d
+        d = parent
+
+
+REPO = _repo_root()
+SRC = os.path.join(REPO, "website", "games", "afterglow.html")
 
 PURE_RE = re.compile(
     r"/\* === AFTERGLOW-PURE-BEGIN === \*/(.*?)/\* === AFTERGLOW-PURE-END === \*/",
@@ -64,7 +85,7 @@ print("=" * 72)
 
 if not os.path.exists(SRC):
     print("")
-    print("  FAIL  src/afterglow.html does not exist")
+    print("  FAIL  website/games/afterglow.html does not exist")
     print("")
     print("RESULT: 1 failure -- the behaviour does not exist on this tree")
     print("exit 1")
@@ -74,7 +95,7 @@ source = open(SRC, encoding="utf-8").read()
 m = PURE_RE.search(source)
 if not m:
     print("")
-    print("  FAIL  AFTERGLOW-PURE block not found in src/afterglow.html")
+    print("  FAIL  AFTERGLOW-PURE block not found in website/games/afterglow.html")
     print("")
     print("RESULT: 1 failure -- no pure surface to execute on this tree")
     print("exit 1")

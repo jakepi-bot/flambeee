@@ -5,7 +5,7 @@ Website Currency and Deploy-Mirror Verification. Story 054 re-runs ONE existing
 script twice and records ONE cmp/sha256 pair. This harness performs:
 
     Run 1   pre-release, heading expected v0.24.0
-    Mirror  src/cinder.html vs the live deploy mirror at the ABSOLUTE path
+    Mirror  website/games/cinder.html vs the live deploy mirror at a repo-rooted
 
 Run 2 (post-release, heading v0.25.0) is NOT run here: it belongs to the
 release job and only becomes meaningful after the v0.25.0 tag, the release
@@ -16,9 +16,9 @@ before anything else runs, so a tampered checker fails this harness instead of
 silently passing it.
 
 Usage:
-    /home/jake/.openclaw/workspace/.venv/bin/python3 session27-story054-qa.py
+    python3 session27-story054-qa.py
 Env:
-    REPO  path to the flambeee repo
+    REPO  path to the flambeee repo (default: derived, $REPO wins)
     REF   git ref holding the committed state under test (default main)
 
 The mirror comparison reads `git show REF:src/cinder.html`, NOT the working
@@ -33,11 +33,31 @@ import subprocess
 import sys
 import tempfile
 
-REPO = os.environ.get("REPO", "/home/jake/.openclaw/workspace/flambeee")
+HERE = os.path.dirname(os.path.abspath(__file__))
+
+
+def _repo_root():
+    """Repo root at run time: $REPO wins, else walk up from this file."""
+    env = os.environ.get("REPO")
+    if env:
+        return env
+    d = HERE
+    while True:
+        if os.path.exists(os.path.join(d, ".git")):
+            return d
+        parent = os.path.dirname(d)
+        if parent == d:
+            return d
+        d = parent
+
+
+REPO = _repo_root()
+# REF is the labeled historical-base variable for this script: git reads of
+# REF:src/cinder.html are base comparisons, never the artifact under test.
 REF = os.environ.get("REF", "main")
-LIVE_INDEX = "/home/jake/.openclaw/workspace/share/Flambeee/index.html"
-LIVE_GAME = "/home/jake/.openclaw/workspace/share/Flambeee/games/cinder.html"
-REPO_CINDER = os.path.join(REPO, "src/cinder.html")
+LIVE_INDEX = os.path.join(REPO, "website", "index.html")
+LIVE_GAME = os.path.join(REPO, "website", "games", "cinder.html")
+REPO_CINDER = os.path.join(REPO, "website", "games", "cinder.html")
 EXPECTED_BLOB = "9b1058b1a0401fe2025fd8cd9653297a51937842"
 
 COUNT = {"pass": 0, "fail": 0}
@@ -141,8 +161,8 @@ def main():
                 print("differ at byte %d (length %d vs %d)"
                       % (min(len(a_bytes), len(b_bytes)) + 1,
                          len(a_bytes), len(b_bytes)))
-        check(same, "Scenario 4: src/cinder.html and the live deploy mirror "
-                    "are byte-identical")
+        check(same, "Scenario 4: the committed base blob and the live deploy "
+                    "mirror are byte-identical")
         a, b = sha256(committed), sha256(LIVE_GAME)
         print("$ sha256sum <git show %s:src/cinder.html> %s" % (REF, LIVE_GAME))
         print("%s  %s:src/cinder.html" % (a, REF))
@@ -151,10 +171,10 @@ def main():
         check(a == b, "Scenario 4: both recorded sha256 values are equal")
 
         group("Informational: the WORKING TREE state (not the release state)")
-        rc2, wt = run("git status --porcelain -- src/cinder.html")
-        print("  git status --porcelain -- src/cinder.html: %r" % wt.strip())
+        rc2, wt = run("git status --porcelain -- website/games/cinder.html")
+        print("  git status --porcelain -- website/games/cinder.html: %r" % wt.strip())
         if wt.strip():
-            print("  WARNING: src/cinder.html has uncommitted dev edits. The "
+            print("  WARNING: website/games/cinder.html has uncommitted dev edits. The "
                   "mirror is NOT expected to match that; Story 054 req 3 runs "
                   "after Story 053 merges and the mirror is re-synced.")
             w = sha256(REPO_CINDER)

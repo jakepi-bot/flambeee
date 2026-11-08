@@ -22,9 +22,9 @@ against whatever happens to be in the working tree:
      run actually passes.
 
 Usage:
-    /home/jake/.openclaw/workspace/.venv/bin/python3 session27-story055-qa.py
+    python3 session27-story055-qa.py
 Env:
-    REPO    path to the flambeee repo
+    REPO    path to the flambeee repo (default: derived, $REPO wins)
     RECORD  path to the decision record under test
 """
 import json
@@ -33,7 +33,25 @@ import re
 import subprocess
 import sys
 
-REPO = os.environ.get("REPO", "/home/jake/.openclaw/workspace/flambeee")
+HERE = os.path.dirname(os.path.abspath(__file__))
+
+
+def _repo_root():
+    """Repo root at run time: $REPO wins, else walk up from this file."""
+    env = os.environ.get("REPO")
+    if env:
+        return env
+    d = HERE
+    while True:
+        if os.path.exists(os.path.join(d, ".git")):
+            return d
+        parent = os.path.dirname(d)
+        if parent == d:
+            return d
+        d = parent
+
+
+REPO = _repo_root()
 RECORD = os.environ.get(
     "RECORD", os.path.join(
         REPO, "docs", "stories",
@@ -72,9 +90,10 @@ def line_of(lines, n):
 
 
 def find_line_refs(text):
-    """Every `src/cinder.html:<n>` or bare `(:<n>)` style reference."""
+    """Every old `<path>:<n>` or bare `(:<n>)` style reference (the record cites
+    the pre-retarget path; BASE_REF-family format, not an artifact read)."""
     refs = []
-    for m in re.finditer(r"(?:src/cinder\.html)?:(\d{2,5})\b", text):
+    for m in re.finditer(r"(?:src/cinder\.html)?:(\d{2,5})\b", text):  # BASE_REF-family record format
         refs.append(int(m.group(1)))
     return refs
 
@@ -87,7 +106,7 @@ def main():
     src = tagged_v0240()
     lines = src.splitlines()
     if not src.strip():
-        print("FAIL: could not read tagged v0.24.0:src/cinder.html")
+        print("FAIL: could not read tagged base blob v0.24.0:src/cinder.html")  # BASE_REF-family tag blob
         return 1
 
     # ---------------------------------------------------------------- part 1

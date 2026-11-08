@@ -14,11 +14,13 @@ separate:
           constraints (frozen functions byte-identical, no-write scan).
 
 Usage:
-    /home/jake/.openclaw/workspace/.venv/bin/python3 session27-story053-qa.py
+    python3 session27-story053-qa.py
 
 Env:
-    V24       path to the tagged v0.24.0 src/cinder.html
-    CANDIDATE path to the merged candidate src/cinder.html
+    V24       path to the tagged v0.24.0 website/games/cinder.html bytes
+              (default: materialized at run time from tag v0.24.0)
+    CANDIDATE path to the merged candidate website/games/cinder.html
+              (default: website/games/cinder.html under the repo root)
     PORT      http port for the local static server (default 8771)
 """
 import http.server
@@ -28,15 +30,55 @@ import re
 import socketserver
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 
 from playwright.sync_api import sync_playwright
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-V24 = os.environ.get("V24", "/tmp/tagged-v0240-cinder.html")
+
+
+def _repo_root():
+    """Repo root at run time: $REPO wins, else walk up from this file."""
+    env = os.environ.get("REPO")
+    if env:
+        return env
+    d = HERE
+    while True:
+        if os.path.exists(os.path.join(d, ".git")):
+            return d
+        parent = os.path.dirname(d)
+        if parent == d:
+            return d
+        d = parent
+
+
+REPO = _repo_root()
+
+
+def _default_v24():
+    """Tagged v0.24.0 bytes: $V24 wins, else materialize the tag to temp."""
+    env = os.environ.get("V24")
+    if env:
+        return env
+    try:
+        r = subprocess.run(["git", "-C", REPO, "show", "v0.24.0:src/cinder.html"],  # BASE_REF-family tag blob
+                           capture_output=True, text=True, timeout=30)
+        if r.returncode == 0 and r.stdout:
+            fd, tmp = tempfile.mkstemp(suffix="-v0240-cinder.html",
+                                       prefix="story053-v24-")
+            with os.fdopen(fd, "w", encoding="utf-8") as fh:
+                fh.write(r.stdout)
+            return tmp
+    except Exception:
+        pass
+    return "/tmp/tagged-v0240-cinder.html"
+
+
+V24 = _default_v24()
 CANDIDATE = os.environ.get(
-    "CANDIDATE", "/tmp/flambeee-qt-scout-053/src/cinder.html")
+    "CANDIDATE", os.path.join(REPO, "website", "games", "cinder.html"))
 PORT = int(os.environ.get("PORT", "0"))  # 0 = let the OS pick a free port
 
 SAVE_KEY = "flambeee-cinder-save"

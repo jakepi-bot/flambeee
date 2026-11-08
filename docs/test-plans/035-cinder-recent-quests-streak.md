@@ -12,8 +12,9 @@ Pure-read verification only. A defect is reported, not fixed. If the view path w
 ## Environment prep
 
 1. Confirm `src/cinder.html` and the live mirror are byte-identical before any test: `cmp src/cinder.html share/Flambeee/games/cinder.html` -> PASS, and `md5sum` equal.
-2. Serve the game locally (e.g. `python3 -m http.server` in the repo dir) and load it in Playwright Chromium at a desktop (1280x720) and a narrow mobile (375x667) viewport.
+2. Serve the game locally (e.g. `python3 -m http.server <port> --directory ...`) and load it in Playwright Chromium at a desktop (1280x720) and a narrow mobile (375x667) viewport.
 3. Reset browser storage before each scenario so saves start clean.
+4. Cleanup: **never** `kill $(ps -o pid= -C "python3 -m http.server")` — `ps -C` matches the COMM name only, so the full arg list (`-m http.server`) is ignored and ALL python3 processes get killed (systemd webhook receivers, gateway). Use port-scoped cleanup instead: `pkill -f "http.server <port>"` or `fuser -k <port>/tcp`.
 
 ## Preconditions / fixtures
 

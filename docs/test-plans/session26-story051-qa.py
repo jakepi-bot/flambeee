@@ -2,7 +2,7 @@
 """Session 26 Story 051 test plan and executable checks (Scout, QA).
 
 Story: 051-cinder-welcomeback-day-count.md
-Deliverable under test: src/cinder.html (candidate = main + PR #105 + PR #106).
+Deliverable under test: website/games/cinder.html (candidate = live tree file).
 Story 051 is a verification story: NO code change. Its deliverable is the proof
 src/kai-story051-away-window-proof.py and the recorded decision.
 
@@ -18,13 +18,13 @@ v0.23.0, and (c) the proof is non-vacuous (fails against a daysAway=gapDays
 mutant).
 
 Usage:
-    /home/jake/.openclaw/workspace/.venv/bin/python3 session26-story051-qa.py
+    python3 session26-story051-qa.py
 Optional env:
-    CINDER_PATH  path to the candidate src/cinder.html
-                 (default: /tmp/flambeee-wt-scout-merge/src/cinder.html)
+    CINDER_PATH  path to the candidate website/games/cinder.html
+                 (default: website/games/cinder.html under the repo root)
     BASE_REF     git ref of shipped v0.23.0 (default: v0.23.0)
     REPO         repo that contains the v0.23.0 tag
-                 (default: /home/jake/.openclaw/workspace/flambeee)
+                 (default: derived from the script location, $REPO wins)
 """
 import os
 import re
@@ -54,7 +54,7 @@ TEST_PLAN = [
      'Existing form "You were away for a while.", plain punctuation, no emoji.',
      "P2"),
     (6, "No code change was made",
-     "Inspect the diff for this story in src/cinder.html.",
+     "Inspect the diff for this story in website/games/cinder.html.",
      "computeAwayWindow, shouldShowWelcomeBack and checkDailyReset byte-identical to v0.23.0; no other line changed.",
      "P2 core"),
     (7, "Frozen functions byte-identical to v0.23.0",
@@ -164,11 +164,29 @@ console.log(JSON.stringify(out));
     return json.loads(p.stdout.strip().splitlines()[-1])
 
 
+HERE = os.path.dirname(os.path.abspath(__file__))
+
+
+def _repo_root():
+    """Repo root at run time: $REPO wins, else walk up from this file."""
+    env = os.environ.get("REPO")
+    if env:
+        return env
+    d = HERE
+    while True:
+        if os.path.exists(os.path.join(d, ".git")):
+            return d
+        parent = os.path.dirname(d)
+        if parent == d:
+            return d
+        d = parent
+
+
 def main():
+    repo = _repo_root()
     cinder_path = os.environ.get(
-        "CINDER_PATH", "/tmp/flambeee-wt-scout-merge/src/cinder.html")
+        "CINDER_PATH", os.path.join(repo, "website", "games", "cinder.html"))
     base_ref = os.environ.get("BASE_REF", "v0.23.0")
-    repo = os.environ.get("REPO", "/home/jake/.openclaw/workspace/flambeee")
 
     if not os.path.isfile(cinder_path):
         print("candidate not found: %s" % cinder_path)

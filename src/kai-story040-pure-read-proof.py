@@ -3,8 +3,8 @@
 
 Proves the shipped `computeAwayWindow(rawDayState, todayIdx)` gate against the
 binding Session 22 gate spec (flambeee-team/state/040-gate-spec.md) by extracting
-the real function bodies out of src/cinder.html into a node vm sandbox and
-asserting against them. Nothing here re-implements the logic under test.
+the real function bodies out of website/games/cinder.html into a node vm sandbox
+and asserting against them. Nothing here re-implements the logic under test.
 
 Asserted, all from extracted shipped code:
   1. Same-day return: no summary (shouldShow false, daysAway <= 0).
@@ -33,13 +33,15 @@ Asserted, all from extracted shipped code:
      pushManager, onclick=; and no new persisted field (seenReturnSummary,
      lastSeenReturn, welcomeBackShown) anywhere in the file.
 
-Source under test: resolved from argv[1], then $CINDER_SRC, then ./cinder.html
-next to this script, then Riven's parallel worktree (the implementing branch).
+Source under test: resolved from argv[1], then $CINDER_SRC, then the live
+website/games/cinder.html under the repo root. Historical branch blobs are
+read through git show for the byte-identity fallback only, never as the
+artifact under test.
 The resolved path and its sha256 are printed so the run is reproducible.
 
 Run:
-  .venv/bin/python3 src/kai-story040-pure-read-proof.py
-  .venv/bin/python3 src/kai-story040-pure-read-proof.py /path/to/cinder.html
+  python3 src/kai-story040-pure-read-proof.py
+  python3 src/kai-story040-pure-read-proof.py /path/to/cinder.html
 Exit code 0 = all checks pass. Non-zero = proof failed.
 """
 import hashlib
@@ -51,9 +53,27 @@ import sys
 import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-RIVEN_WT = "/tmp/flambeee-wt-riven/src/cinder.html"
-REPO = "/home/jake/.openclaw/workspace/flambeee"
+
+
+def _repo_root():
+    """Repo root at run time: $REPO wins, else walk up from this file."""
+    env = os.environ.get("REPO")
+    if env:
+        return env
+    d = HERE
+    while True:
+        if os.path.exists(os.path.join(d, ".git")):
+            return d
+        parent = os.path.dirname(d)
+        if parent == d:
+            return d
+        d = parent
+
+
+REPO = _repo_root()
+MAIN_REF = "main:src/cinder.html"
 RIVEN_REF = "feature/040-cinder-welcome-back-riven:src/cinder.html"
+LIVE_DEFAULT = os.path.join(REPO, "website", "games", "cinder.html")
 
 
 def git_show(ref):
@@ -97,8 +117,7 @@ def resolve_source():
         cands.append(sys.argv[1])
     if os.environ.get("CINDER_SRC"):
         cands.append(os.environ["CINDER_SRC"])
-    cands.append(os.path.join(HERE, "cinder.html"))
-    cands.append(RIVEN_WT)
+    cands.append(LIVE_DEFAULT)
     for c in cands:
         if c and os.path.isfile(c):
             txt = open(c, encoding="utf-8").read()
@@ -106,9 +125,9 @@ def resolve_source():
                 return c, txt, c
     txt = git_show(RIVEN_REF)
     if txt is None:
-        txt = git_show("main:src/cinder.html")
+        txt = git_show(MAIN_REF)
     if txt is not None:
-        ref = RIVEN_REF if "function computeAwayWindow(" in txt else "main:src/cinder.html"
+        ref = RIVEN_REF if "function computeAwayWindow(" in txt else MAIN_REF
         fd, tmp = tempfile.mkstemp(suffix="-cinder.html", prefix="story040-")
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(txt)
@@ -693,8 +712,8 @@ def main():
     src_path, src, label = resolve_source()
     if src_path is None:
         print("BLOCK: no source file containing computeAwayWindow found")
-        print("       tried argv[1], $CINDER_SRC, %s, %s, git:%s, git:main"
-              % (os.path.join(HERE, "cinder.html"), RIVEN_WT, RIVEN_REF))
+        print("       tried argv[1], $CINDER_SRC, %s, git:%s, git:%s"
+              % (LIVE_DEFAULT, RIVEN_REF, MAIN_REF))
         return 2
     digest = hashlib.sha256(src.encode("utf-8")).hexdigest()
     print("=== Story 040 pure-read proof: computeAwayWindow ===")

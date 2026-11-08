@@ -3,13 +3,13 @@
 
 Purpose:
   Prove that the "come back tomorrow" preview added to renderQuest() in
-  src/cinder.html is a pure read: it computes tomorrow's quest from the day
+  website/games/cinder.html is a pure read: it computes tomorrow's quest from the day
   index via determineQuestForDay(getDayIndex() + 1) with no save writes, no
   state mutation, and no balance/mechanics change.
 
 How:
   This script extracts the three pure helpers (kindIndexForDay, dayIndexHash,
-  determineQuestForDay) verbatim from src/cinder.html and exercises the real
+  determineQuestForDay) verbatim from website/games/cinder.html and exercises
   shipped logic under node, then checks the properties that make the preview
   a pure read:
     - determinism (same day -> same quest),
@@ -29,13 +29,33 @@ Usage:
 Exit code: 0 on all checks passing, 1 on any failure.
 """
 import json
+import os
 import re
 import subprocess
 import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-CINDER = (HERE / "cinder.html").read_text(encoding="utf-8")
+
+
+def _default_cinder_src():
+    """Artifact under test: argv[1], then $CINDER_SRC, then the live file."""
+    if len(sys.argv) > 1:
+        return sys.argv[1]
+    env = os.environ.get("CINDER_SRC")
+    if env:
+        return env
+    d = HERE
+    while True:
+        if (d / ".git").exists():
+            return str(d / "website" / "games" / "cinder.html")
+        if d.parent == d:
+            return str(HERE.parent / "website" / "games" / "cinder.html")
+        d = d.parent
+
+
+CINDER_SRC = _default_cinder_src()
+CINDER = Path(CINDER_SRC).read_text(encoding="utf-8")
 
 
 def extract_body(name: str) -> str:

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Kai pure-read proof for Story 035 (Cinder recent-quests / quest-streak view).
 
-Verifies from the shipped src/cinder.html that:
+Verifies from the shipped website/games/cinder.html that:
   1. computeQuestStreak is a pure helper (deterministic, no input/global mutation)
      and returns the correct streak across consecutive, missed-day, live-yesterday,
      legacy, and corrupt-input cases.
@@ -13,12 +13,40 @@ Verifies from the shipped src/cinder.html that:
      in completeQuest() and the completedQuests:[] default in ensureQuestState /
      checkDailyReset / init (backwards-compatible, existing saves load clean).
 
-Run:  .venv/bin/python3 src/kai-story035-pure-read-proof.py
+Run:  python3 src/kai-story035-pure-read-proof.py [cinder.html]
 Exit code 0 = all checks pass. Non-zero = proof failed.
 """
 import re, subprocess, sys, tempfile, json, os
 
-SRC = os.path.join(os.path.dirname(__file__), "cinder.html")
+HERE = os.path.dirname(os.path.abspath(__file__))
+
+
+def _repo_root():
+    """Repo root at run time: $REPO wins, else walk up from this file."""
+    env = os.environ.get("REPO")
+    if env:
+        return env
+    d = HERE
+    while True:
+        if os.path.exists(os.path.join(d, ".git")):
+            return d
+        parent = os.path.dirname(d)
+        if parent == d:
+            return d
+        d = parent
+
+
+def _default_src():
+    """Artifact under test: argv[1], then $CINDER_SRC, then the live file."""
+    if len(sys.argv) > 1:
+        return sys.argv[1]
+    env = os.environ.get("CINDER_SRC")
+    if env:
+        return env
+    return os.path.join(_repo_root(), "website", "games", "cinder.html")
+
+
+SRC = _default_src()
 
 PROOF_NODE = r"""
 const fs = require('fs');

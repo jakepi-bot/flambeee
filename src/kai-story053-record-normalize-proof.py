@@ -7,8 +7,8 @@ are reproduced against shipped v0.24.0:
 
   1. THE THROW. computeRecentQuestEntries() filters entries by
      `typeof entry === 'object'` but never checks that `objective` / `label` are
-     strings. renderQuestLog() (src/cinder.html:706 in the shipped build) passes
-     them to escapeHtml(), which calls str.replace and throws
+     strings. renderQuestLog() (BASE_REF v0.24.0 blob line 706 in the shipped
+     build) passes them to escapeHtml(), which calls str.replace and throws
      `TypeError: str.replace is not a function`. Reachable and persistent on a
      record stamped today: checkDailyReset() takes the else branch,
      ensureQuestState() patches only quest/completedQuests, and
@@ -32,14 +32,15 @@ This script proves BOTH the shipped v0.24.0 build and the candidate:
     field-for-field, no write occurs, and the five frozen functions are
     byte-identical to v0.24.0.
 
-It extracts the real functions out of src/cinder.html by paren/brace matching and
-drives them in a node vm sandbox. It does not re-implement them.
+It extracts the real functions out of website/games/cinder.html by paren/brace
+matching and drives them in a node vm sandbox. It does not re-implement them.
 
 Usage:
-    /home/jake/.openclaw/workspace/.venv/bin/python3 src/kai-story053-record-normalize-proof.py [cinder.html]
+    python3 src/kai-story053-record-normalize-proof.py [cinder.html]
 
 Env:
-    CINDER_SRC  path to a src/cinder.html to test instead of the repo copy
+    CINDER_SRC  path to a website/games/cinder.html to test instead of the
+                live repo copy (argv[1] wins when both are given)
 
 Exit 0 = every assertion held. Non-zero = the proof failed (this is the expected
 result against the unfixed v0.24.0 build, which is the point).
@@ -53,8 +54,26 @@ import sys
 import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-REPO = "/home/jake/.openclaw/workspace/flambeee"
+
+
+def _repo_root():
+    """Repo root at run time: $REPO wins, else walk up from this file."""
+    env = os.environ.get("REPO")
+    if env:
+        return env
+    d = HERE
+    while True:
+        if os.path.exists(os.path.join(d, ".git")):
+            return d
+        parent = os.path.dirname(d)
+        if parent == d:
+            return d
+        d = parent
+
+
+REPO = _repo_root()
 BASE_REF = "v0.24.0:src/cinder.html"
+LIVE_DEFAULT = os.path.join(REPO, "website", "games", "cinder.html")
 FROZEN = ["checkDailyReset", "computeQuestLogStreak", "computeRecentQuestEntries",
           "shouldShowWelcomeBack", "dayLabelForIndex"]
 DAY_RECORD_SHAPE = ["dayIndex", "fightsUsed", "innHealsUsed", "quest", "completedQuests"]
@@ -78,13 +97,13 @@ def resolve_source():
         cands.append(sys.argv[1])
     if os.environ.get("CINDER_SRC"):
         cands.append(os.environ["CINDER_SRC"])
-    cands.append(os.path.join(HERE, "cinder.html"))
+    cands.append(LIVE_DEFAULT)
     for c in cands:
         if c and os.path.isfile(c):
             txt = open(c, encoding="utf-8").read()
             if "function renderQuestLog(" in txt:
                 return c, txt, c
-    for ref in ("main:src/cinder.html",):
+    for ref in ("main:src/cinder.html",):  # BASE_REF-family historical blob
         txt = git_show(ref)
         if txt and "function renderQuestLog(" in txt:
             fd, tmp = tempfile.mkstemp(suffix="-cinder.html", prefix="story053-")

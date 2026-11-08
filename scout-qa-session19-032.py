@@ -2,16 +2,36 @@
 """QA harness (Scout) for Story 032 boss-day balance.
 
 Verifies startCombat pool selection against the real MONSTERS/LEVELS/
-WEAPONS/ARMOR data pulled from src/cinder.html. Invariants:
+WEAPONS/ARMOR data pulled from website/games/cinder.html. Invariants:
   1. Boss day: every combat pools ONLY boss-tier monsters (id >= 13).
   2. Boss day + too weak: stretch fallback is the WEAKEST boss.
   3. Non-boss day: pool selection is UNCHANGED vs pre-patch behavior.
   4. 15-fight day on a boss day at mid-level: quest reachable (boss appears).
 """
-import re, sys
+import re, subprocess, sys, os
 
-SRC = "src/cinder.html"
-s = open(SRC).read()
+HERE = os.path.dirname(os.path.abspath(__file__))
+
+
+def _repo_root():
+    """Repo root at run time: $REPO wins, else walk up from this file."""
+    env = os.environ.get("REPO")
+    if env:
+        return env
+    d = HERE
+    while True:
+        if os.path.exists(os.path.join(d, ".git")):
+            return d
+        parent = os.path.dirname(d)
+        if parent == d:
+            return d
+        d = parent
+
+
+REPO = _repo_root()
+SRC = sys.argv[1] if len(sys.argv) > 1 else os.environ.get(
+    "CINDER_SRC", os.path.join(REPO, "website", "games", "cinder.html"))
+s = open(SRC, encoding="utf-8").read()
 
 def grab(name, pattern):
     m = re.search(pattern, s, re.S)
@@ -21,17 +41,19 @@ def grab(name, pattern):
 
 # Rebuild MONSTERS / LEVELS / WEAPONS / ARMOR via a tiny JS-less parser is
 # fragile; instead evaluate the raw JS arrays with node to get ground truth.
-import subprocess, json as _json
-node_script = r"""
-const src = require('fs').readFileSync('src/cinder.html','utf8');
-const body = src.match(/<script[^>]*>([\s\S]*?)<\/script>/)[1];
-const MONSTERS = eval(body.match(/const MONSTERS = (\[[\s\S]*?\]);/)[1]);
-const LEVELS = eval(body.match(/const LEVELS = (\[[\s\S]*?\]);/)[1]);
-const WEAPONS = eval(body.match(/const WEAPONS = (\[[\s\S]*?\]);/)[1]);
-const ARMOR = eval(body.match(/const ARMOR = (\[[\s\S]*?\]);/)[1]);
-console.log(JSON.stringify({MONSTERS, LEVELS, WEAPONS, ARMOR}));
-"""
-out = subprocess.run(["node", "-e", node_script], capture_output=True, text=True, cwd=".")
+import json as _json
+node_script = (
+    "const fs = require('fs');\n"
+    "const src = fs.readFileSync(%s,'utf8');\n"
+    "const body = src.match(/<script[^>]*>([\\s\\S]*?)<\\/script>/)[1];\n"
+    "const MONSTERS = eval(body.match(/const MONSTERS = (\\[[\\s\\S]*?\\]);/)[1]);\n"
+    "const LEVELS = eval(body.match(/const LEVELS = (\\[[\\s\\S]*?\\]);/)[1]);\n"
+    "const WEAPONS = eval(body.match(/const WEAPONS = (\\[[\\s\\S]*?\\]);/)[1]);\n"
+    "const ARMOR = eval(body.match(/const ARMOR = (\\[[\\s\\S]*?\\]);/)[1]);\n"
+    "console.log(JSON.stringify({MONSTERS, LEVELS, WEAPONS, ARMOR}));\n"
+    % _json.dumps(SRC)
+)
+out = subprocess.run(["node", "-e", node_script], capture_output=True, text=True, cwd=REPO)
 if out.returncode != 0:
     raise SystemExit(f"node eval failed: {out.stderr[-500:]}")
 data = _json.loads(out.stdout)

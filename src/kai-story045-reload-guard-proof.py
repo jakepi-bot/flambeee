@@ -31,8 +31,8 @@ with zero persisted state, because the reset's write is what closes the window.
 Case B is the SAME-DAY reload of an already-stale record, which the reset's own
 write handles. Both facts belong in the corrected claim.
 
-Source under test: resolved from argv[1], then $CINDER_SRC, then ./cinder.html
-next to this script. Exits 0 when both cases are proven and the report is
+Source under test: resolved from argv[1], then $CINDER_SRC, then the live
+website/games/cinder.html under the repo root. Exits 0 when both cases are
 self-consistent. Exits non-zero if the panel re-appears on a reload in either
 case (that would be a real defect, Story 045 Scenario 9) or if the harness
 cannot run.
@@ -49,8 +49,26 @@ import sys
 import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-REPO = "/home/jake/.openclaw/workspace/flambeee"
+
+
+def _repo_root():
+    """Repo root at run time: $REPO wins, else walk up from this file."""
+    env = os.environ.get("REPO")
+    if env:
+        return env
+    d = HERE
+    while True:
+        if os.path.exists(os.path.join(d, ".git")):
+            return d
+        parent = os.path.dirname(d)
+        if parent == d:
+            return d
+        d = parent
+
+
+REPO = _repo_root()
 V0210_REF = "v0.21.0:src/cinder.html"
+LIVE_DEFAULT = os.path.join(REPO, "website", "games", "cinder.html")
 
 
 def git_show(ref):
@@ -70,7 +88,7 @@ def resolve_source():
         cands.append(sys.argv[1])
     if os.environ.get("CINDER_SRC"):
         cands.append(os.environ["CINDER_SRC"])
-    cands.append(os.path.join(HERE, "cinder.html"))
+    cands.append(LIVE_DEFAULT)
     for c in cands:
         if c and os.path.isfile(c):
             txt = open(c, encoding="utf-8").read()

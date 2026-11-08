@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Kai pure-mirror proof for Story 037 (Cinder install-aware app-icon badge).
 
-Verifies from the shipped src/cinder.html that:
+Verifies from the shipped website/games/cinder.html that:
   1. syncAppBadge() computes the badge value from quest state alone:
        1  when today's quest is not completed,
        1  when completed but not yet rewarded (payout-once gate),
@@ -17,10 +17,7 @@ Verifies from the shipped src/cinder.html that:
      quest state; a forbidden-write token inside syncAppBadge fails the proof.
 
 Run:
-  node src/kai-story037-badge-proof.js     (self-extracting, writes a temp file)
-
-  Or directly:
-  .venv/bin/python3 src/kai-story037-badge-proof.py
+  python3 src/kai-story037-badge-proof.py [cinder.html]
 Exit code 0 = all checks pass. Non-zero = proof failed.
 """
 import os
@@ -29,7 +26,35 @@ import subprocess
 import sys
 import tempfile
 
-SRC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cinder.html")
+HERE = os.path.dirname(os.path.abspath(__file__))
+
+
+def _repo_root():
+    """Repo root at run time: $REPO wins, else walk up from this file."""
+    env = os.environ.get("REPO")
+    if env:
+        return env
+    d = HERE
+    while True:
+        if os.path.exists(os.path.join(d, ".git")):
+            return d
+        parent = os.path.dirname(d)
+        if parent == d:
+            return d
+        d = parent
+
+
+def _default_src():
+    """Artifact under test: argv[1], then $CINDER_SRC, then the live file."""
+    if len(sys.argv) > 1:
+        return sys.argv[1]
+    env = os.environ.get("CINDER_SRC")
+    if env:
+        return env
+    return os.path.join(_repo_root(), "website", "games", "cinder.html")
+
+
+SRC = _default_src()
 
 PROOF_NODE = r"""
 const fs = require('fs');
@@ -242,7 +267,7 @@ def static_hook_scan():
 
 
 def main():
-    print("=== Hook point scan: src/cinder.html ===")
+    print("=== Hook point scan: website/games/cinder.html ===")
     problems, calls, defs = static_hook_scan()
     print("syncAppBadge definitions: %d, call sites: %d" % (defs, calls))
     print("hook 1 = end of init(), hook 2 = end of completeQuest(), hook 3 = after checkDailyReset() branch")

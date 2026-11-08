@@ -3,8 +3,8 @@
 Story 060 re-derivation: close Scout's unreported residual edge case.
 
 Scout's Session 28 run ended on "found a residual edge case" and never reported
-it. This script re-derives the answer by MEASURING the shipped v0.26.0
-`src/cinder.html`, not by reading it and not by guessing.
+it. This script re-derives the answer by MEASURING the shipped v0.26.0 game
+file, not by reading the story text and not by guessing.
 
 It extracts the real functions from the shipped file and executes them in Node
 against the Session 28 seeds, the three documented non-blocking notes, and the
@@ -18,12 +18,32 @@ A no-defect answer is a valid, complete result. No code is changed here.
 Usage: python3 <this> [/path/to/cinder.html]
 """
 
+import os
 import re
 import subprocess
 import sys
 
-SRC = sys.argv[1] if len(sys.argv) > 1 else \
-    "/home/jake/.openclaw/workspace/flambeee/src/cinder.html"
+HERE = os.path.dirname(os.path.abspath(__file__))
+
+
+def _repo_root():
+    """Repo root at run time: $REPO wins, else walk up from this file."""
+    env = os.environ.get("REPO")
+    if env:
+        return env
+    d = HERE
+    while True:
+        if os.path.exists(os.path.join(d, ".git")):
+            return d
+        parent = os.path.dirname(d)
+        if parent == d:
+            return d
+        d = parent
+
+
+SRC = sys.argv[1] if len(sys.argv) > 1 else os.environ.get(
+    "CINDER_SRC", os.path.join(_repo_root(), "website", "games",
+                               "afterglow.html"))
 source = open(SRC, encoding="utf-8").read()
 
 

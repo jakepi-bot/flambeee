@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Kai proof for Story 066 (Cinder unreadable-storage visible notice).
 
-Proves against the REAL src/cinder.html by extraction, never by reimplementation:
+Proves against the REAL website/games/cinder.html by extraction, never by
+reimplementation:
   (1) unreadable character store fires the notice path
   (2) unreadable day store fires the notice path
   (3) readable store shows no notice and behavior matches pre-066
@@ -10,7 +11,7 @@ Proves against the REAL src/cinder.html by extraction, never by reimplementation
 Usage:
   python3 src/kai-story066-notice-proof.py [cinder.html]
   CINDER_SRC env overrides the path. BASELINE_REF env overrides the
-  pre-066 baseline ref (default origin/main:src/cinder.html).
+  pre-066 baseline ref (the BASELINE_REF default names origin/main:src/cinder.html).
 
 Exit 0 = candidate passes all four proofs.
 Exit 1 = failure, or ABSENCE when the file under test has no notice path
@@ -25,19 +26,31 @@ import sys
 import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-REPO_CANDIDATES = [
-    "/home/jake/.hermes/flambeee/flambeee",
-    os.path.join(HERE, ".."),
-]
+
+
+def _repo_root():
+    """Repo root at run time: $REPO wins, else walk up from this file."""
+    env = os.environ.get("REPO")
+    if env:
+        return env
+    d = HERE
+    while True:
+        if os.path.exists(os.path.join(d, ".git")):
+            return d
+        parent = os.path.dirname(d)
+        if parent == d:
+            return d
+        d = parent
+
+
+REPO = _repo_root()
 BASELINE_REF = os.environ.get("BASELINE_REF", "origin/main:src/cinder.html")
+LIVE_DEFAULT = os.path.join(REPO, "website", "games", "cinder.html")
 NOTICE_TOKENS = ["showStorageNotice", "storageNoticeShown", "storageNotice"]
 
 
 def repo_dir():
-    for c in REPO_CANDIDATES:
-        if os.path.isdir(os.path.join(c, ".git")):
-            return c
-    return REPO_CANDIDATES[0]
+    return REPO
 
 
 def git_show(ref):
@@ -54,7 +67,7 @@ def resolve_source():
         cands.append(sys.argv[1])
     if os.environ.get("CINDER_SRC"):
         cands.append(os.environ["CINDER_SRC"])
-    cands.append(os.path.join(HERE, "cinder.html"))
+    cands.append(LIVE_DEFAULT)
     for c in cands:
         if c and os.path.isfile(c):
             try:
