@@ -13,7 +13,8 @@ Story 042 closes the two defects Story 040 shipped and disclosed:
      is the page, so a same-day reload re-showed the summary.
 
 This script proves the shipped code, it does not re-implement it. Every function
-under test is extracted verbatim out of src/cinder.html into a node vm sandbox.
+under test is extracted verbatim out of website/games/cinder.html into a node
+vm sandbox.
 
 What is asserted, all from extracted shipped code:
 
@@ -36,7 +37,7 @@ What is asserted, all from extracted shipped code:
        stale record with today's index and completedQuests: []
      - the window read from the post-reset record is shown to be WRONG (the
        summary is suppressed), so reading dayState after the reset is a defect
-     - checkDailyReset() is byte-identical to main:src/cinder.html
+     - checkDailyReset() is byte-identical to MAIN_REF (historical base blob)
      - the whole changed file contains no new history field beyond the
        pre-existing completedQuests
 
@@ -70,13 +71,13 @@ What is asserted, all from extracted shipped code:
        { dayIndex, fightsUsed, innHealsUsed, quest, completedQuests }
 
   E. Regressions (Scenarios 10, 13, 15)
-     - computeQuestStreak() is byte-identical to main:src/cinder.html
+     - computeQuestStreak() is byte-identical to MAIN_REF (historical base blob)
      - legacy (no quest, no completedQuests) and corrupt records load clean
-     - no em dash and no heavy emoji in the changed lines of src/cinder.html
+     - no em dash and no heavy emoji in the changed lines of the live file
 
-Source under test: resolved from argv[1], then $CINDER_SRC, then ./cinder.html
-next to this script. The resolved path and its sha256 are printed so the run is
-reproducible. main:src/cinder.html is read through git show for the
+Source under test: resolved from argv[1], then $CINDER_SRC, then the live
+website/games/cinder.html under the repo root.
+reproducible. MAIN_REF (main:src/cinder.html) is read through git show for
 byte-identity comparisons.
 
 Run:
@@ -93,8 +94,26 @@ import sys
 import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-REPO = "/home/jake/.openclaw/workspace/flambeee"
+
+
+def _repo_root():
+    """Repo root at run time: $REPO wins, else walk up from this file."""
+    env = os.environ.get("REPO")
+    if env:
+        return env
+    d = HERE
+    while True:
+        if os.path.exists(os.path.join(d, ".git")):
+            return d
+        parent = os.path.dirname(d)
+        if parent == d:
+            return d
+        d = parent
+
+
+REPO = _repo_root()
 MAIN_REF = "main:src/cinder.html"
+LIVE_DEFAULT = os.path.join(REPO, "website", "games", "cinder.html")
 
 # Functions that make up the summary path this story owns.
 PATH_FNS = [
@@ -144,7 +163,7 @@ def resolve_source():
         cands.append(sys.argv[1])
     if os.environ.get("CINDER_SRC"):
         cands.append(os.environ["CINDER_SRC"])
-    cands.append(os.path.join(HERE, "cinder.html"))
+    cands.append(LIVE_DEFAULT)
     for c in cands:
         if c and os.path.isfile(c):
             txt = open(c, encoding="utf-8").read()

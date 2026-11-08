@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """Session 22 Story 040 browser verification (Scout).
 
-Runs the pinned Story 040 artifact (src/cinder.html at commit 28e5c49) over http
+Runs the pinned Story 040 artifact (website/games/cinder.html; original pin was
+commit 28e5c49) over http
 in real Chromium via Playwright, covering the 14 BDD scenarios plus negative
 tests. The main-build artifact (77acd25) is used as a byte-safety control.
 
-Usage: /home/jake/.openclaw/workspace/.venv/bin/python3 qa-story040.py
-Env: QA_ART_DIR (default = script dir), QA_PORT (default 8731)
+Usage: python3 qa-story040.py
+Env: QA_ART_DIR (default = website/games under the repo root), QA_PORT (default 8731)
 """
 import http.server
 import json
@@ -20,7 +21,26 @@ import time
 from playwright.sync_api import sync_playwright
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ART_DIR = os.environ.get("QA_ART_DIR", HERE)
+
+
+def _repo_root():
+    """Repo root at run time: $REPO wins, else walk up from this file."""
+    env = os.environ.get("REPO")
+    if env:
+        return env
+    d = HERE
+    while True:
+        if os.path.exists(os.path.join(d, ".git")):
+            return d
+        parent = os.path.dirname(d)
+        if parent == d:
+            return d
+        d = parent
+
+
+REPO = _repo_root()
+ART_DIR = os.environ.get("QA_ART_DIR",
+                          os.path.join(REPO, "website", "games"))
 PORT = int(os.environ.get("QA_PORT", "8731"))
 BASE = "http://127.0.0.1:%d" % PORT
 TODAY = int(time.time() * 1000 // 86400000)

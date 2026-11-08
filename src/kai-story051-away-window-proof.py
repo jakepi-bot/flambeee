@@ -21,8 +21,8 @@ proof is pass-against-shipped (it reaffirms a resolved definition).
 This script does NOT re-implement the functions under test. computeAwayWindow(),
 awayDaysSentence(), awayQuestsSentence(), awayStreakSentence(),
 shouldShowWelcomeBack() and checkDailyReset() are extracted verbatim out of
-src/cinder.html into a node vm sandbox and driven there. The extraction is a
-verbatim slice by paren/brace matching; the shipped file's own bytes are run.
+website/games/cinder.html into a node vm sandbox and driven there. The extraction
+is a verbatim slice by paren/brace matching; the shipped file's own bytes are run.
 
 What it proves, with pasted output:
 
@@ -36,7 +36,7 @@ What it proves, with pasted output:
          also seeded directly at daysAway 14 and 15 so the boundary is exact.
   2. The invariant questsMissed <= daysAway holds at every sweep point.
   3. computeAwayWindow(), shouldShowWelcomeBack() and checkDailyReset() are
-     byte-identical to v0.23.0 (git show v0.23.0:src/cinder.html, extract each
+     byte-identical to BASE_REF (git show v0.23.0:src/cinder.html, extract each
      verbatim slice, sha256 the two slices and compare).
   4. The summary path writes nothing: a static scan of the away-window read
      path for saveCharacter/saveDayState/localStorage.setItem/completeQuest/
@@ -50,8 +50,8 @@ What it proves, with pasted output:
      without throwing.
 
 Run:
-  /home/jake/.openclaw/workspace/.venv/bin/python3 src/kai-story051-away-window-proof.py
-  /home/jake/.openclaw/workspace/.venv/bin/python3 src/kai-story051-away-window-proof.py /path/to/cinder.html
+  python3 src/kai-story051-away-window-proof.py
+  python3 src/kai-story051-away-window-proof.py /path/to/cinder.html
 Exit code 0 = the proof ran and every assertion held (expected against
 v0.23.0). Non-zero = the run found a real divergence or the proof itself broke.
 """
@@ -64,8 +64,26 @@ import sys
 import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-REPO = "/home/jake/.openclaw/workspace/flambeee"
+
+
+def _repo_root():
+    """Repo root at run time: $REPO wins, else walk up from this file."""
+    env = os.environ.get("REPO")
+    if env:
+        return env
+    d = HERE
+    while True:
+        if os.path.exists(os.path.join(d, ".git")):
+            return d
+        parent = os.path.dirname(d)
+        if parent == d:
+            return d
+        d = parent
+
+
+REPO = _repo_root()
 BASE_REF = "v0.23.0:src/cinder.html"
+LIVE_DEFAULT = os.path.join(REPO, "website", "games", "cinder.html")
 
 # Frozen / no-change functions for Story 051 (byte-identity proven by extraction).
 FROZEN_FNS = ["computeAwayWindow", "shouldShowWelcomeBack", "checkDailyReset"]
@@ -113,14 +131,14 @@ def resolve_source():
         cands.append(sys.argv[1])
     if os.environ.get("CINDER_SRC"):
         cands.append(os.environ["CINDER_SRC"])
-    cands.append(os.path.join(HERE, "cinder.html"))
+    cands.append(LIVE_DEFAULT)
     for c in cands:
         if c and os.path.isfile(c):
             txt = open(c, encoding="utf-8").read()
             if "function computeAwayWindow(" in txt and "function awayDaysSentence(" in txt:
                 return c, txt, c
-    for ref in ("feature/051-cinder-away-verify-kai:src/cinder.html",
-                "main:src/cinder.html"):
+    for ref in ("feature/051-cinder-away-verify-kai:src/cinder.html",  # BASE_REF-family historical blob
+                "main:src/cinder.html"):  # BASE_REF-family historical blob
         txt = git_show(ref)
         if txt and "function computeAwayWindow(" in txt:
             fd, tmp = tempfile.mkstemp(suffix="-cinder.html", prefix="story051-")

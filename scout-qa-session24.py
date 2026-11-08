@@ -2,7 +2,7 @@
 """
 Scout QA, Session 24 Wave 3. Stories 044 + 045.
 
-Drives the REAL shipped helpers extracted from src/cinder.html:
+Drives the REAL shipped helpers extracted from website/games/cinder.html:
   - computeQuestStreak      (unchanged, Story 035)
   - computeAwayWindow       (Story 042 streak source + anchor)
   - shouldShowWelcomeBack   (Story 042 one-time guard)
@@ -15,15 +15,35 @@ QA verifies. Nothing here fixes or changes product code.
 """
 import re, subprocess, sys, tempfile, os, json
 
-REPO = "/home/jake/.openclaw/workspace/flambeee"
-SRC = os.path.join(REPO, "src/cinder.html")
+HERE = os.path.dirname(os.path.abspath(__file__))
+
+
+def _repo_root():
+    """Repo root at run time: $REPO wins, else walk up from this file."""
+    env = os.environ.get("REPO")
+    if env:
+        return env
+    d = HERE
+    while True:
+        if os.path.exists(os.path.join(d, ".git")):
+            return d
+        parent = os.path.dirname(d)
+        if parent == d:
+            return d
+        d = parent
+
+
+REPO = _repo_root()
+LIVE_DEFAULT = os.path.join(REPO, "website", "games", "cinder.html")
+SRC = LIVE_DEFAULT
 # Optional positional arg: path to the candidate artifact under test (defaults to
-# the shipped file). Lets the same suite run against a branch artifact and the
-# merged candidate without touching the tree.
+# the shipped live file). Lets the same suite run against a branch artifact and
+# the merged candidate without touching the tree.
 if len(sys.argv) > 1:
     SRC = sys.argv[1]
-PY = "/home/jake/.openclaw/workspace/.venv/bin/python3"
-src = open(SRC).read()
+if os.environ.get("CINDER_SRC"):
+    SRC = os.environ["CINDER_SRC"]
+src = open(SRC, encoding="utf-8").read()
 
 
 def extract_fn(name, text=None):

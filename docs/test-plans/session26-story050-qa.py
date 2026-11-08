@@ -2,7 +2,7 @@
 """Session 26 Story 050 test plan and executable checks (Scout, QA).
 
 Story: 050-cinder-questlog-day-labels.md
-Deliverable under test: src/cinder.html (candidate = main + PR #105 + PR #106).
+Deliverable under test: website/games/cinder.html (candidate = live tree file).
 
 Core defect: dayLabelForIndex() measured its difference from getDayIndex()
 (today) while the streak number (computeQuestLogStreak) and the recent-quests
@@ -18,10 +18,10 @@ extraction. Real-browser verification lives in
 flambeee-team/scout-qa-session26-browser.py.
 
 Usage:
-    /home/jake/.openclaw/workspace/.venv/bin/python3 session26-story050-qa.py
+    python3 session26-story050-qa.py
 Optional env:
-    CINDER_PATH  path to the candidate src/cinder.html
-                 (default: /tmp/flambeee-wt-scout-merge/src/cinder.html)
+    CINDER_PATH  path to the candidate website/games/cinder.html
+                 (default: website/games/cinder.html under the repo root)
     BASE_REF     git ref of shipped v0.23.0 in the repo that contains the file
                  (default: v0.23.0)
 """
@@ -140,11 +140,29 @@ def extract_function(src, name):
     return None
 
 
+HERE = os.path.dirname(os.path.abspath(__file__))
+
+
+def _repo_root():
+    """Repo root at run time: $REPO wins, else walk up from this file."""
+    env = os.environ.get("REPO")
+    if env:
+        return env
+    d = HERE
+    while True:
+        if os.path.exists(os.path.join(d, ".git")):
+            return d
+        parent = os.path.dirname(d)
+        if parent == d:
+            return d
+        d = parent
+
+
 def main():
+    repo = _repo_root()
     cinder_path = os.environ.get(
-        "CINDER_PATH", "/tmp/flambeee-wt-scout-merge/src/cinder.html")
+        "CINDER_PATH", os.path.join(repo, "website", "games", "cinder.html"))
     base_ref = os.environ.get("BASE_REF", "v0.23.0")
-    repo = os.environ.get("REPO", "/home/jake/.openclaw/workspace/flambeee")
 
     if not os.path.isfile(cinder_path):
         print("candidate not found: %s" % cinder_path)

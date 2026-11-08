@@ -16,7 +16,8 @@ returning player opposite things about the same run.
     zero was the false one.
 
 This script proves the shipped code. It does not re-implement it: every function
-under test is extracted verbatim out of src/cinder.html into a node vm sandbox.
+under test is extracted verbatim out of website/games/cinder.html into a node
+vm sandbox.
 
 What is asserted, all from extracted shipped code:
 
@@ -33,7 +34,7 @@ What is asserted, all from extracted shipped code:
   B. Anchor shape (a), stated (Scenario 2, Story 044 open question 1)
      - the log anchors on the last recorded play day, derived from the LOADED
        pre-reset record exactly as computeAwayWindow() derives lastPlayIdx at
-       src/cinder.html:425-446 (max of the raw dayIndex and the valid history
+       BASE_REF (v0.21.0:src/cinder.html) lines 425-446 (max of the raw dayIndex
        entries' dayIndex values)
      - status-to-number consistency with the panel on every seeded case: panel
        survived implies the log reads >= 1 and equal to the recorded run; panel
@@ -67,9 +68,10 @@ What is asserted, all from extracted shipped code:
      - the recent-quests list (most recent first, capped at 5) is identical to
        the pre-story rendering for the same history
 
-Source under test: resolved from argv[1], then $CINDER_SRC, then ./cinder.html
-next to this script. The resolved path and its sha256 are printed so the run is
-reproducible. v0.21.0:src/cinder.html is read through git show for the
+Source under test: resolved from argv[1], then $CINDER_SRC, then the live
+website/games/cinder.html under the repo root. The resolved path and its
+sha256 are printed so the run is reproducible. BASE_REF
+(v0.21.0:src/cinder.html) is read through git show for the
 byte-identity comparisons.
 
 Run:
@@ -86,8 +88,26 @@ import sys
 import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-REPO = "/home/jake/.openclaw/workspace/flambeee"
+
+
+def _repo_root():
+    """Repo root at run time: $REPO wins, else walk up from this file."""
+    env = os.environ.get("REPO")
+    if env:
+        return env
+    d = HERE
+    while True:
+        if os.path.exists(os.path.join(d, ".git")):
+            return d
+        parent = os.path.dirname(d)
+        if parent == d:
+            return d
+        d = parent
+
+
+REPO = _repo_root()
 BASE_REF = "v0.21.0:src/cinder.html"
+LIVE_DEFAULT = os.path.join(REPO, "website", "games", "cinder.html")
 
 # The quest-log read path this story owns.
 PATH_FNS = [
@@ -133,14 +153,14 @@ def resolve_source():
         cands.append(sys.argv[1])
     if os.environ.get("CINDER_SRC"):
         cands.append(os.environ["CINDER_SRC"])
-    cands.append(os.path.join(HERE, "cinder.html"))
+    cands.append(LIVE_DEFAULT)
     for c in cands:
         if c and os.path.isfile(c):
             txt = open(c, encoding="utf-8").read()
             if "function computeQuestLogStreak(" in txt:
                 return c, txt, c
-    for ref in ("feature/044-cinder-streak-source-kai:src/cinder.html",
-                "main:src/cinder.html"):
+    for ref in ("feature/044-cinder-streak-source-kai:src/cinder.html",  # BASE_REF-family historical blob
+                "main:src/cinder.html"):  # BASE_REF-family historical blob
         txt = git_show(ref)
         if txt and "function computeQuestLogStreak(" in txt:
             fd, tmp = tempfile.mkstemp(suffix="-cinder.html", prefix="story044-")
