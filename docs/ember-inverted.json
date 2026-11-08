@@ -1,26 +1,26 @@
 [
   {
-    "concept_summary": "The same core loop as Distribution is the bottleneck, not the platform, rebuilt end to end for newcomers instead of its current crowd. Controls, difficulty, session shape, and rewards assume newcomers: a guided, jargon-free on-ramp for total beginners. Nothing in this build serves the old crowd; one client cannot satisfy both.",
-    "first_experiment": "Take one level from the source fantasy, apply the inverted tuning only, and playtest with five target players for ten minutes; a quit-rate on the opposite side of half from the source baseline confirms the audience split is real.",
-    "inversion_axis": "audience",
-    "inverted_title": "Distribution for Newcomers",
-    "source_idea_title": "Distribution is the bottleneck, not the platform",
-    "why_it_is_opposite": "While the source is tuned for its current crowd (Portal and search traffic.: systems tuned for veterans of the genre), this concept flips every tuning decision toward newcomers (a guided, jargon-free on-ramp for total beginners), so the two builds want mutually exclusive players."
-  },
-  {
-    "concept_summary": "The fantasy of Daily-ritual retention as the measured browser advantage stretched over a single persistent season lasting months: one meaningful decision per evening, no grinding, no catching up. Progress compounds across real calendar time and a missed week bends the story instead of ending it. The finale is scheduled, shared, and unrepeatable.",
+    "concept_summary": "The fantasy of Account-free daily microgames with a deliberate no-monetization stance stretched over a single persistent season lasting months: one meaningful decision per evening, no grinding, no catching up. Progress compounds across real calendar time and a missed week bends the story instead of ending it. The finale is scheduled, shared, and unrepeatable.",
     "first_experiment": "Concierge test: run the core decision by hand over seven daily messages with three players; if day-seven return beats the source's second-session return, the long form has legs.",
     "inversion_axis": "session length",
-    "inverted_title": "The 100-Hour retention",
-    "source_idea_title": "Daily-ritual retention as the measured browser advantage",
+    "inverted_title": "The 100-Hour monetization",
+    "source_idea_title": "Account-free daily microgames with a deliberate no-monetization stance",
     "why_it_is_opposite": "While the source fits daily, this concept flips the clock: one season here outlasts hundreds of source sessions, so the source habit of quick payoff actively hurts."
   },
   {
-    "concept_summary": "The fantasy of Same-keyboard 2-player local duels as the growth category replanted on one shared map where every player acts at once and every move is visible. Resources, storms, and scarcities hit everyone simultaneously, so private optimization loses to public negotiation. The game only functions above fifty concurrent players.",
+    "concept_summary": "A reverse-loop game in the world of Tiny planet you can circumnavigate in minutes: you begin holding everything the source hands out and win by giving it all back. Where the source loop is 'A bounded curved world with no map screen: progress is spatial and memorable because the whole world fits in the player's head.', here every move undoes the 'A bounded curved world with no map screen: progress is spatial and memorable because the whole world fits in the player's head.' loop step by step instead of advancing it, so the map empties and the score falls. Hoarding triggers the lose state; the end screen celebrates an empty board.",
+    "first_experiment": "Paper prototype: ten tokens stand in for everything the player owns and each turn must discard at least one; test with five players whether emptying the board feels like winning after three rounds.",
+    "inversion_axis": "mechanic",
+    "inverted_title": "circumnavigate in Reverse",
+    "source_idea_title": "Tiny planet you can circumnavigate in minutes",
+    "why_it_is_opposite": "While the source rewards accumulation (A bounded curved world with no map screen: progress is spatial and memorable because the whole world fits in the player's head.), this concept rewards the opposite: progress means having less, so a winning run here would score zero in the source."
+  },
+  {
+    "concept_summary": "The fantasy of Single-file 3D kart racer on WebGPU replanted on one shared map where every player acts at once and every move is visible. Resources, storms, and scarcities hit everyone simultaneously, so private optimization loses to public negotiation. The game only functions above fifty concurrent players.",
     "first_experiment": "Moderated crowd test: put fifteen volunteers on one shared board for twenty minutes; if alliances form without prompting, the social layer carries the game.",
     "inversion_axis": "social mode",
-    "inverted_title": "keyboard Together",
-    "source_idea_title": "Same-keyboard 2-player local duels as the growth category",
+    "inverted_title": "Single Together",
+    "source_idea_title": "Single-file 3D kart racer on WebGPU",
     "why_it_is_opposite": "While the source is a private experience, this concept flips it into a crowd: playing alone is impossible here, whereas the source never requires another person."
   }
 ]
