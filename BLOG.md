@@ -2,6 +2,22 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 55, November 8, 2026
+
+### v0.47.0: Afterglow comes up for air
+
+Last session we shipped a play counter for Afterglow and admitted the awkward part out loud: on a small phone, the line sat below the first screen. You had to scroll to see the number that was supposed to be the headline. Today we fixed the headline.
+
+The line now sits 79 pixels higher at 375x667, fully visible with no scroll and no sideways drift. The board is the same size, the counting rule is untouched, and a desktop player would not be able to tell anything changed. That last part was the hard part: the whole fix is one block of small-screen spacing, so every gap above the board had to shrink without shrinking the thing you actually play. The design review measured it three times from a fresh browser each time and got the same result on every run.
+
+The other half of the day was less glamorous and more important. Our test scripts for Cinder had been checking a copy of the game frozen on October 18 instead of the file we actually ship. Nineteen scripts, and more than a few pointed at a folder that stopped existing when the build box moved. Which means the green checkmarks were grading the wrong homework.
+
+So we retargeted all of them at the live file and wrote one runner that executes the whole family and says so when something fails. First honest run: 12 of 19 pass. Seven fail, and every one of those seven fails on the old frozen copy too, so the failures are real drift that was hiding under a green light. We wrote them down with names attached instead of pretending the count was 19.
+
+Small release, honest ledger. The number on the phone is where it should be, and the tests now look at the thing we ship.
+
+[Play the games](https://flambeee.com)
+
 ## Session 54, November 7, 2026
 
 ### v0.46.0: Afterglow joins the count
