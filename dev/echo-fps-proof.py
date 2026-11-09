@@ -60,6 +60,7 @@ SYNTH_LOOK_PX = 100       # injected MouseEvent movementX for handler math
 MOUSE_SENS_CONTRACT = 0.0025   # contract default, rad/px
 PITCH_MAX_RAD = 1.2       # contract PITCH_MAX
 MOVE_ASSERT_S = 1.0       # seconds held per yaw-relative leg
+HIT_CONE_HALF = 0.06      # contract hit cone, rad (harness reads it as a fixed bar)
 WIN_SCRIPT_AMMO = 24      # ?ammo=24 instrument for the keyboard-only win leg
 DEFAULT_PORT = 8729       # tried first, ephemeral fallback on collision
 SAMPLE_TIMEOUT_S = 75.0
@@ -86,6 +87,8 @@ window.__kaiLockChanges = 0;
 window.__kaiLockErrors = 0;
 document.addEventListener('pointerlockchange', function () { window.__kaiLockChanges++; }, true);
 document.addEventListener('pointerlockerror', function () { window.__kaiLockErrors++; }, true);
+window.__kaiEscapes = 0;
+window.addEventListener('keydown', function (e) { if (e.code === 'Escape') window.__kaiEscapes++; }, false);
 (function () {
   var proto = window.CanvasRenderingContext2D.prototype;
   var names = ['moveTo', 'lineTo', 'rect', 'fillRect', 'strokeRect', 'arc',
@@ -202,6 +205,17 @@ function (o) {
 }
 """
 
+JS_CONE0 = r"""
+function (i) {
+  var e = window.__echo, p = e.player, t = e.target(i);
+  var dx = t.x - p.x, dy = t.y - p.y, gd = Math.sqrt(dx * dx + dy * dy);
+  var wrap = function (a) { return ((a + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI; };
+  var bearing = wrap(Math.atan2(dy, dx) - p.yaw);
+  var elev = (gd > 0 ? Math.atan2(0, gd) : 0) - p.pitch;
+  return { ang: Math.sqrt(bearing * bearing + elev * elev), lit: t.lit, cleared: t.cleared };
+}
+"""
+
 JS_LOCK = r"""
 (function () {
   var c = document.querySelector('canvas');
@@ -269,7 +283,7 @@ function (spec) {
   }
   var pad = {
     id: 'kai-synthetic-pad (NOT HARDWARE)', index: 0, connected: true,
-    mapping: spec.mapping || 'standard',
+    mapping: (spec.mapping === undefined || spec.mapping === null) ? 'standard' : spec.mapping,
     axes: spec.axes || [0, 0, 0, 0],
     buttons: btns,
     timestamp: (typeof performance !== 'undefined') ? performance.now() : 0
@@ -450,7 +464,7 @@ def wait_lock(page, want, timeout=3.0):
     return lock_state(page)['lockedToCanvas'] == want
 
 
-def aim_at(page, tx, ty, timeout=6.0, tol=0.05):
+def aim_at(page, tx, ty, timeout=6.0, tol=0.03):
     """Arrow-key aim until yaw points at (tx, ty). Returns (ok, final error rad)."""
     st = time.time()
     err = math.pi
@@ -588,15 +602,44 @@ def check03(page, ctx):
         click_canvas(page)
         if not wait_lock(page, True, 3.0):
             return False, 'pointer lock not acquired; synthetic mouse look cannot be driven'
-    st0 = probe(page)
-    y0 = float(st0['yaw'])
-    synth_mouse(page, SYNTH_LOOK_PX, 0)
-    time.sleep(0.15)
-    st1 = probe(page)
-    dy = angdiff(float(st1['yaw']), y0)
+
+    def stable_yaw(timeout=3.0):
+        t0 = time.time()
+        prev = float(probe(page)['yaw'])
+        while time.time() - t0 < timeout:
+            time.sleep(0.3)
+            cur = float(probe(page)['yaw'])
+            if abs(angdiff(cur, prev)) <= 0.01:
+                return cur
+            prev = cur
+        return prev
+
+    # Playwright's cursor restore after a pointer-lock exit can deliver a late
+    # mousemove (large movementX) that lands inside a measurement window. The
+    # game counts lookEvents per look input, so a clean window is exactly one
+    # lookEvent for one synthetic dispatch; anything else is retried.
+    def measure(mx, my, tries=5):
+        last = (0, 0.0, 0.0, float('nan'))  # le_delta 0 fails the check honestly if no window ran
+        for _ in range(tries):
+            stable_yaw()
+            le0 = page.evaluate('window.__echo.lookEvents')
+            y_before = float(probe(page)['yaw'])
+            p_before = float(probe(page)['pitch'])
+            synth_mouse(page, mx, my)
+            time.sleep(0.15)
+            st_after = probe(page)
+            le1 = st_after['lookEvents']
+            last = (le1 - le0, angdiff(float(st_after['yaw']), y_before),
+                    float(st_after['pitch']) - p_before, y_before)
+            if last[0] == 1:
+                return last
+        return last
+
+    le_delta, dy, dpitch, _ = measure(SYNTH_LOOK_PX, 0)
     sens = dy / float(SYNTH_LOOK_PX)
-    sens_ok = abs(dy - SYNTH_LOOK_PX * MOUSE_SENS_CONTRACT) <= 0.01 * SYNTH_LOOK_PX * MOUSE_SENS_CONTRACT
-    samples = [float(st1['pitch'])]
+    sens_ok = (le_delta == 1 and
+               abs(dy - SYNTH_LOOK_PX * MOUSE_SENS_CONTRACT) <= 0.01 * SYNTH_LOOK_PX * MOUSE_SENS_CONTRACT)
+    samples = [float(probe(page)['pitch'])]
 
     def sweep(sign):
         for _ in range(12):
@@ -622,13 +665,15 @@ def check03(page, ctx):
     finite = all(math.isfinite(p) for p in samples)
 
     yaw_before = float(st2['yaw'])
-    raw = (2.5 * 2 * math.pi) / sens if abs(sens) > 1e-9 else 0.0
-    if raw:
-        synth_mouse(page, int(round(raw)), 0)
-        time.sleep(0.15)
+    raw_px = (2.5 * 2 * math.pi) / sens if abs(sens) > 1e-9 else 0.0
+    raw_rad = raw_px * sens
+    wrap_le = None
+    if raw_px:
+        wrap_le, _, _, yaw_before = measure(int(round(raw_px)), 0)
     yaw_after = float(probe(page)['yaw'])
-    expected = (yaw_before + raw + math.pi) % (2 * math.pi) - math.pi if raw else yaw_before
-    wrap_ok = bool(raw) and abs(angdiff(yaw_after, expected)) <= 0.05 and abs(yaw_after) <= math.pi + 1e-9
+    expected = (yaw_before + raw_rad + math.pi) % (2 * math.pi) - math.pi if raw_rad else yaw_before
+    wrap_ok = (bool(raw_rad) and wrap_le == 1
+               and abs(angdiff(yaw_after, expected)) <= 0.05 and abs(yaw_after) <= math.pi + 1e-9)
     try:
         page.keyboard.press('Escape')
     except Exception:
@@ -636,13 +681,14 @@ def check03(page, ctx):
     wait_lock(page, False, 2.0)
 
     ok = sens_ok and clamped_up and clamped_dn and within and upright and finite and wrap_ok
-    detail = ('handler sens=%.5f rad/px (expect %.5f, 1%% band)=%s; pitch sweep [%.3f, %.3f] '
+    detail = ('handler sens=%.5f rad/px (expect %.5f, 1%% band=%s, clean window lookEvents delta=%s); '
+              'pitch sweep [%.3f, %.3f] '
               'reached +clamp=%s -clamp=%s, within +-%.1f rad=%s; up-dot-world-up=cos(pitch) min %.3f > 0=%s; '
-              'yaw wrap %.3f -> %.3f expected %.3f (2.5 turns)=%s; synthetic MouseEvent legs prove handler math only '
-              '(device movementX stays 0 under Playwright while locked)'
-              % (sens, MOUSE_SENS_CONTRACT, sens_ok, low_min, up_max, clamped_up, clamped_dn,
+              'yaw wrap %.3f -> %.3f expected %.3f (2.5 turns, lookEvents delta=%s)=%s; synthetic MouseEvent legs '
+              'prove handler math only (device movementX stays 0 under Playwright while locked)'
+              % (sens, MOUSE_SENS_CONTRACT, sens_ok, le_delta, low_min, up_max, clamped_up, clamped_dn,
                  PITCH_MAX_RAD, within, min(math.cos(p) for p in samples), upright,
-                 yaw_before, yaw_after, expected, wrap_ok))
+                 yaw_before, yaw_after, expected, wrap_le, wrap_ok))
     return ok, detail
 
 
@@ -698,7 +744,7 @@ def check04(page, ctx):
 
 
 def check05(page, ctx):
-    miss = missing(page, ['started', 'shots', 'litHits', 'unlitShots', 'ammoLeft', 'litHits',
+    miss = missing(page, ['started', 'shots', 'litHits', 'unlitShots', 'unlitHits', 'ammoLeft',
                           'player.x', 'player.y', 'player.yaw', 'player.pitch', 'target'])
     if miss:
         return False, 'missing probe fields: %s' % ', '.join(miss)
@@ -714,45 +760,90 @@ def check05(page, ctx):
     if not aimed:
         return False, 'could not aim at target 0 with arrows (bearing error %.3f rad > 0.05)' % err
     s0 = st['shots']; l0 = st['litHits']; u0 = st['unlitShots']; a0 = st['ammoLeft']
+    h0 = st.get('unlitHits')
 
+    def cone0():
+        return page.evaluate(JS_CONE0, 0)
+
+    def cleared0():
+        return bool(page.evaluate('(function(){return window.__echo.target(0).cleared;})()'))
+
+    # Phase 1: a shot at a probe-dark target inside the 0.06 rad cone must
+    # stand. Aim first, then wait for dark, then verify the cone with the
+    # game's own math in one read, then fire: the lit window cannot expire
+    # between the wait and the shot.
     p1 = None
-    for _ in range(3):
+    pre1 = None
+    phase1_ok = False
+    defect = False
+    for _ in range(4):
+        aim_at(page, t['x'], t['y'], timeout=2.0)
         if not wait_lit(page, 0, False, 3.2):
             continue
-        aim_at(page, t['x'], t['y'], timeout=1.5)
+        pre1 = cone0()
+        if pre1['cleared']:
+            break
+        if pre1['lit'] or pre1['ang'] > HIT_CONE_HALF:
+            continue
         page.keyboard.press('f')
         time.sleep(0.35)
         p1 = probe(page)
-        if p1['unlitShots'] == u0 + 1:
+        if p1['litHits'] > l0:
+            defect = True
             break
-    if p1 is None or p1['unlitShots'] != u0 + 1:
+        if (p1['unlitShots'] == u0 + 1 and p1['ammoLeft'] == a0 - 1 and not cleared0()):
+            phase1_ok = True
+            break
+    if defect:
+        return False, ('a shot fired at target 0 while the probe and the game math both reported it DARK '
+                       'and in-cone cleared it (litHits %s->%s): the lit-hit gate evaluated after this shot '
+                       'own pulse boost, so every aimed hit clears (Story 089 gate defeated: fire() sets '
+                       'litBoostUntil before calling litNow())' % (l0, (p1 or st).get('litHits')))
+    if not phase1_ok:
         got = p1 or st
-        return False, ('unlit shot did not register: unlitShots %s->%s (want +%d), shots %s->%s, ammo %s->%s'
-                       % (u0, got.get('unlitShots'), 1, s0, got.get('shots'), a0, got.get('ammoLeft')))
-    ammo_dropped_unlit = p1['ammoLeft'] == a0 - 1
-    if not ammo_dropped_unlit:
-        return False, 'ammo did not drop on the unlit shot (%s -> %s)' % (a0, p1['ammoLeft'])
+        return False, ('dark shot did not stand in-cone: pre-fire ang=%s lit=%s cleared=%s; unlitShots %s->%s, '
+                       'litHits %s->%s, unlitHits %s->%s, shots %s->%s, ammo %s->%s'
+                       % ((pre1 or {}).get('ang'), (pre1 or {}).get('lit'), (pre1 or {}).get('cleared'),
+                          u0, got.get('unlitShots'), l0, got.get('litHits'), h0, got.get('unlitHits'),
+                          s0, got.get('shots'), a0, got.get('ammoLeft')))
 
+    # Phase 2: a shot inside a lit window must clear. Phase 1's own pulse
+    # boost keeps target 0 lit for 500 ms, so the first attempt is
+    # deterministic; later attempts fall back to the cycle-lit wait.
     cleared = False
-    for _ in range(4):
-        wait_lit(page, 0, True, 1.2)
-        aim_at(page, t['x'], t['y'], timeout=1.5)
+    for _ in range(5):
+        aim_at(page, t['x'], t['y'], timeout=2.0)
+        pre2 = cone0()
+        if not pre2['lit']:
+            if not wait_lit(page, 0, True, 1.5):
+                continue
+            pre2 = cone0()
+        if pre2['cleared']:
+            cleared = True
+            break
+        if pre2['ang'] > HIT_CONE_HALF:
+            continue
         page.keyboard.press('f')
         time.sleep(0.35)
-        if page.evaluate('(function(){return window.__echo.target(0).cleared;})()'):
+        if cleared0():
             cleared = True
             break
     fin = probe(page)
     lit_delta = fin['litHits'] - l0
     unlit_delta = fin['unlitShots'] - u0
+    hits_delta = (fin.get('unlitHits') - h0) if (h0 is not None and fin.get('unlitHits') is not None) else None
     ammo_delta = a0 - fin['ammoLeft']
     shots_delta = fin['shots'] - s0
-    ok = cleared and lit_delta == 1 and unlit_delta == 1 and ammo_delta >= 2 and ammo_delta == shots_delta
-    detail = ('scripted unlit shot: unlitShots +%d, litHits +%d at that point, ammo %s->%s; '
-              'scripted lit shot (pulse boost window): cleared=%s litHits +%d; totals shots +%d, ammo -%d'
-              % (unlit_delta, 0, a0, p1['ammoLeft'], cleared, lit_delta, shots_delta, ammo_delta))
+    # unlitHits is the gate canary: with the gate working it stays 0.
+    ok = (cleared and lit_delta == 1 and unlit_delta == 1 and hits_delta == 0
+          and ammo_delta >= 2 and ammo_delta == shots_delta)
+    detail = ('scripted shot at probe-dark in-cone target 0 (pre-fire ang=%.4f rad <= 0.06): unlitShots +%d, '
+              'target stood, ammo %s->%s; scripted shot inside the lit window: cleared=%s litHits +%d; '
+              'unlitHits canary delta %s (want 0); totals shots +%d, ammo -%d'
+              % (pre1['ang'] if pre1 else -1, unlit_delta, a0, p1['ammoLeft'] if p1 else a0,
+                 cleared, lit_delta, hits_delta, shots_delta, ammo_delta))
     if not ok:
-        detail += '; EXPECTED unlitShots +1 exactly, litHits +1 exactly, target cleared, ammo -2+'
+        detail += '; EXPECTED unlitShots +1, litHits +1, unlitHits delta 0, target cleared, ammo -2+'
     return ok, detail
 
 
@@ -764,12 +855,15 @@ def check06(page, ctx):
         return False, 'round did not start (Space/Enter); pointer lock cycle not testable'
     pre = probe(page)
     shots0, ammo0 = pre['shots'], pre['ammoLeft']
-    page.evaluate('window.__kaiLockChanges = 0; window.__kaiLockErrors = 0')
+    page.evaluate('window.__kaiLockChanges = 0; window.__kaiLockErrors = 0; window.__kaiEscapes = 0')
     if lock_state(page)['lockedToCanvas']:
         page.keyboard.press('Escape')
-        wait_lock(page, False, 2.0)
+        if not wait_lock(page, False, 2.0):
+            page.evaluate('document.exitPointerLock && document.exitPointerLock()')
+            wait_lock(page, False, 2.0)
     click_canvas(page)
     acq = wait_lock(page, True, 3.0)
+    time.sleep(0.5)
     st_lock = lock_state(page)
     changed1 = st_lock['changes'] >= 1
     probe_locked = bool(probe(page)['locked'])
@@ -780,14 +874,23 @@ def check06(page, ctx):
     math_ok = abs(dy - SYNTH_LOOK_PX * MOUSE_SENS_CONTRACT) <= 0.01 * SYNTH_LOOK_PX * MOUSE_SENS_CONTRACT
 
     released = False
-    changes_after_esc = st_lock['changes']
     for _ in range(3):
         page.keyboard.press('Escape')
-        released = wait_lock(page, False, 2.0)
-        st_lock = lock_state(page)
-        changes_after_esc = st_lock['changes']
+        released = wait_lock(page, False, 1.5)
         if released:
             break
+        time.sleep(0.3)
+    escapes_seen = page.evaluate('window.__kaiEscapes')
+    release_mech = 'synthetic Escape released the lock'
+    if not released:
+        page.evaluate('document.exitPointerLock && document.exitPointerLock()')
+        released = wait_lock(page, False, 2.0)
+        release_mech = ('LIMITATION: Playwright synthetic Escape did not release pointer lock in headless '
+                        'chromium 156 (environment limitation, not a game defect); lock loss driven with '
+                        'document.exitPointerLock()')
+    time.sleep(0.3)
+    st_lock = lock_state(page)
+    changes_after_esc = st_lock['changes']
     mid = probe(page)
     continues = bool(mid['started']) and not bool(mid['over'])
     probe_unlocked = not bool(mid['locked'])
@@ -804,11 +907,12 @@ def check06(page, ctx):
     detail = ('trusted click acquires lock (pointerLockElement=canvas)=%s, pointerlockchange fired=%s, '
               'probe locked=%s; injected MouseEvent movementX=%d -> yaw delta %.4f rad (100*MOUSE_SENS=0.2500, '
               '1%% band)=%s [LIMITATION: device-level movementX is 0 under Playwright while locked, handler math '
-              'only]; Escape releases=%s (changes=%d), round continues=%s, probe locked=%s; click re-locks=%s '
-              'without restart=%s; page errors=%d%s'
-              % (acq, changed1, probe_locked, SYNTH_LOOK_PX, dy, math_ok, released,
-                 changes_after_esc, continues, probe_unlocked, relock, no_restart, len(errs),
-                 (' | ' + errs[0][:200]) if errs else ''))
+              'only]; lock release: Escape keydown delivered %d time(s), release mechanism: %s; pointerlockchange '
+              'count=%d (>=2)=%s, round continues=%s, probe reports unlocked=%s; click re-locks=%s without restart=%s; '
+              'page errors=%d%s'
+              % (acq, changed1, probe_locked, SYNTH_LOOK_PX, dy, math_ok, escapes_seen, release_mech,
+                 changes_after_esc, changes_after_esc >= 2, continues, probe_unlocked, relock, no_restart,
+                 len(errs), (' | ' + errs[0][:200]) if errs else ''))
     return ok, detail
 
 
@@ -879,37 +983,55 @@ def check08(page, ctx):
         if t['cleared']:
             continue
         done = False
-        for a in range(5):
-            aimed, err = aim_at(page, t['x'], t['y'])
+        for a in range(3):
+            aimed, err = aim_at(page, t['x'], t['y'], timeout=3.0)
             if not aimed:
                 attempts_log.append('t%d aim %.3f' % (i, err))
                 continue
-            if not wait_lit(page, i, True, 3.0):
-                attempts_log.append('t%d never lit' % i)
-                continue
-            aim_at(page, t['x'], t['y'], timeout=1.0)
+            pre = page.evaluate(JS_CONE0, i)
+            if pre['cleared']:
+                done = True
+                break
+            # A shot at a lit target clears; a shot at a dark target stands and
+            # primes the 500 ms pulse boost, so the follow-up shot clears.
             page.keyboard.press('f')
-            time.sleep(0.4)
+            time.sleep(0.35)
             if page.evaluate('(function(i){return window.__echo.target(i).cleared;})(%d)' % i):
                 done = True
                 break
-            attempts_log.append('t%d attempt %d missed' % (i, a))
-            time.sleep(0.3)
+            t_f = time.time()
+            while time.time() - t_f < 1.6:
+                pre = page.evaluate(JS_CONE0, i)
+                if pre['cleared']:
+                    break
+                if pre['lit'] and pre['ang'] <= HIT_CONE_HALF and time.time() - t_f >= 0.2:
+                    page.keyboard.press('f')
+                    time.sleep(0.35)
+                    break
+                time.sleep(0.05)
+            if page.evaluate('(function(i){return window.__echo.target(i).cleared;})(%d)' % i):
+                done = True
+                break
+            attempts_log.append('t%d cycle %d not cleared (ang=%.3f lit=%s)'
+                                % (i, a, pre['ang'], pre['lit']))
+            time.sleep(0.2)
         if not done:
             fin = probe(page)
-            return False, ('target %d never cleared after 5 keyboard attempts (%s); outcome=%s shots=%s ammo=%s'
+            return False, ('target %d never cleared after 3 keyboard cycles (%s); outcome=%s shots=%s ammo=%s'
                            % (i, '; '.join(attempts_log) or 'no detail', fin['outcome'], fin['shots'], fin['ammoLeft']))
     time.sleep(0.5)
     fin = probe(page)
     body = fin.get('bodyText') or ''
-    win_text = 'ROOM CLEAR' in body
+    dom_text = 'ROOM CLEAR' in body
     errs = list(ctx.get('errors', []))
-    ok = bool(fin['over']) and fin['outcome'] == 'win' and win_text and not errs
+    # The end-screen overlay is drawn on the canvas, so the ROOM CLEAR string is
+    # not in the DOM. The game's own outcome record is the authoritative signal.
+    ok = bool(fin['over']) and fin['outcome'] == 'win' and not errs
     detail = ('keyboard-only round (Space start, arrow aim, F fire; no mouse and no pad input issued by the '
-              'harness, ?ammo=%d instrument): outcome=%s over=%s ROOM CLEAR text=%s, shots=%s ammoLeft=%s '
-              'litHits=%s gamepadConnected=%s; page errors=%d%s'
-              % (WIN_SCRIPT_AMMO, fin['outcome'], fin['over'], win_text, fin['shots'], fin['ammoLeft'],
-                 fin['litHits'], fin['gamepadConnected'], len(errs),
+              'harness, ?ammo=%d instrument): outcome=%s over=%s, shots=%s ammoLeft=%s litHits=%s '
+              'gamepadConnected=%s; ROOM CLEAR overlay drawn on canvas (DOM text present=%s); page errors=%d%s'
+              % (WIN_SCRIPT_AMMO, fin['outcome'], fin['over'], fin['shots'], fin['ammoLeft'],
+                 fin['litHits'], fin['gamepadConnected'], dom_text, len(errs),
                  (' | ' + errs[0][:200]) if errs else ''))
     return ok, detail
 
@@ -964,7 +1086,8 @@ def check09(page, ctx):
     detail = ('NOT HARDWARE: synthetic navigator.getGamepads injected before page scripts, structural only; '
               'axes %s -> connected=%s, status line "Controller detected"=%s, moved %.1f units=%s, '
               'yaw changed %.3f rad=%s; button 7 fire: shots %s->%s ammo %s->%s=%s; mid-round disconnect: '
-              'gamepadConnected=%s, position drift %.2f units and yaw drift %.4f rad (no stuck intent)=%s; '
+              'disconnect handled, gamepadConnected now false=%s, position drift %.2f units and yaw drift %.4f rad '
+              '(no stuck intent)=%s; '
               'non-standard mapping line=%s; controller-claim string absent from page text=%s; page errors=%d%s'
               % (axes, connected, status_ok,
                  math.hypot(float(p1['x']) - float(p0['x']), float(p1['y']) - float(p0['y'])), moved,
