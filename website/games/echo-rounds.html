@@ -108,7 +108,7 @@ var padPx = 0, padPy = 0, triggerHeld = false, aHeld = false;
 var projectedNaNCount = 0, clippedPoints = 0, frameErrors = 0;
 var frames = 0, slowFrames = 0, warmupLeft = 30, frameSamples = [];
 var floorCoverage = 0, horizonPresent = false;
-var loopActive = false, rafId = 0, lastT = 0, prevT = 0;
+var loopActive = false, rafId = 0, lastT = 0, prevT = 0, finalDrawn = false;
 
 /* Small helpers. */
 function num(v) { return (typeof v === 'number' && isFinite(v)) ? v : 0; }
@@ -453,6 +453,7 @@ function startRound() {
   loseReason = '';
   startAt = performance.now();
   lastT = 0; /* frame 1 dt is 0 */
+  finalDrawn = false;
   lastRemain = -1;
   ammoLeft = AMMO_BUDGET;
   shots = 0; litHits = 0; unlitShots = 0; unlitHits = 0; reveals = 0;
@@ -780,15 +781,21 @@ function step(now) {
       applyMove(dt);
       if (performance.now() - startAt >= ROUND_MS) endRound(false, 'timer');
     }
-    draw(now);
-    updateTime(now);
+    if (!over) {
+      draw(now);
+      updateTime(now);
+    } else if (!finalDrawn) {
+      finalDrawn = true;
+      draw(now);
+    }
   } catch (err) {
     frameErrors++; /* dropped frame, counted, loop keeps running */
   }
-  if (!over) {
-    loopActive = true;
-    rafId = requestAnimationFrame(step);
-  }
+  /* Keep the frame loop alive after a round ends so the gamepad is still
+   * polled and pad A can restart from the end screen. Rendering stops after
+   * the one final draw above; only the pad restart edge is watched. */
+  loopActive = true;
+  rafId = requestAnimationFrame(step);
 }
 
 /* Read-only probe surface for automated proof (design handoff section 7).
