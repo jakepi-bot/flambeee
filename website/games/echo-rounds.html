@@ -420,14 +420,21 @@ function updateTime(now) {
     timeEl.textContent = String(remain);
   }
 }
+function endMessage() {
+  if (!over) return '';
+  if (outcome === 'win') return 'ROOM CLEAR. Every echo answered.';
+  return 'OUT OF LIGHT. ' + (loseReason === 'timer' ? 'Timer expired.' : 'Ammo spent.');
+}
 function updateStatus() {
+  var end = endMessage();
   var s;
-  if (padMsg) s = padMsg;
+  if (end) s = end;
+  else if (padMsg) s = padMsg;
   else if (lockDenied && !locked) s = DENIED_LINE;
   else if (!started) s = 'Click to enter the dark room.';
   else if (locked) s = LOCKED_LINE;
   else s = UNLOCKED_LINE;
-  if (padConnected && padMapping && padMapping !== 'standard') s += ' non-standard layout.';
+  if (padConnected && padMapping !== 'standard') s += ' non-standard layout.';
   statusEl.textContent = s;
 }
 
@@ -437,6 +444,7 @@ function endRound(win, reason) {
   outcome = win ? 'win' : 'lose';
   loseReason = reason || '';
   refreshHud();
+  updateStatus(); /* end-state line also lands in the DOM status element */
 }
 function startRound() {
   started = true;
@@ -491,6 +499,11 @@ function fire() {
     if (ang <= HIT_CONE_HALF && ang < bestAng) { bestAng = ang; best = t; }
   }
 
+  /* Gate is evaluated at fire time, BEFORE this shot's own pulse boost: a
+     shot scores only a target that was already lit (contract line 10, D5,
+     Story 089). This shot's pulse primes the target for the next shot. */
+  var litAtFire = best ? litNow(best, now) : false;
+
   /* Pulse lighting: every shot boosts in-cone, in-range uncleared cells. */
   for (var j = 0; j < targets.length; j++) {
     var u = targets[j];
@@ -504,7 +517,6 @@ function fire() {
   }
 
   if (best) {
-    var litAtFire = litNow(best, now);
     if (litAtFire) {
       litHits++;
       best.cleared = true;
