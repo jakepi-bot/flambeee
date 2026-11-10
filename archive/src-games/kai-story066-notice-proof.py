@@ -11,7 +11,7 @@ reimplementation:
 Usage:
   python3 src/kai-story066-notice-proof.py [cinder.html]
   CINDER_SRC env overrides the path. BASELINE_REF env overrides the
-  pre-066 baseline ref (the BASELINE_REF default names origin/main:src/cinder.html).
+  pre-066 baseline ref (the BASELINE_REF default names origin/main:archive/src-games/cinder.html).
 
 Exit 0 = candidate passes all four proofs.
 Exit 1 = failure, or ABSENCE when the file under test has no notice path
@@ -44,7 +44,7 @@ def _repo_root():
 
 
 REPO = _repo_root()
-BASELINE_REF = os.environ.get("BASELINE_REF", "origin/main:src/cinder.html")
+BASELINE_REF = os.environ.get("BASELINE_REF", "origin/main:archive/src-games/cinder.html")
 LIVE_DEFAULT = os.path.join(REPO, "website", "games", "cinder.html")
 NOTICE_TOKENS = ["showStorageNotice", "storageNoticeShown", "storageNotice"]
 

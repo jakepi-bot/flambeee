@@ -77,7 +77,7 @@ What is asserted, all from extracted shipped code:
 
 Source under test: resolved from argv[1], then $CINDER_SRC, then the live
 website/games/cinder.html under the repo root.
-reproducible. MAIN_REF (main:src/cinder.html) is read through git show for
+reproducible. MAIN_REF (main:archive/src-games/cinder.html) is read through git show for
 byte-identity comparisons.
 
 Run:
@@ -112,7 +112,7 @@ def _repo_root():
 
 
 REPO = _repo_root()
-MAIN_REF = "main:src/cinder.html"
+MAIN_REF = "main:archive/src-games/cinder.html"
 LIVE_DEFAULT = os.path.join(REPO, "website", "games", "cinder.html")
 
 # Functions that make up the summary path this story owns.

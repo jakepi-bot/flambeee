@@ -3,8 +3,8 @@
 
 Discovers the family per the design-contract rule (no hardcoded member list):
 a file is in the family iff it ends in .py, it lives under src/ or
-docs/test-plans/ or matches scout-qa-session*.py at the repo root, and its
-bytes contain a case-insensitive match for "cinder".
+archive/src-games/ or docs/test-plans/ or matches scout-qa-session*.py at the
+repo root, and its bytes contain a case-insensitive match for "cinder".
 
 Each discovered script runs serially with the target file passed as argv[1]
 plus the family env overrides (CINDER_SRC, CINDER_PATH, CANDIDATE, QA_ART_DIR,
@@ -113,8 +113,9 @@ def repo_root_of_runner():
 def discover(repo):
     found = []
     src_dir = os.path.join(repo, "src")
+    archive_dir = os.path.join(repo, "archive", "src-games")
     plans_dir = os.path.join(repo, "docs", "test-plans")
-    scan_dirs = [d for d in (src_dir, plans_dir) if os.path.isdir(d)]
+    scan_dirs = [d for d in (src_dir, archive_dir, plans_dir) if os.path.isdir(d)]
     candidates = []
     for d in scan_dirs:
         for name in sorted(os.listdir(d)):

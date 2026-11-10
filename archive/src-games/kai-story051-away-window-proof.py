@@ -138,7 +138,7 @@ def resolve_source():
             if "function computeAwayWindow(" in txt and "function awayDaysSentence(" in txt:
                 return c, txt, c
     for ref in ("feature/051-cinder-away-verify-kai:src/cinder.html",  # BASE_REF-family historical blob
-                "main:src/cinder.html"):  # BASE_REF-family historical blob
+                "main:archive/src-games/cinder.html"):  # BASE_REF-family historical blob
         txt = git_show(ref)
         if txt and "function computeAwayWindow(" in txt:
             fd, tmp = tempfile.mkstemp(suffix="-cinder.html", prefix="story051-")

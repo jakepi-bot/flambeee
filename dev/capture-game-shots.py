@@ -19,10 +19,10 @@ os.makedirs(OUT, exist_ok=True)
 
 # (name, html_path, board selector, optional state JS)
 GAMES = [
-    ("wordfire", "src/wordfire.html", "#board", None),
-    ("minesweeper", "src/minesweeper.html", "#board, .board, #minesweeper", None),
-    ("simon", "src/simon.html", "#board, .simon-board, .game-board", None),
-    ("2048", "src/2048.html", "#grid, .board-wrap, .grid", None),
+    ("wordfire", "archive/src-games/wordfire.html", "#board", None),
+    ("minesweeper", "archive/src-games/minesweeper.html", "#board, .board, #minesweeper", None),
+    ("simon", "archive/src-games/simon.html", "#board, .simon-board, .game-board", None),
+    ("2048", "archive/src-games/2048.html", "#grid, .board-wrap, .grid", None),
 ]
 
 STATE_JS = {

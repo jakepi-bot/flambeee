@@ -32,7 +32,7 @@ out = (
     "// Valid-guess list (system dictionary, 5-letter)\n"
     "const WORDFIRE_GUESSES = " + repr(guesses) + ";\n"
 )
-with open('src/wordfire-words.js', 'w') as f:
+with open('archive/src-games/wordfire-words.js', 'w') as f:
     f.write(out)
 
 print('answers:', len(answers))

@@ -142,7 +142,7 @@ def resolve_source():
             if "function renderQuestLog(" in txt and "function computeQuestLogStreak(" in txt:
                 return c, txt, c
     for ref in ("feature/047-049-cinder-read-path-kai:src/cinder.html",  # BASE_REF-family historical blob
-                "main:src/cinder.html"):  # BASE_REF-family historical blob
+                "main:archive/src-games/cinder.html"):  # BASE_REF-family historical blob
         txt = git_show(ref)
         if txt and "function renderQuestLog(" in txt:
             fd, tmp = tempfile.mkstemp(suffix="-cinder.html", prefix="story047-")

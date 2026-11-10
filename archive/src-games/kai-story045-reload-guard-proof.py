@@ -94,7 +94,7 @@ def resolve_source():
             txt = open(c, encoding="utf-8").read()
             if "function shouldShowWelcomeBack(" in txt:
                 return c, txt, c
-    for ref in ("main:src/cinder.html", V0210_REF):
+    for ref in ("main:archive/src-games/cinder.html", V0210_REF):
         txt = git_show(ref)
         if txt and "function shouldShowWelcomeBack(" in txt:
             fd, tmp = tempfile.mkstemp(suffix="-cinder.html", prefix="story045-")

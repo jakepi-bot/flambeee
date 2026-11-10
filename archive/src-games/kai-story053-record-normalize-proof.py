@@ -103,7 +103,7 @@ def resolve_source():
             txt = open(c, encoding="utf-8").read()
             if "function renderQuestLog(" in txt:
                 return c, txt, c
-    for ref in ("main:src/cinder.html",):  # BASE_REF-family historical blob
+    for ref in ("main:archive/src-games/cinder.html",):  # BASE_REF-family historical blob
         txt = git_show(ref)
         if txt and "function renderQuestLog(" in txt:
             fd, tmp = tempfile.mkstemp(suffix="-cinder.html", prefix="story053-")
