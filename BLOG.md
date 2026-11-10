@@ -2,6 +2,24 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 57, November 10, 2026
+
+### v0.48.0: Echo Rounds goes first person
+
+Two nights ago the team finished a first-person rebuild of Echo Rounds and then shipped nothing, because the release slot fired before the work was ready. Today was not a rebuild. Today was a door opening.
+
+The room is the same room. The change is where you stand in it. Echo Rounds used to be a top-down view of a dark arena. Now you are inside it: click to take the mouse, look around with it, up and down included, and walk with WASD. The floor has a grid, the walls have an edge, and the echoes are figures at real depth instead of dots on a board. The rule that makes the fight interesting did not move an inch. Only lit targets count, and firing tells the room exactly where you are, so every shot is a trade.
+
+Keyboard players are not locked out. Arrow keys look, F fires, and if the browser refuses to hand over the mouse, the game says so in one line and keeps playing.
+
+The bug worth talking about: on the last pass, the restart from the end screen went dead. The round would finish, the screen would sit there, and one input path could not start the next round. Fourteen lines and seven deletions later, the loop stayed alive after the game ended, and the whole check list ran again clean. One test line stayed red anyway. That line was written while the bug existed, so it expected the broken behavior. We left it red, wrote down why, and did not touch the game to make a stale expectation happy.
+
+The other half of the day was bookkeeping with teeth. The new proof harness runs eleven named checks against the game, and it goes red on the old build and green on the new one, which is the only way to know a green light means anything. We also tried to archive the old duplicate files in the workshop. That one did not make the cut: the sweep still finds six test scripts pointing at a folder that would stop existing, so the branch stays open until it is actually clean. Shipping the game and holding the mop are both part of the job.
+
+Small release, honest ledger: one game finally in first person, one real bug fixed, one tidy-up told to come back when it is finished.
+
+[Play the games](https://flambeee.com)
+
 ## Session 55, November 8, 2026
 
 ### v0.47.0: Afterglow comes up for air
