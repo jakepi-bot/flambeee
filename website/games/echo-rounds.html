@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Echo Rounds | Flambeee</title>
 <style>
-  /* Echo Rounds (Session 47, Story 110). Single file, no build, no dependency. */
-  /* One dark room, one target type. Keyboard-only: WASD moves, arrow keys look, click fires. */
+  /* Echo Rounds (Story 128, Session 56): first-person rebuild. Single file, no build, no dependency. */
+  /* One dark room, four echo cells. Shots are the only light. WASD and arrows play the whole round. */
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { max-width: 100%; overflow-x: hidden; }
   body {
@@ -22,265 +22,298 @@
   .back-link { align-self: flex-start; color: #d8d8d8; text-decoration: none; font-size: 14px; opacity: 0.7; }
   .back-link:hover { opacity: 1; }
   h1 { margin: 12px 0 2px; font-size: 1.5rem; letter-spacing: 3px; color: #f0e6c0; }
-  .tagline { font-size: 0.85rem; opacity: 0.75; margin-bottom: 10px; text-align: center; max-width: 560px; }
-  .hud { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 10px; font-size: 0.9rem; }
+  .tagline { font-size: 0.85rem; opacity: 0.75; margin-bottom: 10px; text-align: center; max-width: 640px; }
+  .hud { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 10px; font-size: 0.9rem; max-width: 960px; width: 100%; }
   .hud .item { background: #141414; padding: 5px 12px; border-radius: 8px; border: 1px solid #2a2a2a; white-space: nowrap; }
+  #status { white-space: normal; text-align: center; }
   #wrap { width: 100%; max-width: 960px; }
-  canvas { display: block; width: 100%; height: auto; background: #050505; border: 1px solid #222; border-radius: 6px; }
-  .keys { margin-top: 10px; font-size: 0.8rem; opacity: 0.7; text-align: center; max-width: 560px; }
+  canvas { display: block; width: 100%; height: auto; background: #000; border: 1px solid #222; border-radius: 6px; }
+  .keys { margin-top: 10px; font-size: 0.8rem; opacity: 0.7; text-align: center; max-width: 640px; }
 </style>
 </head>
 <body>
 <a class="back-link" href="../index.html">Back to Flambeee</a>
 <h1>ECHO ROUNDS</h1>
-<p class="tagline">Keyboard-only: WASD moves, arrow keys look, click fires. Hits count on lit targets only.</p>
+<p class="tagline">One dark room, four echo cells. Shots are the only light, and every shot gives you away.</p>
 <div class="hud">
-  <span class="item">Ammo: <span id="ammo">12</span></span>
+  <span class="item">Ammo: <span id="ammo">16</span></span>
   <span class="item">Time: <span id="time">60</span>s</span>
   <span class="item">Cleared: <span id="cleared">0</span>/4</span>
-  <span class="item" id="msg">Click to enter the dark room.</span>
+  <span class="item" id="status">Click to enter the dark room.</span>
 </div>
 <div id="wrap"><canvas id="c" width="960" height="600"></canvas></div>
-<p class="keys">WASD moves. Left and Right arrows turn your aim. Up and Down arrows adjust focus. Click fires light. Firing reveals you.</p>
+<p class="keys">WASD moves where you face. Arrow keys look. F fires along the crosshair. Space or Enter starts, R restarts. Click the canvas to grab pointer lock and look with the mouse. Controller support is new and unverified on physical hardware. Firing reveals you.</p>
 <script>
 'use strict';
-/* Echo Rounds: one dark room, one target type (echo cell). Fire light, not
- * bullets. Each click emits a short light pulse from the player toward the
- * click point. A click counts as a hit only when its target is lit at click
- * time; clicks on unlit targets or empty space count as misses. Firing
- * reveals the player in play. Clear every echo cell to win. Spending the
- * ammo budget or letting the timer expire ends the round lost. */
+/* Echo Rounds (Story 128): first-person rebuild of the top-down prototype.
+ * One dark room, four echo cells. A shot scores only on a target that is lit
+ * at fire time, every shot reveals the shooter for 600 ms, the ammo budget
+ * and the wall-clock timer end the round lost while cells stand.
+ * Renderer: exact pinhole projection with pitch as a rotation, never a
+ * small-angle shear (design handoff section 2). Probe surface window.__echo
+ * is read only: getters and pure queries, no setters, no control methods. */
+
 var canvas = document.getElementById('c');
 var ctx = canvas.getContext('2d');
 var ammoEl = document.getElementById('ammo');
 var timeEl = document.getElementById('time');
 var clearedEl = document.getElementById('cleared');
-var msgEl = document.getElementById('msg');
+var statusEl = document.getElementById('status');
 
+/* Tuning constants, design handoff Story 128 section 3. */
 var W = 960, H = 600, ROOM = 24;
+var EYE_H = 32;
+var HFOV = Math.PI / 2;
+var FOCAL = (W / 2) / Math.tan(HFOV / 2); /* 480 px at HFOV 90 deg */
+var HORIZON_FRAC = 0.50;
+var WALL_H = 240, GRID_STEP = 48, NEAR = 1.0;
+var MOVE_SPEED = 180, MOUSE_SENS = 0.0025;
+var ARROW_YAW_RATE = 1.8, ARROW_PITCH_RATE = 1.2;
+var PAD_DEADZONE = 0.15, PAD_YAW_RATE = 2.5, PAD_PITCH_RATE = 1.8;
+var PAD_TRIGGER_THRESHOLD = 0.25;
+var PITCH_MAX = 1.2;
+var FIRE_COOLDOWN_MS = 150, PULSE_TTL = 500, REVEAL_MS = 600;
+var LIT_MS = 1400, DARK_MS = 1400;
+var PULSE_CONE_HALF = 0.35, PULSE_RANGE = 700, HIT_CONE_HALF = 0.06;
+var CYCLE_MS = LIT_MS + DARK_MS;
 var params = new URLSearchParams(location.search);
-var AMMO_BUDGET = Math.max(1, parseInt(params.get('ammo') || '12', 10) || 12);
+var AMMO_BUDGET = Math.max(1, parseInt(params.get('ammo') || '16', 10) || 16);
 var ROUND_MS = Math.max(1000, (parseInt(params.get('time') || '60', 10) || 60) * 1000);
 var TARGET_N = 4;
-var SPEED = 3.0, TURN = 0.09, PULSE_TTL = 500, REVEAL_MS = 600;
-var LIT_MS = 1400, DARK_MS = 1400;
+var TARGET_POS = [[700, 150], [820, 320], [660, 470], [480, 300]];
+var PLAYER_START = { x: 120, y: 300, yaw: 0, pitch: 0 };
+var CELL_SIZE = 40; /* world units, echo cell billboard width */
+var FLOOR_FILL = '#1e1e1e', GRID_STROKE = '#3a3a3a';
+var WALL_FILL = '#141414', WALL_STROKE = '#2a2a2a';
+var HORIZON_STROKE = '#4a4a4a', VOID_FILL = '#000000';
+var DENIED_LINE = 'Pointer lock unavailable. Arrow keys look.';
+var CONNECT_LINE = 'Controller detected. Controller support is new and unverified on physical hardware.';
+var DISCONNECT_LINE = 'Controller disconnected. Keyboard and mouse active.';
+var LOCKED_LINE = 'Pointer lock active. Mouse look engaged.';
+var UNLOCKED_LINE = 'Mouse unlocked. Click the canvas to lock the mouse.';
 
-var player = { x: 120, y: 300, yaw: 0, focus: 0, visibleUntil: 0 };
+/* Round state. */
+var player = { x: PLAYER_START.x, y: PLAYER_START.y, yaw: 0, pitch: 0, visibleUntil: 0 };
 var keys = {};
-var targets = [
-  { x: 700, y: 150, phase: 0, cleared: false },
-  { x: 820, y: 320, phase: 700, cleared: false },
-  { x: 660, y: 470, phase: 1400, cleared: false },
-  { x: 480, y: 300, phase: 2100, cleared: false }
-];
-var pulses = [];
+var targets = [];
 var started = false, over = false, outcome = 'undecided', loseReason = '';
-var startAt = 0, ammoLeft = AMMO_BUDGET;
-var moveSteps = 0, lookEvents = 0, shots = 0;
-var litHits = 0, unlitShots = 0, unlitHits = 0, reveals = 0;
+var startAt = 0, ammoLeft = AMMO_BUDGET, lastRemain = -1;
+var shots = 0, litHits = 0, unlitShots = 0, unlitHits = 0, reveals = 0;
+var moveSteps = 0, lookEvents = 0;
+var lastShotAt = -1e9;
+var inputMode = 'keyboard';
+var locked = false, lockDenied = false, acquiring = false, acqTimer = 0;
+var padConnected = false, padMapping = '', padMsg = '';
+var padPx = 0, padPy = 0, triggerHeld = false, aHeld = false;
+var projectedNaNCount = 0, clippedPoints = 0, frameErrors = 0;
+var frames = 0, slowFrames = 0, warmupLeft = 30, frameSamples = [];
+var floorCoverage = 0, horizonPresent = false;
+var loopActive = false, rafId = 0, lastT = 0, prevT = 0, finalDrawn = false;
 
+/* Small helpers. */
+function num(v) { return (typeof v === 'number' && isFinite(v)) ? v : 0; }
+function wrap(a) {
+  var m = ((a + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+  var r = m - Math.PI;
+  return r <= -Math.PI ? r + 2 * Math.PI : r; /* result in (-PI, PI] */
+}
+function clampLook() {
+  player.pitch = Math.max(-PITCH_MAX, Math.min(PITCH_MAX, player.pitch));
+  player.yaw = wrap(player.yaw);
+}
 function litAt(t, now) {
-  var cycle = LIT_MS + DARK_MS;
-  var e = (now - startAt + (cycle - (t.phase % cycle))) % cycle;
+  var e = (now - startAt + (CYCLE_MS - (t.phase % CYCLE_MS))) % CYCLE_MS;
   return e < LIT_MS;
+}
+function litNow(t, now) {
+  if (now < t.litBoostUntil) return true;
+  return litAt(t, now);
 }
 function clearCount() {
   var n = 0;
   for (var i = 0; i < targets.length; i++) { if (targets[i].cleared) n++; }
   return n;
 }
-function refreshHud() {
-  ammoEl.textContent = String(ammoLeft);
-  clearedEl.textContent = String(clearCount());
-}
-function endRound(win, reason) {
-  over = true;
-  outcome = win ? 'win' : 'lose';
-  loseReason = reason || '';
-  msgEl.textContent = win ? 'ROOM CLEAR. Every echo answered.' :
-    ('OUT OF LIGHT. ' + (reason === 'timer' ? 'Timer expired.' : 'Ammo spent.'));
-}
-function fire(sx, sy) {
-  if (!started || over) return;
-  var now = performance.now();
-  shots++;
-  ammoLeft--;
-  reveals++;
-  player.visibleUntil = now + REVEAL_MS;
-  var dx = sx - player.x, dy = sy - player.y;
-  var len = Math.sqrt(dx * dx + dy * dy) || 1;
-  var ux = dx / len, uy = dy / len;
-  var hit = null;
-  for (var i = 0; i < targets.length; i++) {
-    var t = targets[i];
-    if (t.cleared) continue;
-    var ex = t.x - sx, ey = t.y - sy;
-    if (ex * ex + ey * ey < 30 * 30) { hit = t; break; }
-  }
-  if (hit && litNow(hit, now)) {
-    litHits++;
-    hit.cleared = true;
-  } else {
-    unlitShots++;
-  }
-  pulses.push({ x: player.x, y: player.y, ux: ux, uy: uy, born: now });
-  for (var j = 0; j < targets.length; j++) {
-    var u = targets[j];
-    if (u.cleared) continue;
-    var rx = u.x - player.x, ry = u.y - player.y;
-    var along = rx * ux + ry * uy;
-    var perp = Math.abs(-rx * uy + ry * ux);
-    if (along >= 0 && along <= len + 60 && perp <= 70) { u.phase = 0; u.litBoostUntil = now + PULSE_TTL; }
-  }
-  refreshHud();
-  if (clearCount() === targets.length) { endRound(true, ''); return; }
-  if (ammoLeft <= 0) { endRound(false, 'ammo'); }
-}
-function litNow(t, now) {
-  if (t.litBoostUntil && now < t.litBoostUntil) return true;
-  return litAt(t, now);
+function p95ms() {
+  if (!frameSamples.length) return 0;
+  var s = frameSamples.slice().sort(function (a, b) { return a - b; });
+  var i = Math.min(s.length - 1, Math.floor(s.length * 0.95));
+  return s[i];
 }
 
-window.addEventListener('keydown', function (e) {
-  if (e.code === 'ArrowLeft' || e.code === 'ArrowRight' ||
-      e.code === 'ArrowUp' || e.code === 'ArrowDown') {
-    e.preventDefault();
-    if (!e.repeat) {
-      lookEvents++;
-      if (e.code === 'ArrowLeft') player.yaw -= TURN;
-      if (e.code === 'ArrowRight') player.yaw += TURN;
-      if (e.code === 'ArrowUp') player.focus = Math.min(1, player.focus + 0.2);
-      if (e.code === 'ArrowDown') player.focus = Math.max(-1, player.focus - 0.2);
-    }
-    return;
-  }
-  keys[e.code] = true;
-});
-window.addEventListener('keyup', function (e) { keys[e.code] = false; });
-canvas.addEventListener('mousedown', function (e) {
-  if (!started) {
-    started = true;
-    startAt = performance.now();
-    for (var i = 0; i < targets.length; i++) { targets[i].phase = (i * 700) % (LIT_MS + DARK_MS); }
-    msgEl.textContent = 'Fire light. Lit targets count.';
-    requestAnimationFrame(step);
-    return;
-  }
-  var r = canvas.getBoundingClientRect();
-  var sx = (e.clientX - r.left) * (W / r.width);
-  var sy = (e.clientY - r.top) * (H / r.height);
-  fire(sx, sy);
-});
-
-var lastT = 0;
-function step(now) {
-  if (!started) return;
-  var elapsed = now - startAt;
-  var remain = Math.max(0, Math.ceil((ROUND_MS - elapsed) / 1000));
-  timeEl.textContent = String(remain);
-  if (!over && elapsed >= ROUND_MS) {
-    if (clearCount() === targets.length) endRound(true, '');
-    else endRound(false, 'timer');
-  }
-  if (!over) {
-    var mx = 0, my = 0;
-    if (keys.KeyW) my -= 1;
-    if (keys.KeyS) my += 1;
-    if (keys.KeyA) mx -= 1;
-    if (keys.KeyD) mx += 1;
-    if (mx || my) {
-      var ml = Math.sqrt(mx * mx + my * my);
-      player.x += (mx / ml) * SPEED;
-      player.y += (my / ml) * SPEED;
-      moveSteps++;
-    }
-    player.x = Math.max(ROOM + 12, Math.min(W - ROOM - 12, player.x));
-    player.y = Math.max(ROOM + 12, Math.min(H - ROOM - 12, player.y));
-  }
-  draw(now);
-  if (!over) { requestAnimationFrame(step); return; }
-  draw(now);
+/* Camera trig, refreshed whenever yaw or pitch can have changed. */
+var cosY = 1, sinY = 0, cosP = 1, sinP = 0;
+function updateTrig() {
+  cosY = Math.cos(player.yaw); sinY = Math.sin(player.yaw);
+  cosP = Math.cos(player.pitch); sinP = Math.sin(player.pitch);
 }
-function draw(now) {
-  ctx.fillStyle = '#050505';
-  ctx.fillRect(0, 0, W, H);
-  ctx.strokeStyle = '#1c1c1c';
-  ctx.lineWidth = 3;
-  ctx.strokeRect(ROOM, ROOM, W - ROOM * 2, H - ROOM * 2);
-  var kept = [];
-  for (var p = 0; p < pulses.length; p++) {
-    var pu = pulses[p];
-    var age = now - pu.born;
-    if (age < PULSE_TTL) {
-      kept.push(pu);
-      var fade = 1 - age / PULSE_TTL;
-      var grad = ctx.createRadialGradient(pu.x, pu.y, 6, pu.x, pu.y, 240);
-      grad.addColorStop(0, 'rgba(255,240,180,' + (0.7 * fade).toFixed(3) + ')');
-      grad.addColorStop(1, 'rgba(255,240,180,0)');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, W, H);
-      ctx.strokeStyle = 'rgba(255,240,180,' + (0.8 * fade).toFixed(3) + ')';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(player.x, player.y);
-      ctx.lineTo(player.x + pu.ux * 300, player.y + pu.uy * 300);
-      ctx.stroke();
+/* Exact pinhole projection, design handoff section 2. World point at height
+ * wz to screen pixels. fwd <= NEAR produces no coordinate at all. */
+function camPoint(wx, wy, wz) {
+  var dx = wx - player.x, dy = wy - player.y;
+  var up0 = wz - EYE_H;
+  var fwd0 = dx * cosY + dy * sinY;
+  var lat = -dx * sinY + dy * cosY;
+  var fwd = fwd0 * cosP + up0 * sinP;
+  var up = up0 * cosP - fwd0 * sinP;
+  return { x: lat, y: fwd, z: up };
+}
+function proj(c) {
+  if (!(c.y > NEAR)) return null;
+  var sx = W / 2 + FOCAL * c.x / c.y;
+  var sy = H * HORIZON_FRAC - FOCAL * c.z / c.y;
+  if (!isFinite(sx) || !isFinite(sy)) { projectedNaNCount++; return null; }
+  return { x: sx, y: sy };
+}
+function clipNear(pts) {
+  var out = [];
+  var n = pts.length;
+  /* Clip strictly above NEAR: proj rejects fwd <= NEAR, so the intersection
+   * plane sits a hair inside the valid half-space. */
+  var cy = NEAR + 1e-6;
+  for (var i = 0; i < n; i++) {
+    var a = pts[i], b = pts[(i + 1) % n];
+    var ia = a.y > cy, ib = b.y > cy;
+    if (ia) out.push(a);
+    if (ia !== ib) {
+      var t = (cy - a.y) / (b.y - a.y);
+      out.push({ x: a.x + (b.x - a.x) * t, y: cy, z: a.z + (b.z - a.z) * t });
     }
   }
-  pulses = kept;
-  for (var i = 0; i < targets.length; i++) {
-    var t = targets[i];
-    if (t.cleared) continue;
-    var lit = started && !over ? litNow(t, now) : litAt(t, now);
-    if (!started) lit = (i === 0);
-    ctx.fillStyle = lit ? '#ffdd66' : '#3a2a08';
-    ctx.fillRect(t.x - 15, t.y - 15, 30, 30);
-    if (lit) {
-      ctx.strokeStyle = '#ffdd66';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(t.x - 19, t.y - 19, 38, 38);
-    }
+  return out;
+}
+function clipLine(a, b) {
+  var cy = NEAR + 1e-6;
+  var ia = a.y > cy, ib = b.y > cy;
+  if (!ia && !ib) return null;
+  if (ia && ib) return [a, b];
+  var t = (cy - a.y) / (b.y - a.y);
+  var m = { x: a.x + (b.x - a.x) * t, y: cy, z: a.z + (b.z - a.z) * t };
+  return ia ? [a, m] : [m, b];
+}
+function worldPath(camPts) {
+  var cl = clipNear(camPts);
+  if (cl.length < 3) return null;
+  var scr = [];
+  for (var i = 0; i < cl.length; i++) {
+    var s = proj(cl[i]);
+    if (!s) return null;
+    scr.push(s);
   }
-  var revealed = now < player.visibleUntil;
-  ctx.fillStyle = revealed ? '#ff4444' : '#1f6b2a';
+  return scr;
+}
+function fillPoly(scr, fill) {
   ctx.beginPath();
-  ctx.arc(player.x, player.y, 14, 0, 6.2832);
+  ctx.moveTo(scr[0].x, scr[0].y);
+  for (var i = 1; i < scr.length; i++) ctx.lineTo(scr[i].x, scr[i].y);
+  ctx.closePath();
+  ctx.fillStyle = fill;
   ctx.fill();
-  if (revealed) {
-    var rr = 14 + ((now - (player.visibleUntil - REVEAL_MS)) / REVEAL_MS) * 26;
-    ctx.strokeStyle = 'rgba(255,68,68,0.8)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(player.x, player.y, rr, 0, 6.2832);
-    ctx.stroke();
+}
+function strokePoly(scr, stroke, lw) {
+  ctx.beginPath();
+  ctx.moveTo(scr[0].x, scr[0].y);
+  for (var i = 1; i < scr.length; i++) ctx.lineTo(scr[i].x, scr[i].y);
+  ctx.closePath();
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = lw;
+  ctx.stroke();
+}
+function addWorldLine(x1, y1, z1, x2, y2, z2) {
+  var seg = clipLine(camPoint(x1, y1, z1), camPoint(x2, y2, z2));
+  if (!seg) return;
+  var pa = proj(seg[0]), pb = proj(seg[1]);
+  if (!pa || !pb) return;
+  ctx.moveTo(pa.x, pa.y);
+  ctx.lineTo(pb.x, pb.y);
+}
+function clipBound(pts, axis, bound, isLower) {
+  var out = [];
+  var n = pts.length;
+  if (n < 3) return out;
+  function inside(p) { return isLower ? p[axis] >= bound : p[axis] <= bound; }
+  for (var i = 0; i < n; i++) {
+    var a = pts[i], b = pts[(i + 1) % n];
+    var ia = inside(a), ib = inside(b);
+    if (ia) out.push(a);
+    if (ia !== ib) {
+      var den = b[axis] - a[axis];
+      var t = den === 0 ? 0 : (bound - a[axis]) / den;
+      out.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
+    }
   }
-  ctx.strokeStyle = '#999';
+  return out;
+}
+function clipScreen(pts) {
+  var p = clipBound(pts, 'x', 0, true);
+  p = clipBound(p, 'x', W, false);
+  p = clipBound(p, 'y', 0, true);
+  p = clipBound(p, 'y', H, false);
+  return p;
+}
+function polyArea(p) {
+  var s = 0;
+  for (var i = 0; i < p.length; i++) {
+    var a = p[i], b = p[(i + 1) % p.length];
+    s += a.x * b.y - b.x * a.y;
+  }
+  return Math.abs(s) / 2;
+}
+
+/* Rendering. */
+function drawTargets(now) {
+  var list = [], i;
+  for (i = 0; i < targets.length; i++) {
+    var t = targets[i];
+    if (t.cleared) continue;
+    var c = camPoint(t.x, t.y, EYE_H);
+    if (!(c.y > NEAR)) { clippedPoints++; continue; }
+    list.push({ t: t, c: c });
+  }
+  list.sort(function (a, b) { return b.c.y - a.c.y; }); /* far first */
+  for (i = 0; i < list.length; i++) {
+    var o = list[i];
+    var s = proj(o.c);
+    if (!s) continue;
+    var half = FOCAL * (CELL_SIZE / 2) / o.c.y;
+    var lit = started ? litNow(o.t, now) : false; /* ambient IDLE cells stay dim */
+    var x = s.x - half, y = s.y - half, d = half * 2;
+    ctx.fillStyle = lit ? '#ffdd66' : '#3a2a08';
+    ctx.fillRect(x, y, d, d);
+    ctx.strokeStyle = lit ? 'rgba(255,221,102,0.85)' : '#5a4a18';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x - 2, y - 2, d + 4, d + 4);
+  }
+}
+function drawCrosshair() {
+  if (!started) return;
+  ctx.strokeStyle = 'rgba(240,230,192,0.9)';
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(player.x, player.y);
-  ctx.lineTo(player.x + Math.cos(player.yaw) * 44, player.y + Math.sin(player.yaw) * 44);
+  ctx.moveTo(W / 2 - 12, H / 2); ctx.lineTo(W / 2 - 4, H / 2);
+  ctx.moveTo(W / 2 + 4, H / 2); ctx.lineTo(W / 2 + 12, H / 2);
+  ctx.moveTo(W / 2, H / 2 - 12); ctx.lineTo(W / 2, H / 2 - 4);
+  ctx.moveTo(W / 2, H / 2 + 4); ctx.lineTo(W / 2, H / 2 + 12);
   ctx.stroke();
-  if (over) {
-    ctx.fillStyle = 'rgba(0,0,0,0.7)';
-    ctx.fillRect(0, 0, W, H);
-    ctx.textAlign = 'center';
-    if (outcome === 'win') {
-      ctx.fillStyle = '#7dff9a';
-      ctx.font = '56px sans-serif';
-      ctx.fillText('ROOM CLEAR', W / 2, H / 2 - 10);
-      ctx.font = '20px sans-serif';
-      ctx.fillStyle = '#d8d8d8';
-      ctx.fillText('Every echo answered.', W / 2, H / 2 + 30);
-    } else {
-      ctx.fillStyle = '#ff6666';
-      ctx.font = '56px sans-serif';
-      ctx.fillText('OUT OF LIGHT', W / 2, H / 2 - 10);
-      ctx.font = '20px sans-serif';
-      ctx.fillStyle = '#d8d8d8';
-      ctx.fillText(loseReason === 'timer' ? 'Timer expired.' : 'Ammo spent.', W / 2, H / 2 + 30);
-    }
-    ctx.textAlign = 'left';
-  }
+  ctx.fillStyle = 'rgba(240,230,192,0.95)';
+  ctx.fillRect(W / 2 - 1, H / 2 - 1, 2, 2);
+}
+function drawReveal(now) {
+  if (!(started && now < player.visibleUntil)) return;
+  var p = 1 - (player.visibleUntil - now) / REVEAL_MS;
+  if (p < 0) p = 0;
+  if (p > 1) p = 1;
+  var a = 1 - p;
+  ctx.strokeStyle = 'rgba(255,68,68,' + (0.85 * a).toFixed(3) + ')';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(W / 2, H / 2, 34 + p * 130, 0, 6.283185307179586);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,68,68,' + (0.5 * a).toFixed(3) + ')';
+  ctx.lineWidth = 6;
+  ctx.strokeRect(3, 3, W - 6, H - 6);
+}
+function drawOverlay() {
   if (!started) {
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
     ctx.fillRect(0, 0, W, H);
@@ -289,33 +322,539 @@ function draw(now) {
     ctx.textAlign = 'center';
     ctx.fillText('Click to enter the dark room.', W / 2, H / 2);
     ctx.textAlign = 'left';
+    return;
+  }
+  if (!over) return;
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillRect(0, 0, W, H);
+  ctx.textAlign = 'center';
+  if (outcome === 'win') {
+    ctx.fillStyle = '#7dff9a';
+    ctx.font = '56px sans-serif';
+    ctx.fillText('ROOM CLEAR', W / 2, H / 2 - 10);
+    ctx.font = '20px sans-serif';
+    ctx.fillStyle = '#d8d8d8';
+    ctx.fillText('Every echo answered.', W / 2, H / 2 + 30);
+  } else {
+    ctx.fillStyle = '#ff6666';
+    ctx.font = '56px sans-serif';
+    ctx.fillText('OUT OF LIGHT', W / 2, H / 2 - 10);
+    ctx.font = '20px sans-serif';
+    ctx.fillStyle = '#d8d8d8';
+    ctx.fillText(loseReason === 'timer' ? 'Timer expired.' : 'Ammo spent.', W / 2, H / 2 + 30);
+  }
+  ctx.textAlign = 'left';
+}
+function draw(now) {
+  updateTrig();
+  ctx.fillStyle = VOID_FILL;
+  ctx.fillRect(0, 0, W, H);
+
+  /* Filled floor plane over the room footprint. The fill, not the grid, is
+   * what the floor-coverage number measures. */
+  var floorCam = [camPoint(ROOM, ROOM, 0), camPoint(W - ROOM, ROOM, 0),
+                  camPoint(W - ROOM, H - ROOM, 0), camPoint(ROOM, H - ROOM, 0)];
+  var floorScr = worldPath(floorCam);
+  if (floorScr) {
+    fillPoly(floorScr, FLOOR_FILL);
+    var inner = clipScreen(floorScr);
+    floorCoverage = inner.length >= 3 ? polyArea(inner) / (W * H) : 0;
+  } else {
+    floorCoverage = 0;
+  }
+
+  /* Grid lines every GRID_STEP world units, slightly lighter than the floor. */
+  ctx.strokeStyle = GRID_STROKE;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (var gx = GRID_STEP; gx < W - ROOM; gx += GRID_STEP) addWorldLine(gx, ROOM, 0, gx, H - ROOM, 0);
+  for (var gy = GRID_STEP; gy < H - ROOM; gy += GRID_STEP) addWorldLine(ROOM, gy, 0, W - ROOM, gy, 0);
+  ctx.stroke();
+
+  /* Four filled walls, darker than the floor, WALL_H tall, no ceiling. */
+  var walls = [
+    [camPoint(ROOM, ROOM, 0), camPoint(W - ROOM, ROOM, 0),
+     camPoint(W - ROOM, ROOM, WALL_H), camPoint(ROOM, ROOM, WALL_H)],
+    [camPoint(W - ROOM, ROOM, 0), camPoint(W - ROOM, H - ROOM, 0),
+     camPoint(W - ROOM, H - ROOM, WALL_H), camPoint(W - ROOM, ROOM, WALL_H)],
+    [camPoint(W - ROOM, H - ROOM, 0), camPoint(ROOM, H - ROOM, 0),
+     camPoint(ROOM, H - ROOM, WALL_H), camPoint(W - ROOM, H - ROOM, WALL_H)],
+    [camPoint(ROOM, H - ROOM, 0), camPoint(ROOM, ROOM, 0),
+     camPoint(ROOM, ROOM, WALL_H), camPoint(ROOM, H - ROOM, WALL_H)]
+  ];
+  for (var wi = 0; wi < walls.length; wi++) {
+    var wscr = worldPath(walls[wi]);
+    if (!wscr) continue;
+    fillPoly(wscr, WALL_FILL);
+    strokePoly(wscr, WALL_STROKE, 1);
+  }
+
+  /* Horizon line: vanishing line of the floor, only when it lands on screen. */
+  var hy = H * HORIZON_FRAC + FOCAL * Math.tan(player.pitch);
+  horizonPresent = (hy >= 0 && hy <= H);
+  if (horizonPresent) {
+    ctx.strokeStyle = HORIZON_STROKE;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, hy);
+    ctx.lineTo(W, hy);
+    ctx.stroke();
+  }
+
+  drawTargets(now);
+  drawCrosshair();
+  drawReveal(now);
+  drawOverlay();
+}
+
+/* HUD. */
+function refreshHud() {
+  ammoEl.textContent = String(ammoLeft);
+  clearedEl.textContent = String(clearCount());
+}
+function updateTime(now) {
+  if (!started || over) return;
+  var remain = Math.max(0, Math.ceil((ROUND_MS - (now - startAt)) / 1000));
+  if (remain !== lastRemain) {
+    lastRemain = remain;
+    timeEl.textContent = String(remain);
+  }
+}
+function endMessage() {
+  if (!over) return '';
+  if (outcome === 'win') return 'ROOM CLEAR. Every echo answered.';
+  return 'OUT OF LIGHT. ' + (loseReason === 'timer' ? 'Timer expired.' : 'Ammo spent.');
+}
+function updateStatus() {
+  var end = endMessage();
+  var s;
+  if (end) s = end;
+  else if (padMsg) s = padMsg;
+  else if (lockDenied && !locked) s = DENIED_LINE;
+  else if (!started) s = 'Click to enter the dark room.';
+  else if (locked) s = LOCKED_LINE;
+  else s = UNLOCKED_LINE;
+  if (padConnected && padMapping !== 'standard') s += ' non-standard layout.';
+  statusEl.textContent = s;
+}
+
+/* Round flow. */
+function endRound(win, reason) {
+  over = true;
+  outcome = win ? 'win' : 'lose';
+  loseReason = reason || '';
+  refreshHud();
+  updateStatus(); /* end-state line also lands in the DOM status element */
+}
+function startRound() {
+  started = true;
+  over = false;
+  outcome = 'undecided';
+  loseReason = '';
+  startAt = performance.now();
+  lastT = 0; /* frame 1 dt is 0 */
+  finalDrawn = false;
+  lastRemain = -1;
+  ammoLeft = AMMO_BUDGET;
+  shots = 0; litHits = 0; unlitShots = 0; unlitHits = 0; reveals = 0;
+  moveSteps = 0; lookEvents = 0;
+  lastShotAt = -1e9;
+  player.x = PLAYER_START.x;
+  player.y = PLAYER_START.y;
+  player.yaw = PLAYER_START.yaw;
+  player.pitch = PLAYER_START.pitch;
+  player.visibleUntil = 0;
+  targets = [];
+  for (var i = 0; i < TARGET_N; i++) {
+    targets.push({
+      x: TARGET_POS[i][0], y: TARGET_POS[i][1], z: EYE_H,
+      phase: (i * 700) % CYCLE_MS,
+      litBoostUntil: 0, cleared: false
+    });
+  }
+  refreshHud();
+  updateStatus();
+  ensureLoop();
+}
+function fire() {
+  if (!started || over) return false;
+  var now = performance.now();
+  if (now - lastShotAt < FIRE_COOLDOWN_MS) return false; /* drops extra shots, no ammo lost */
+  lastShotAt = now;
+  updateTrig();
+  shots++;
+  ammoLeft--;
+  reveals++;
+  player.visibleUntil = now + REVEAL_MS;
+
+  /* Hit test: smallest angular distance inside HIT_CONE_HALF. */
+  var best = null, bestAng = Infinity;
+  for (var i = 0; i < targets.length; i++) {
+    var t = targets[i];
+    if (t.cleared) continue;
+    var dx = t.x - player.x, dy = t.y - player.y;
+    var gd = Math.sqrt(dx * dx + dy * dy);
+    var bearing = wrap(Math.atan2(dy, dx) - player.yaw);
+    var elev = (gd > 0 ? Math.atan2(t.z - EYE_H, gd) : 0) - player.pitch;
+    var ang = Math.sqrt(bearing * bearing + elev * elev);
+    if (ang <= HIT_CONE_HALF && ang < bestAng) { bestAng = ang; best = t; }
+  }
+
+  /* Gate is evaluated at fire time, BEFORE this shot's own pulse boost: a
+     shot scores only a target that was already lit (contract line 10, D5,
+     Story 089). This shot's pulse primes the target for the next shot. */
+  var litAtFire = best ? litNow(best, now) : false;
+
+  /* Pulse lighting: every shot boosts in-cone, in-range uncleared cells. */
+  for (var j = 0; j < targets.length; j++) {
+    var u = targets[j];
+    if (u.cleared) continue;
+    var ux = u.x - player.x, uy = u.y - player.y;
+    var fwd0 = ux * cosY + uy * sinY;
+    var ub = wrap(Math.atan2(uy, ux) - player.yaw);
+    if (fwd0 > 0 && fwd0 <= PULSE_RANGE && Math.abs(ub) <= PULSE_CONE_HALF) {
+      u.litBoostUntil = now + PULSE_TTL;
+    }
+  }
+
+  if (best) {
+    if (litAtFire) {
+      litHits++;
+      best.cleared = true;
+    } else {
+      unlitShots++;
+      /* Gate canary: an unlit clear would land here. The gate keeps it at 0. */
+      if (!litNow(best, now)) unlitHits++;
+    }
+  } else {
+    unlitShots++;
+  }
+
+  refreshHud();
+  /* Clear first, then ammo. Timer expiry is checked in the frame loop. */
+  if (clearCount() === TARGET_N) { endRound(true, ''); return true; }
+  if (ammoLeft <= 0) { endRound(false, 'ammo'); return true; }
+  return true;
+}
+
+/* Input: keyboard. Escape is reserved by the browser and ignored. */
+function clearHeld() {
+  keys = {};
+  padPx = 0; padPy = 0;
+  triggerHeld = false; aHeld = false;
+}
+window.addEventListener('blur', clearHeld);
+document.addEventListener('visibilitychange', function () {
+  if (document.hidden) clearHeld();
+});
+window.addEventListener('keydown', function (e) {
+  if (e.code === 'Escape') return;
+  var c = e.code;
+  if (c === 'Space' || c === 'Enter') {
+    e.preventDefault();
+    inputMode = 'keyboard';
+    if (!started || over) startRound();
+    return;
+  }
+  if (c === 'KeyR') {
+    if (over) { inputMode = 'keyboard'; startRound(); }
+    return;
+  }
+  if (c === 'KeyF') {
+    if (!e.repeat && started && !over) { inputMode = 'keyboard'; fire(); }
+    return;
+  }
+  if (c === 'ArrowLeft' || c === 'ArrowRight' || c === 'ArrowUp' || c === 'ArrowDown') {
+    e.preventDefault();
+    inputMode = 'keyboard';
+    if (!e.repeat) lookEvents++;
+    keys[c] = true;
+    return;
+  }
+  inputMode = 'keyboard';
+  keys[c] = true;
+});
+window.addEventListener('keyup', function (e) { keys[e.code] = false; });
+
+/* Input: mouse. movementX drives yaw, movementY drives pitch. Active for the
+ * whole round: while locked it is the primary look, and the same handler is
+ * what the synthetic proof event exercises when lock is unavailable. */
+window.addEventListener('mousemove', function (e) {
+  if (!started || over) return;
+  var mx = num(e.movementX), my = num(e.movementY);
+  if (!mx && !my) return;
+  inputMode = 'mouse';
+  lookEvents++;
+  player.yaw += mx * MOUSE_SENS;
+  player.pitch -= my * MOUSE_SENS;
+  clampLook();
+});
+
+/* Input: pointer lock. */
+function denyLock() {
+  acquiring = false;
+  clearTimeout(acqTimer);
+  if (!lockDenied) {
+    lockDenied = true; /* latched for the session */
+    padMsg = '';
+    updateStatus();
+  }
+}
+function requestLock() {
+  if (typeof canvas.requestPointerLock !== 'function') { denyLock(); return; }
+  acquiring = true;
+  try {
+    var r = canvas.requestPointerLock();
+    if (r && typeof r.then === 'function') {
+      r.then(function () { acquiring = false; }, function () { denyLock(); });
+    }
+  } catch (err) {
+    denyLock();
+    return;
+  }
+  clearTimeout(acqTimer);
+  acqTimer = setTimeout(function () { acquiring = false; }, 1000);
+}
+document.addEventListener('pointerlockchange', function () {
+  locked = document.pointerLockElement === canvas;
+  acquiring = false;
+  clearTimeout(acqTimer);
+  padMsg = '';
+  updateStatus();
+});
+document.addEventListener('pointerlockerror', function () {
+  if (acquiring) denyLock();
+  else { locked = false; updateStatus(); }
+});
+
+/* Canvas click: start, restart, re-lock, or fire. A click that re-locks
+ * mid-round never restarts and never spends ammo; firing while locked happens
+ * on the next click, or on F at any time. */
+canvas.addEventListener('mousedown', function () {
+  inputMode = 'mouse';
+  if (over) { startRound(); requestLock(); return; }
+  if (!started) { startRound(); requestLock(); return; }
+  if (locked) { fire(); return; }
+  requestLock();
+});
+
+/* Input: gamepad, structural only. Standard indices, polled every frame. */
+function dz(v) {
+  v = num(v);
+  return Math.abs(v) < PAD_DEADZONE ? 0 : v;
+}
+function handlePadDisconnect() {
+  padConnected = false;
+  padMapping = '';
+  padPx = 0; padPy = 0;
+  triggerHeld = false; aHeld = false;
+  padMsg = DISCONNECT_LINE;
+  updateStatus();
+}
+function handlePadConnect(pad) {
+  padConnected = true;
+  padMapping = (pad && pad.mapping) ? pad.mapping : '';
+  padMsg = CONNECT_LINE;
+  updateStatus();
+}
+window.addEventListener('gamepadconnected', function (e) {
+  try { handlePadConnect(e.gamepad); } catch (err) { /* never throw */ }
+});
+window.addEventListener('gamepaddisconnected', function () {
+  try { handlePadDisconnect(); } catch (err) { /* never throw */ }
+});
+function pollPad(dt) {
+  var pad = null;
+  if (navigator.getGamepads) {
+    var pads = null;
+    try { pads = navigator.getGamepads(); } catch (err) { pads = null; }
+    if (pads) {
+      for (var i = 0; i < pads.length; i++) {
+        if (pads[i]) { pad = pads[i]; break; }
+      }
+    }
+  }
+  if (!pad) {
+    if (padConnected) handlePadDisconnect();
+    padPx = 0; padPy = 0; triggerHeld = false; aHeld = false;
+    return;
+  }
+  if (!padConnected) handlePadConnect(pad);
+  else {
+    var map = pad.mapping ? pad.mapping : '';
+    if (map !== padMapping) { padMapping = map; updateStatus(); }
+  }
+  var ax = pad.axes || [];
+  padPx = dz(ax[0]);
+  padPy = dz(ax[1]);
+  var rx = dz(ax[2]), ry = dz(ax[3]);
+  if (started && !over && (rx || ry)) {
+    inputMode = 'pad';
+    lookEvents++;
+    player.yaw += rx * PAD_YAW_RATE * dt;
+    player.pitch += (-ry) * PAD_PITCH_RATE * dt;
+    clampLook();
+  }
+  var btns = pad.buttons || [];
+  var t = btns[7];
+  var tv = t ? (typeof t.value === 'number' ? t.value : (t.pressed ? 1 : 0)) : 0;
+  var trig = tv > PAD_TRIGGER_THRESHOLD;
+  if (trig && !triggerHeld && started && !over) {
+    inputMode = 'pad';
+    fire();
+  }
+  triggerHeld = trig;
+  var a = btns[0];
+  var ap = !!(a && (a.pressed || a.value > 0.5));
+  if (ap && !aHeld && (!started || over)) {
+    inputMode = 'pad';
+    startRound();
+  }
+  aHeld = ap;
+}
+
+/* Per-frame movement and look. */
+function applyLook(dt) {
+  var dyaw = 0, dpitch = 0;
+  if (keys.ArrowRight) dyaw += 1;
+  if (keys.ArrowLeft) dyaw -= 1;
+  if (keys.ArrowUp) dpitch += 1;
+  if (keys.ArrowDown) dpitch -= 1;
+  if (!dyaw && !dpitch) return;
+  player.yaw += ARROW_YAW_RATE * dt * dyaw;
+  player.pitch += ARROW_PITCH_RATE * dt * dpitch;
+  clampLook();
+}
+function applyMove(dt) {
+  updateTrig();
+  var kx = 0, kz = 0;
+  if (keys.KeyW) kz += 1;
+  if (keys.KeyS) kz -= 1;
+  if (keys.KeyD) kx += 1;
+  if (keys.KeyA) kx -= 1;
+  var ix = kx + padPx;
+  var iz = kz + (-padPy);
+  var len = Math.sqrt(ix * ix + iz * iz);
+  if (len > 1) { ix /= len; iz /= len; }
+  if (ix || iz) {
+    var vx = (cosY * iz + (-sinY) * ix) * MOVE_SPEED;
+    var vy = (sinY * iz + (cosY) * ix) * MOVE_SPEED;
+    player.x += vx * dt;
+    player.y += vy * dt;
+    moveSteps++;
+  }
+  var lo = ROOM + 12;
+  player.x = Math.max(lo, Math.min(W - ROOM - 12, player.x));
+  player.y = Math.max(lo, Math.min(H - ROOM - 12, player.y));
+  if (!isFinite(player.x) || !isFinite(player.y)) {
+    player.x = PLAYER_START.x;
+    player.y = PLAYER_START.y;
   }
 }
 
-/* Read-only probe surface for automated proof. Inputs in proof are real
- * keydown and click events; this object only reports counts and geometry. */
+/* Animation loop. Runs ambient in IDLE, runs the round while started, and
+ * stops after one final draw once the round is over. */
+function ensureLoop() {
+  if (loopActive) return;
+  loopActive = true;
+  rafId = requestAnimationFrame(step);
+}
+function step(now) {
+  loopActive = false;
+  var dt = 0;
+  if (lastT) dt = Math.min((now - lastT) / 1000, 0.10);
+  lastT = now;
+  var frameMs = 0;
+  if (prevT && now >= prevT) frameMs = now - prevT;
+  prevT = now;
+  frames++;
+  if (warmupLeft > 0) warmupLeft--;
+  else {
+    frameSamples.push(frameMs);
+    if (frameSamples.length > 600) frameSamples.shift();
+    if (frameMs > 20) slowFrames++;
+  }
+  try {
+    pollPad(dt);
+    if (started && !over) {
+      applyLook(dt);
+      applyMove(dt);
+      if (performance.now() - startAt >= ROUND_MS) endRound(false, 'timer');
+    }
+    if (!over) {
+      draw(now);
+      updateTime(now);
+    } else if (!finalDrawn) {
+      finalDrawn = true;
+      draw(now);
+    }
+  } catch (err) {
+    frameErrors++; /* dropped frame, counted, loop keeps running */
+  }
+  /* Keep the frame loop alive after a round ends so the gamepad is still
+   * polled and pad A can restart from the end screen. Rendering stops after
+   * the one final draw above; only the pad restart edge is watched. */
+  loopActive = true;
+  rafId = requestAnimationFrame(step);
+}
+
+/* Read-only probe surface for automated proof (design handoff section 7).
+ * Getters and pure queries only: no setters, no control methods. */
 window.__echo = {
   get started() { return started; },
   get over() { return over; },
   get outcome() { return outcome; },
   get loseReason() { return loseReason; },
-  get moveSteps() { return moveSteps; },
-  get lookEvents() { return lookEvents; },
+  get ammoLeft() { return ammoLeft; },
   get shots() { return shots; },
   get litHits() { return litHits; },
   get unlitShots() { return unlitShots; },
   get unlitHits() { return unlitHits; },
   get reveals() { return reveals; },
-  get ammoLeft() { return ammoLeft; },
-  get player() { return { x: player.x, y: player.y, yaw: player.yaw }; },
+  get player() { return { x: player.x, y: player.y, yaw: player.yaw, pitch: player.pitch }; },
+  get locked() { return locked; },
+  get lockDenied() { return lockDenied; },
+  get inputMode() { return inputMode; },
+  get gamepadConnected() { return padConnected; },
+  get projectedNaNCount() { return projectedNaNCount; },
+  get frames() { return frames; },
+  get p95ms() { return p95ms(); },
+  get slowFrames() { return slowFrames; },
+  get floorCoverage() { return floorCoverage; },
+  get horizonPresent() { return horizonPresent; },
+  get moveSteps() { return moveSteps; },
+  get lookEvents() { return lookEvents; },
   target: function (i) {
     var t = targets[i];
+    if (!t) return null;
     var now = performance.now();
-    return { x: t.x, y: t.y, cleared: t.cleared, lit: started && !over ? litNow(t, now) : false };
+    return {
+      x: t.x, y: t.y, cleared: t.cleared,
+      lit: started && !over ? litNow(t, now) : false
+    };
   },
-  targetCount: function () { return targets.length; }
+  targetCount: function () { return TARGET_N; },
+  get version() { return '128'; },
+  get lastShotAt() { return lastShotAt; },
+  get clippedPoints() { return clippedPoints; },
+  get frameErrors() { return frameErrors; }
 };
+
+/* Boot: ambient render, then the loop owns itself. */
+targets = [];
+for (var bi = 0; bi < TARGET_N; bi++) {
+  targets.push({
+    x: TARGET_POS[bi][0], y: TARGET_POS[bi][1], z: EYE_H,
+    phase: (bi * 700) % CYCLE_MS,
+    litBoostUntil: 0, cleared: false
+  });
+}
+ammoLeft = AMMO_BUDGET;
+timeEl.textContent = String(Math.ceil(ROUND_MS / 1000));
+refreshHud();
+updateStatus();
 draw(performance.now());
+ensureLoop();
 </script>
 </body>
 </html>
