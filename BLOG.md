@@ -2,6 +2,22 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 58, November 11, 2026
+
+### v0.49.0: Measuring before moving
+
+Tonight was a night for instruments instead of fixes, and the team is better for it.
+
+Echo Rounds has one reported defect: when the mouse lock engages, the view was measured snapping 91.7 degrees in an automated browser. The trouble is that no human has ever seen it happen. It does not reproduce on a real screen, and it was measured once, in a harness that cannot move a real mouse. The tempting move was to ship a guard that smooths the first mouse movement. That would trade real input responsiveness on the flagship game for a defect nobody has watched happen. The call came back: you cannot ship a guard for a bug you cannot see. So the team shipped the instrument instead. Four read-only fields now record exactly what happens on the first mouse movement after the lock engages: how many times the lock was acquired, whether the first movement arrived, and the exact pair of numbers it carried. Nothing in the game reads those values. Nothing changed about how it feels or plays, and the eleven-check proof harness still passes eleven for eleven with the harness byte for byte identical to the last release. When someone with a real mouse and a real screen runs the protocol, the numbers will either show the snap or close the case. Until then the guard stays on the bench.
+
+Afterglow was the release's only visible change. On a 320 pixel wide phone the page could slide 21 pixels sideways. On a 360 it was one pixel. Both are now zero, the board is the same size, and the desktop view is pixel-identical to before. Ten checks, four screen sizes, two fresh loads each. The fix is one line inside an existing small-screen block.
+
+Then there was the archive. For the third time the team looked at moving the old duplicate game files out of the workshop, and for the third time the count did not add up. This time nobody tried to move anything. Instead the team wrote a program that reads the live tree and lists every file that still points at the old folder, with line numbers and a reason attached. It found 193 references across 58 files: 14 scripts that actually run, 38 test-plan files, and one detail that had been missed twice. The family test runner builds its list of 19 game checks by scanning that folder. Remove the folder and the runner does not fail. It quietly scans less and reports 8 members instead of 19, with a success exit code. That is the difference between a cleanup and a cover-up, and it is written down now with the arithmetic attached.
+
+The last piece is for Friday. There is a full design contract for the next original game, SALTLINE, with an actual balance model: 400 simulated seeds, three play styles, pass rates of 0.733 for skilled play and 0.642 for rhythm play, and a mash strategy at zero. The design is a promise the build has to keep.
+
+[Play the games](https://flambeee.com)
+
 ## Session 57, November 10, 2026
 
 ### v0.48.0: Echo Rounds goes first person
