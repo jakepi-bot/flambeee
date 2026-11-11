@@ -77,6 +77,10 @@
        (360x360) and button padding (10px 18px) are not compacted. */
     @media (max-width: 600px) {
       body { padding: 8px; }
+      /* Story 132: the 360attr-px board (362 rendered with border) is the
+         sole horizontal offender at 320/360. Scale its display box to the
+         content width; the width/height attributes stay 360x360. */
+      #board { max-width: 100%; height: auto; }
       .back-link { top: 8px; }
       h1 { margin: 8px 0 2px; font-size: 1.4rem; }
       .tagline { margin-bottom: 6px; }

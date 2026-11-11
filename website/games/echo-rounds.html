@@ -100,6 +100,10 @@ var started = false, over = false, outcome = 'undecided', loseReason = '';
 var startAt = 0, ammoLeft = AMMO_BUDGET, lastRemain = -1;
 var shots = 0, litHits = 0, unlitShots = 0, unlitHits = 0, reveals = 0;
 var moveSteps = 0, lookEvents = 0;
+/* Story 130 probes: read-only lock-acquisition telemetry. Written only by the
+ * pointerlockchange/mousemove handlers and the stale-boundary clears below;
+ * never read by input, render, timing, or tuning paths. */
+var lockAcqs = 0, firstMx = null, firstMy = null, lockPending = false;
 var lastShotAt = -1e9;
 var inputMode = 'keyboard';
 var locked = false, lockDenied = false, acquiring = false, acqTimer = 0;
@@ -441,6 +445,7 @@ function updateStatus() {
 /* Round flow. */
 function endRound(win, reason) {
   over = true;
+  lockPending = false; /* Story 130 T4: pending never goes stale across a round end. */
   outcome = win ? 'win' : 'lose';
   loseReason = reason || '';
   refreshHud();
@@ -449,6 +454,7 @@ function endRound(win, reason) {
 function startRound() {
   started = true;
   over = false;
+  lockPending = false; /* Story 130 T4: a new round never inherits a stale pending. */
   outcome = 'undecided';
   loseReason = '';
   startAt = performance.now();
@@ -583,6 +589,8 @@ window.addEventListener('mousemove', function (e) {
   if (!started || over) return;
   var mx = num(e.movementX), my = num(e.movementY);
   if (!mx && !my) return;
+  /* Story 130 T5: first evaluated mousemove after the latest acquisition. */
+  if (lockPending) { firstMx = mx; firstMy = my; lockPending = false; }
   inputMode = 'mouse';
   lookEvents++;
   player.yaw += mx * MOUSE_SENS;
@@ -594,6 +602,7 @@ window.addEventListener('mousemove', function (e) {
 function denyLock() {
   acquiring = false;
   clearTimeout(acqTimer);
+  lockPending = false; /* Story 130 T4: a denied lock never arms the probe. */
   if (!lockDenied) {
     lockDenied = true; /* latched for the session */
     padMsg = '';
@@ -617,12 +626,23 @@ function requestLock() {
 }
 document.addEventListener('pointerlockchange', function () {
   locked = document.pointerLockElement === canvas;
+  if (document.pointerLockElement === canvas) {
+    /* Story 130 T2: genuine canvas acquisition only, never a foreign element. */
+    lockAcqs += 1;
+    lockPending = true;
+    firstMx = null;
+    firstMy = null;
+  } else {
+    /* Story 130 T3: unlock keeps the pair and counter readable. */
+    lockPending = false;
+  }
   acquiring = false;
   clearTimeout(acqTimer);
   padMsg = '';
   updateStatus();
 });
 document.addEventListener('pointerlockerror', function () {
+  lockPending = false; /* Story 130 T4. */
   if (acquiring) denyLock();
   else { locked = false; updateStatus(); }
 });
@@ -824,6 +844,10 @@ window.__echo = {
   get horizonPresent() { return horizonPresent; },
   get moveSteps() { return moveSteps; },
   get lookEvents() { return lookEvents; },
+  get lockAcqs() { return lockAcqs; },
+  get firstMx() { return firstMx; },
+  get firstMy() { return firstMy; },
+  get lockPending() { return lockPending; },
   target: function (i) {
     var t = targets[i];
     if (!t) return null;
