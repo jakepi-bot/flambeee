@@ -1,0 +1,1365 @@
+{
+  "base_commit": "cd38639cdd3ab26619f87d037eb73b08a2a4e259",
+  "generated_by": "dev/src-consumer-manifest.py",
+  "counts": {
+    "runnable": 14,
+    "historical": 32,
+    "needs_decision": 12,
+    "test_plan_files": 38,
+    "family_total": 19,
+    "family_under_src": 11
+  },
+  "consumers": [
+    {
+      "path": "README.md",
+      "line": 125,
+      "text": "\u2514\u2500\u2500 src/               (code, managed by Kai & Riven)",
+      "kind": "needs-a-decision",
+      "reason": "Tree diagram names src/ (code, managed by Kai and Riven); archive step updates the diagram to the moved path; owner: archive PR."
+    },
+    {
+      "path": "dev/capture-game-shots.py",
+      "line": 5,
+      "text": "real game HTML (src/*.html) via Playwright, cropping to the game board region",
+      "kind": "needs-a-decision",
+      "reason": "Live screenshot-subject path executed today against src/; archive step retargets the path to the moved tree or moves the consumer with it; owner: archive PR."
+    },
+    {
+      "path": "dev/capture-game-shots.py",
+      "line": 22,
+      "text": "(\"wordfire\", \"src/wordfire.html\", \"#board\", None),",
+      "kind": "needs-a-decision",
+      "reason": "Live screenshot-subject path executed today against src/; archive step retargets the path to the moved tree or moves the consumer with it; owner: archive PR."
+    },
+    {
+      "path": "dev/capture-game-shots.py",
+      "line": 23,
+      "text": "(\"minesweeper\", \"src/minesweeper.html\", \"#board, .board, #minesweeper\", None),",
+      "kind": "needs-a-decision",
+      "reason": "Live screenshot-subject path executed today against src/; archive step retargets the path to the moved tree or moves the consumer with it; owner: archive PR."
+    },
+    {
+      "path": "dev/capture-game-shots.py",
+      "line": 24,
+      "text": "(\"simon\", \"src/simon.html\", \"#board, .simon-board, .game-board\", None),",
+      "kind": "needs-a-decision",
+      "reason": "Live screenshot-subject path executed today against src/; archive step retargets the path to the moved tree or moves the consumer with it; owner: archive PR."
+    },
+    {
+      "path": "dev/capture-game-shots.py",
+      "line": 25,
+      "text": "(\"2048\", \"src/2048.html\", \"#grid, .board-wrap, .grid\", None),",
+      "kind": "needs-a-decision",
+      "reason": "Live screenshot-subject path executed today against src/; archive step retargets the path to the moved tree or moves the consumer with it; owner: archive PR."
+    },
+    {
+      "path": "dev/fps-probe/VERDICT.md",
+      "line": 11,
+      "text": "New files only under dev/fps-probe/. No package.json, no node_modules, no native toolchain, no engine choice, no FPS build beyond the probe. Probe is single-file no-build HTML/JS. Harness is plain node with no new dependency. No touch of website/index.html, website/sw.js, website/apps/, src/, websit",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "dev/gen-words.py",
+      "line": 5,
+      "text": "- Output: src/wordfire-words.js with ANSWERS and GUESSES arrays.",
+      "kind": "needs-a-decision",
+      "reason": "Live write path executed today against src/; archive step retargets the path to the moved tree or moves the consumer with it; owner: archive PR."
+    },
+    {
+      "path": "dev/gen-words.py",
+      "line": 35,
+      "text": "with open('src/wordfire-words.js', 'w') as f:",
+      "kind": "needs-a-decision",
+      "reason": "Live write path executed today against src/; archive step retargets the path to the moved tree or moves the consumer with it; owner: archive PR."
+    },
+    {
+      "path": "docs/roadmap.md",
+      "line": 21,
+      "text": "- Story 124 / M-1 (#213) **not merged**: PR #232 at `a3fc824` passes QA A124-1 through A124-7 and every design invariant (zero website bytes, 19 == 19 family discovery), but at the plan's 02:40 gate it still left six `docs/test-plans/` node scripts reading `src/`, `session27-story054-qa.py` with `RE",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/roadmap.md",
+      "line": 26,
+      "text": "- Story 127 (P1b, tooling only): **proof family retarget plus `scripts/run-cinder-family.py`, 24 files, zero under `website/`.** The 19-script Cinder family now reads `website/games/cinder.html` instead of the frozen `src/` duplicate: dead `[abs] roots 14 to 0, dead venv refs 10 to 0",
+      "kind": "historical",
+      "reason": "Prose record with a stale absolute root, kept as history; accepted as stale, not executed; no archive-step edit needed."
+    },
+    {
+      "path": "docs/roadmap.md",
+      "line": 28,
+      "text": "- Notes carried: seven Cinder-family content-drift failures need owners and follow-up stories; 1px/21px small-viewport overflow is a separate responsive follow-up; `dev/afterglow-060-residual.py` needs a regroup-or-rename issue; Cinder counter still owed under M-3 (#215); M-1 `src/` archival (#213) ",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/roadmap.md",
+      "line": 72,
+      "text": "- Story 109 (P2, docs only): **FPS input decision record, `docs/fps-input-decision-record-session46.md`, no code.** Path A (physical gamepad on the box, closes the gate) versus Path B (keyboard-only as the shipped web input) with cost lines; Story 104 pointer-lock correction stated (never proven, he",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/roadmap.md",
+      "line": 94,
+      "text": "- Story 097 (P1, mechanism): **FPS controller-mapping-layer slice with keyboard fallback, proven in harness.** New `dev/fps-probe/input-mapping-layer-097.js` (89 lines, pure resolvers: left stick to move intent, right stick to look intent, trigger/primary to fire intent) plus mapped slice `dev/fps-p",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/roadmap.md",
+      "line": 106,
+      "text": "- Story 091 (P1, mechanism): **FPS playable echo-rounds slice, proven in harness.** New `dev/fps-probe/echo-rounds-slice-091.html` (single-file no-build round, 406 lines) plus harness `dev/fps-probe/playable-slice-check-091.js` (plain node, 196 lines) under `dev/fps-probe/` only, 602 insertions, zer",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/roadmap.md",
+      "line": 113,
+      "text": "- Story 089 (P2, mechanism): **FPS echo-rounds mouse leg plus lit-target hit gate, proven in harness.** Extended `dev/fps-probe/echo-rounds-probe.html` gated behind `?mouseleg=1` plus new `mouse-leg-check.js` (plain node, no dependency). RED run exit 1 on pre-change tree; green exit 0 twice: 691 cou",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/roadmap.md",
+      "line": 122,
+      "text": "- Release decision (jakebot advisory 20261022_025610_c7c692, proceeded on its read): **no version cut.** Mechanism-only diff (5 files, 405 insertions, 1 deletion, all scripts/ plus roadmap; zero lines in website/, src/, apps/), nothing user-visible; launcher not yet installed in the scheduler so the",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/roadmap.md",
+      "line": 128,
+      "text": "- Release decision (jakebot advisory 20261021_025610_8f0fe9, proceeded on its read): **no version cut.** Docs/test-only diff (7 files, 658 insertions, zero lines in website/, src/, apps/), nothing user-visible; tag, blog, and Bluesky draft would describe nothing new. Noon posts nothing today (no liv",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/roadmap.md",
+      "line": 141,
+      "text": "- Story 077 (P1, dev): **one-line cache fix, CACHE_VERSION 8 to 9 in `website/sw.js`.** Stale serve reproduced locally (v8 worker served the pre-075 page with no N/280 count while the network copy carried it). Day-2 reuse [date] passed on both the source path and the SW path, so the fix is the s",
+      "kind": "historical",
+      "reason": "Prose record with a stale absolute root, kept as history; accepted as stale, not executed; no archive-step edit needed."
+    },
+    {
+      "path": "docs/roadmap.md",
+      "line": 166,
+      "text": "- Story 067 (P2, standing verification): two-run currency check. Run 1 pre-release green on real paths (heading v0.28.0, cmp exit 0, 6 Play links, GAME_ORDER 6 of 6). Run 2 post-release heading **v0.29.0**. Deploy: src/cinder.html synced to share games byte-identical; website sw.js CACHE_VERSION 6 t",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/roadmap.md",
+      "line": 173,
+      "text": "- Deploy: `src/afterglow.html` synced to `share/Flambeee/games/afterglow.html` byte-identical; `share/Flambeee/index.html` and `website/index.html` byte-identical; `sw.js` `CACHE_VERSION` 5 to 6 on both sides (load-bearing: `games/afterglow.html` is precached).",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/roadmap.md",
+      "line": 177,
+      "text": "- Story 059 (P1, feature): answers CEO directive 6 (originality over imitation). **Afterglow** is a memory-and-motion puzzle built on one rule: the information window and the input window are disjoint by design. A level lights up for a short shrinking window and accepts no input; the board then goes",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/roadmap.md",
+      "line": 181,
+      "text": "- Story 060 (P2, verification): closes Scout's Session 28 unreported residual edge case by measurement against shipped v0.26.0 `src/cinder.html` (`dev/afterglow-060-residual.py`). **Outcome: NO FOURTH FINDING.** All Session 28 seeds (A, C, G2/G3, H1/H2) are fixed on v0.26.0; the only residual behavi",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/roadmap.md",
+      "line": 189,
+      "text": "- Story 056 (P1, corrective, helper + call site): closes the character-record half of the same defect class Story 053 closed for the day record. `loadSave()` (`src/cinder.html:827`) returned the raw `JSON.parse` product to every stat helper, every shop gate and the bank, with no shape check. Six mea",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/roadmap.md",
+      "line": 190,
+      "text": "- Integration: ownership named before dev started per the Story 048 protocol (`flambeee-team/briefs/PARENT-RULINGS-session28.md`, 09:47). Unlike Sessions 23/24/27, the helper and its call site went to **one owner**, which made overlap impossible by construction rather than by luck. PR #115, commit `",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/roadmap.md",
+      "line": 194,
+      "text": "- Story 057 (P2, standing verification): website currency checker, two runs. Run 1 pre-release PASS (exit 0, heading v0.25.0, `cmp` exit 0, 5 Play links, checker blob unmodified). Run 2 post-release: heading **v0.26.0**. Cinder deploy mirror re-synced post-merge and verified byte-identical: `cmp` ex",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/roadmap.md",
+      "line": 202,
+      "text": "- Integration: Story 053 put two devs on one file (`src/cinder.html`). Ownership named before dev started per the Story 048 protocol (Kai: new helper + proof; Riven: the one `init()` call-site line at `src/cinder.html:1454`). Ranges disjoint; PR #111 was re-cut mid-session to remove a stacked helper",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/roadmap.md",
+      "line": 204,
+      "text": "- Story 054 (P2, standing verification): website currency checker, two runs (pre-release and post-release) plus the Cinder deploy-mirror check, retargeted to v0.25.0. Run 1 green at session start (exit 0, heading v0.24.0, `cmp` exit 0, 5 Play links, checker blob `9b1058b1` unmodified since v0.19.0).",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/roadmap.md",
+      "line": 213,
+      "text": "- Integration: Stories 050 and 051 both touched `src/cinder.html`. Ownership was named before dev started (Riven: `dayLabelForIndex()` and its one call site; Kai: Story 051 proof script only, no game-file change). Ranges disjoint, verified independently by extraction rather than from PR text.",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/roadmap.md",
+      "line": 215,
+      "text": "- Story 052 (P3, standing verification): website currency checker, two runs (pre-release and post-release) plus the Cinder deploy-mirror check. Run 1 green at session start (heading v0.23.0, `cmp` exit 0). Run 2 after the What's New update: heading **v0.24.0**. Cinder deploy mirror re-synced post-me",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/roadmap.md",
+      "line": 220,
+      "text": "- Story 047 (P1, corrective, both devs): the quest log's **recent-quests list** printed an empty list beneath a live streak on the first load of any stale day record. The list read the post-reset `dayState.completedQuests` (`src/cinder.html:627`) while the streak number read the pre-reset anchor (`c",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/roadmap.md",
+      "line": 221,
+      "text": "- Integration: Stories 047 and 048 again put two devs on one file (`src/cinder.html`). Kai owned the read-path proof and the pure-read helper; Riven owned the render call site and the docs spec. Both branches carried the identical `src/cinder.html` blob (`734def4b`), so the parent merged one hunk an",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/roadmap.md",
+      "line": 223,
+      "text": "- QA: Scout harness **36/36 pass, exit 0** against the merged candidate (node sandbox), **24/24 pass, exit 0** in real Chromium at desktop and 375x667; the pre-fix build failed 11 sandbox checks and 2 browser checks, isolating the fix. Kai's independent proof `src/kai-story047-questlog-readpath-proo",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/roadmap.md",
+      "line": 224,
+      "text": "- Story 049 (P3, standing verification): two-run currency checker. Run 1 before release green (exit 0, heading v0.22.0, `cmp` exit 0, 5 Play links). Run 2 after the What's New update and live sync green (exit 0, heading **v0.23.0**). Cinder deploy mirror synced post-merge and verified byte-identical",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/roadmap.md",
+      "line": 228,
+      "text": "- Story 045 (P2, verification-shaped): proved the reload-guard behaviour on a record stale by exactly one day and on a record stale by 3+ days. **No code defect found; the behaviour is correct and the public claim was corrected.** The reload is quiet in both cases, closed by the daily reset's own wr",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/roadmap.md",
+      "line": 229,
+      "text": "- Integration: Stories 044 and 045 again put two devs on one file (`src/cinder.html`). Kai built the streak source and the proofs; Riven wired the view and corrected the Story 045 copy. Both halves touched the same call-site line. Reconciled into one coherent change (PR #96): kept Kai's helper and t",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/roadmap.md",
+      "line": 231,
+      "text": "- Story 046 (P3, standing verification): two-run currency checker. Run 1 before release green (exit 0, heading v0.21.0, `cmp` exit 0, 5 Play links). Run 2 after the What's New update and live sync green (exit 0, heading **v0.22.0**). Cinder deploy mirror synced post-merge and verified byte-identical",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/roadmap.md",
+      "line": 235,
+      "text": "- Integration: Story 042 again put two devs on one file (`src/cinder.html`). Kai (PR #91) and Riven (PR #89) each independently solved both problems with their own helpers. Both were correct; merging both would have shipped two implementations of each fix. Reconciled into one coherent change (PR #92",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/roadmap.md",
+      "line": 237,
+      "text": "- Story 043 (P2, standing verification): the two-run currency checker. Run 1 before release green (exit 0, heading v0.20.0, `cmp` exit 0, 5 Play links). Run 2 after the What's New update and live sync green (exit 0, heading **v0.21.0**). The checker also caught the real post-merge pre-tag drift (hea",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/roadmap.md",
+      "line": 247,
+      "text": "- Deploy: `share/Flambeee/games/cinder.html` synced byte-identical to `src/cinder.html` (`cmp` exit 0, sha256 `dde7125b`); `share/Flambeee/index.html` and `website/index.html` byte-identical (`cmp` exit 0, sha256 `b9a8b7c8`).",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/roadmap.md",
+      "line": 252,
+      "text": "- Story 037 (P1, retention): installed Cinder now carries a PWA app-icon badge that mirrors today's quest. One guarded helper, `syncAppBadge()`, feature-detects `navigator.setAppBadge` / `navigator.clearAppBadge`, derives the value purely from `getQuestState()` (`1` while today's quest is not `compl",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/roadmap.md",
+      "line": 254,
+      "text": "- Deploy: `share/Flambeee/games/cinder.html` synced byte-identical to `src/cinder.html` (`cmp` PASS); `share/Flambeee/index.html` and `website/index.html` remain byte-identical (no website change this release).",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/roadmap.md",
+      "line": 381,
+      "text": "- **Cinder daily-return preview (Story 033, P1)** \u2014 deepen the daily-habit loop with a small, single-file addition to `src/cinder.html`. When today's quest is completed and rewarded, the quest detail view names tomorrow's objective and calls the player back after the UTC midnight reset. Tomorrow's q",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/021-cinder-menu-fix.md",
+      "line": 8,
+      "text": "- **Baseline:** `[abs] (broken copy)",
+      "kind": "historical",
+      "reason": "Prose record with a stale absolute root, kept as history; accepted as stale, not executed; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/025-cinder-daily-quest-test-plan.md",
+      "line": 16,
+      "text": "- **Repo copy (must be byte-identical):** `[abs]",
+      "kind": "historical",
+      "reason": "Prose record with a stale absolute root, kept as history; accepted as stale, not executed; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/027-cinder-daily-quest-polish.md",
+      "line": 17,
+      "text": "- Files under test: repo `src/cinder.html` and live `share/Flambeee/games/cinder.html`.",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/027-cinder-daily-quest-polish.md",
+      "line": 56,
+      "text": "- **Deployment sync:** repo `src/cinder.html` and live `share/Flambeee/games/cinder.html` must be byte-identical (`cmp`).",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/035-cinder-recent-quests-streak.md",
+      "line": 5,
+      "text": "Target code: `src/cinder.html` (repo source) and `share/Flambeee/games/cinder.html` (live mirror).",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/035-cinder-recent-quests-streak.md",
+      "line": 14,
+      "text": "1. Confirm `src/cinder.html` and the live mirror are byte-identical before any test: `cmp src/cinder.html share/Flambeee/games/cinder.html` -> PASS, and `md5sum` equal.",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/035-cinder-recent-quests-streak.md",
+      "line": 96,
+      "text": "### 3.2 Static scan (Kai proof, adapt `kai-story033-pure-read-proof.py`)",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/035-cinder-recent-quests-streak.md",
+      "line": 192,
+      "text": "- `cmp src/cinder.html share/Flambeee/games/cinder.html` -> PASS (byte-identical), `md5sum` equal.",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/037-cinder-install-return-badge.md",
+      "line": 7,
+      "text": "**Artifact under test:** `src/cinder.html` (branch copy)",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/037-cinder-install-return-badge.md",
+      "line": 124,
+      "text": "Kai's proof `src/kai-story037-badge-proof.py` was copied together with `src/cinder.html` into `[abs] and run with `[abs] Result: `ALL CHECKS PASS`, exit 0. The hook-point count (1 definition, 3 call sites) and the purity scan were re-derived ",
+      "kind": "historical",
+      "reason": "Prose record with a stale absolute root, kept as history; accepted as stale, not executed; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/039-cinder-away-time-decision-record.md",
+      "line": 16,
+      "text": "| 3 | No behaviour or balance change from this story | The Wave 2 commit contains only story docs; no `src/` or `website/` change | `git show 237c9b6 --stat` shows three story files only | PASS |",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/039-cinder-away-time-decision-record.md",
+      "line": 17,
+      "text": "| 4 | Accurate against shipped mechanics | Claims about `completedQuests`, `computeQuestStreak`, `checkDailyReset` and the fight economy match the shipped v0.19.0 code | Read the cited functions in `src/cinder.html` at `77acd25` | PASS (see note) |",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/040-cinder-welcome-back-summary.md",
+      "line": 4,
+      "text": "**Code under test:** `src/cinder.html`, Riven's branch `feature/040-cinder-welcome-back-riven`, pinned commit `28e5c49` (PR #83)",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/040-cinder-welcome-back-summary.md",
+      "line": 10,
+      "text": "The artifact is extracted from the pushed commit with `git show 28e5c49:src/cinder.html`, never read from the mutable worktree, so the test cannot pass against uncommitted code.",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (28e5c49:); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/042-cinder-welcomeback-streak-and-once-per-gap.md",
+      "line": 4,
+      "text": "**Code under test:** `src/cinder.html`, the integrated result of Kai's branch `feature/042-cinder-streak-proof-kai` and Riven's branch `feature/042-cinder-welcomeback-view-riven`, both based on `main` at `13597d7`.",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/042-cinder-welcomeback-streak-and-once-per-gap.md",
+      "line": 5,
+      "text": "**Baseline for regressions:** `main` at `13597d7`, `src/cinder.html` blob `3409b6da1da417d0671bc41630fcc6116d7c3f3e`, sha256 `dde7125b99bb2ac32660d453ed714933e1ab988f639b516b1a16110125763482` (identical to tag `v0.20.0`).",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/042-cinder-welcomeback-streak-and-once-per-gap.md",
+      "line": 7,
+      "text": "**Artifact rule:** the code under test is extracted from the merged branches with `git show <commit>:src/cinder.html`, never read from a mutable worktree, so the test cannot pass against uncommitted code.",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/042-cinder-welcomeback-streak-and-once-per-gap.md",
+      "line": 109,
+      "text": "git diff <baseline> <merged> -- src/cinder.html | grep '^+' \\",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/042-cinder-welcomeback-streak-and-once-per-gap.md",
+      "line": 113,
+      "text": "grep -c \"onclick=\" src/cinder.html",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/042-cinder-welcomeback-streak-and-once-per-gap.md",
+      "line": 114,
+      "text": "grep -c \"Notification\" src/cinder.html",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/042-cinder-welcomeback-streak-and-once-per-gap.md",
+      "line": 115,
+      "text": "grep -c \"pushManager\" src/cinder.html",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/042-cinder-welcomeback-streak-and-once-per-gap.md",
+      "line": 118,
+      "text": "awk '/function checkDailyReset/,/^  }/' src/cinder.html | git hash-object --stdin",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/042-cinder-welcomeback-streak-and-once-per-gap.md",
+      "line": 119,
+      "text": "awk '/function computeQuestStreak/,/^  }$/' src/cinder.html | git hash-object --stdin",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/043-website-currency-pre-post-release-verification.md",
+      "line": 8,
+      "text": "**Cinder source:** `[abs]",
+      "kind": "historical",
+      "reason": "Prose record with a stale absolute root, kept as history; accepted as stale, not executed; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/043-website-currency-pre-post-release-verification.md",
+      "line": 18,
+      "text": "3. **Cinder deploy-mirror comparison.** `cmp` and `sha256` of `src/cinder.html` against the ABSOLUTE mirror path, after the Story 042 merge and mirror sync.",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/043-website-currency-pre-post-release-verification.md",
+      "line": 48,
+      "text": "cmp [abs] \\",
+      "kind": "historical",
+      "reason": "Prose record with a stale absolute root, kept as history; accepted as stale, not executed; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/043-website-currency-pre-post-release-verification.md",
+      "line": 51,
+      "text": "sha256sum [abs] \\",
+      "kind": "historical",
+      "reason": "Prose record with a stale absolute root, kept as history; accepted as stale, not executed; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/044-cinder-questlog-honest-streak-test-plan.md",
+      "line": 4,
+      "text": "**Code under test:** `src/cinder.html`. Story 044 puts **two devs on one file**: Kai's half is `computeQuestLogStreak(dayState, rawDayState)`; Riven's half is the rendered `Current streak: N days` line in `renderQuestLog()`.",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/044-cinder-questlog-honest-streak-test-plan.md",
+      "line": 6,
+      "text": "**Baseline artifact:** `src/cinder.html`, 1421 lines, 60754 bytes, sha256 `e48a1040083013f8e153cf8262074e20115d23245200b36502054f4e9febb56e`.",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/044-cinder-questlog-honest-streak-test-plan.md",
+      "line": 8,
+      "text": "**Artifact rule:** the code under test is read from the shipped file or from `git show <commit>:src/cinder.html`, never from a mutable worktree, so a test cannot pass against uncommitted code.",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/045-cinder-welcomeback-reload-guard-proof-test-plan.md",
+      "line": 4,
+      "text": "**Code under test:** `src/cinder.html` at v0.21.0 / `fac7c32`. **This story requires no code change.** Its likely and expected PASS is \"no code defect, claim corrected\".",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/045-cinder-welcomeback-reload-guard-proof-test-plan.md",
+      "line": 5,
+      "text": "**Baseline artifact:** `src/cinder.html`, 1421 lines, 60754 bytes, sha256 `e48a1040083013f8e153cf8262074e20115d23245200b36502054f4e9febb56e`.",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/045-cinder-welcomeback-reload-guard-proof-test-plan.md",
+      "line": 15,
+      "text": "**Case B is the behaviour the code delivers and the claim does not describe.** The behaviour is correct: the panel appears once per gap, which is what Story 042 required. The defect is in the published claim, not in `src/cinder.html`.",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/045-cinder-welcomeback-reload-guard-proof-test-plan.md",
+      "line": 68,
+      "text": "Assert `src/cinder.html` is byte-identical to its v0.21.0 state unless S9 applied, no new persisted field exists, and no economy, balance, rotation, or difficulty behaviour changed.",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/046-website-currency-post-release-verification-test-plan.md",
+      "line": 13,
+      "text": "New this session: Story 044 changes `src/cinder.html`, so the Cinder deploy mirror `[abs] must also be compared, with the `cmp` exit code and the **sha256 of both files** recorded explicitly, at the ABSOLUTE path. The recorded values are the",
+      "kind": "historical",
+      "reason": "Prose record with a stale absolute root, kept as history; accepted as stale, not executed; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/046-website-currency-post-release-verification-test-plan.md",
+      "line": 34,
+      "text": "After Story 044 is merged and the mirror is synced, compare `src/cinder.html` against `[abs] Record the absolute path, the `cmp` exit code, and the sha256 of both files. Assert `cmp` exit 0 and identical sha256.",
+      "kind": "historical",
+      "reason": "Prose record with a stale absolute root, kept as history; accepted as stale, not executed; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/047-cinder-recent-quests-read-path-test-plan.md",
+      "line": 4,
+      "text": "**Code under test:** `src/cinder.html` at the merged candidate (post-merge `main`). The read expressions are:",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/047-cinder-recent-quests-read-path-test-plan.md",
+      "line": 5,
+      "text": "- streak number: `computeQuestLogStreak(dayState, questLogAnchor)` (`src/cinder.html:629`), reads the **pre-reset anchor**;",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/047-cinder-recent-quests-read-path-test-plan.md",
+      "line": 6,
+      "text": "- recent-quests list: `dayState.completedQuests.slice(-5).reverse()` (`src/cinder.html:627-637`), reads the **post-reset `dayState`**.",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/047-cinder-recent-quests-read-path-test-plan.md",
+      "line": 9,
+      "text": "**Baseline:** `src/cinder.html` 64445 bytes, sha256 `0dd0c0104ccc6a361ed56e05d01f749ea1cc742295c3055bac954fa7bc88efa5` at session entry.",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/047-cinder-recent-quests-read-path-test-plan.md",
+      "line": 68,
+      "text": "Extract both functions from the candidate and from `git show v0.22.0:src/cinder.html`; assert identical text.",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (git show v); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/048-integration-ownership-protocol-test-plan.md",
+      "line": 6,
+      "text": "**Method:** read the spec file and check each scenario's assertion against its text. The Scenario 6 test is a diff check: the spec PR must contain only a new `docs/*.md` file, with `src/cinder.html` and every other source file byte-identical to pre-story state.",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/048-integration-ownership-protocol-test-plan.md",
+      "line": 19,
+      "text": "Assert it applies to any story changing `src/cinder.html` or putting two or more developers on one file, in plain language.",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/048-integration-ownership-protocol-test-plan.md",
+      "line": 35,
+      "text": "Inspect the diff: only a new Markdown file under `docs/`; `src/cinder.html` and every other source file byte-identical to pre-story state; no script, hook, CI job, linter rule, or build step added.",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/049-website-currency-verification-session25-test-plan.md",
+      "line": 7,
+      "text": "**Baseline at requirements time:** live `[abs] 43557 bytes, heading names v0.22.0; `src/cinder.html` 64445 bytes; mirror `[abs] 64445 bytes, byte-identical.",
+      "kind": "historical",
+      "reason": "Prose record with a stale absolute root, kept as history; accepted as stale, not executed; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/049-website-currency-verification-session25-test-plan.md",
+      "line": 32,
+      "text": "After Story 047 is merged (or landed no change) and the mirror is synced, compare `src/cinder.html` against `[abs] Record the absolute path, `cmp` exit code, and sha256 of both files.",
+      "kind": "historical",
+      "reason": "Prose record with a stale absolute root, kept as history; accepted as stale, not executed; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/064-afterglow-daily-mode-test-plan.md",
+      "line": 5,
+      "text": "PR #123 (Riven game change `src/afterglow.html`, branch `riven/064-afterglow-daily`).",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/066-cinder-unreadable-storage-notice-test-plan.md",
+      "line": 16,
+      "text": "**Code under test:** `src/cinder.html`, `init()` at line ~1624, storage helpers",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/066-cinder-unreadable-storage-notice-test-plan.md",
+      "line": 25,
+      "text": "- Target: local file `src/cinder.html` served over file:// (same-origin simple case;",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/067-website-currency-session31-test-plan.md",
+      "line": 11,
+      "text": "mirror (`website/` + `src/` game files), and the release tag agree. No new code.",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/067-website-currency-session31-test-plan.md",
+      "line": 25,
+      "text": "| 067-M3 | game-file mirrors | `cmp src/<g>.html` vs live `games/<g>.html` for all 6 | all 6 cmp exit 0 |",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/071-fps-viability-probe-test-plan.md",
+      "line": 22,
+      "text": "9. T9 no-sprawl: `git diff 54925ce..pr138 --stat -- package.json package-lock.json node_modules src/ website/ scripts/ docs/` empty; only `dev/fps-probe/` touched; no native toolchain strings. PASS.",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/072-apps-first-app-test-plan.md",
+      "line": 19,
+      "text": "8. T8 division boundary: PR137 file set contains no `website/games/`, `src/`, no games rename; Apps tree `website/apps/` separate. `website/index.html` adds `<section id=\"apps\">` after #games, reuses styles, What's New heading untouched (`v0.30.0`). PASS.",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/091-fps-playable-slice-session40-test-plan.md",
+      "line": 41,
+      "text": "shows only the 2 new files under `dev/fps-probe/`, zero lines in `src/`,",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/105-sw-guard-session44-test-plan.md",
+      "line": 8,
+      "text": "plus any test fixture under `scripts/`. Out of scope: `website/`, `src/`,",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/107-check7-predecessor-test-plan.md",
+      "line": 10,
+      "text": "`src/`, `games/`, FPS probe, schedule, noon, `pending-post.txt`. Any diff",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/107-check7-predecessor-test-plan.md",
+      "line": 33,
+      "text": "| 7 | AC-7 | Diff limited to `scripts/` + the two docs | `git diff --stat` vs base | 3 files, no `website/`, `src/`, `games/` |",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/109-fps-decision-record-session46-test-plan.md",
+      "line": 10,
+      "text": "`website/`, `dev/fps-probe/`, `src/`, `games/`, `scripts/`, `share/`,",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/109-fps-decision-record-session46-test-plan.md",
+      "line": 25,
+      "text": "| 8 | AC-8 | Zero changed lines under `src/`, `games/`, `scripts/`, `share/` | `git diff --numstat` on those paths | Empty (added 0, deleted 0) |",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/112-dice-validation-session48.md",
+      "line": 8,
+      "text": "In scope: `website/apps/dice.html` (the one validation item: parse/invalid-sides plus Roll correct-plus-note, change listener persist-only) and the one `CACHE_VERSION` bump line in `website/sw.js`. Out of scope: every other app file, every game, `src/`, `games/`, `GAME_ORDER`, site cards, precache e",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/113-checker-postdeploy-session48.md",
+      "line": 8,
+      "text": "In scope: `scripts/verify-website-currency.sh` (the Check 1 mode change only). Out of scope: `website/` (all of it, including `sw.js`), `src/`, `apps/`, `games/`, schedule, noon, `pending-post.txt`, every Story 112 surface, FPS probe. Any diff there fails this plan.",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/session22-story040-qa.py",
+      "line": 10,
+      "text": "Env: QA_ART_DIR (default = website/games under the repo root), QA_PORT (default 8731)",
+      "kind": "needs-a-decision",
+      "reason": "Family member with no literal src/ pointer; exercises the Story 040 artifact through the QA_ART_DIR live default (website/games tree); archive step confirms no retarget is needed; owner: archive PR (Scout confirm)."
+    },
+    {
+      "path": "docs/test-plans/session26-story050-qa.py",
+      "line": 24,
+      "text": "(default: website/games/cinder.html under the repo root)",
+      "kind": "needs-a-decision",
+      "reason": "Frozen-function extraction pins the v0.23.0 tag blob (historical rows) while CINDER_PATH defaults to the live website/games tree; archive step confirms the live default needs no retarget and accepts the tag pin; owner: archive PR (Scout confirm)."
+    },
+    {
+      "path": "docs/test-plans/session26-story050-qa.py",
+      "line": 209,
+      "text": "\"%s:src/cinder.html\" % base_ref],",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (base_ref); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/session26-story050-qa.py",
+      "line": 212,
+      "text": "check(False, \"could extract %s:src/cinder.html\" % base_ref,",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (base_ref); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/session26-story051-qa.py",
+      "line": 7,
+      "text": "src/kai-story051-away-window-proof.py and the recorded decision.",
+      "kind": "needs-a-decision",
+      "reason": "Docstring cites the live proof src/kai-story051-away-window-proof.py; the proof moves with the archive and the runner retarget covers it; archive step updates the citation; owner: archive PR."
+    },
+    {
+      "path": "docs/test-plans/session26-story051-qa.py",
+      "line": 208,
+      "text": "\"%s:src/cinder.html\" % base_ref],",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (base_ref); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/session26-story051-qa.py",
+      "line": 211,
+      "text": "check(False, \"could extract %s:src/cinder.html\" % base_ref,",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (base_ref); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/session27-story053-qa.py",
+      "line": 23,
+      "text": "(default: website/games/cinder.html under the repo root)",
+      "kind": "needs-a-decision",
+      "reason": "Real-browser harness pins the v0.24.0 tag blob (historical row) while CANDIDATE defaults to the live website/games tree; archive step confirms the live default needs no retarget and accepts the tag pin; owner: archive PR (Scout confirm)."
+    },
+    {
+      "path": "docs/test-plans/session27-story053-qa.py",
+      "line": 66,
+      "text": "r = subprocess.run([\"git\", \"-C\", REPO, \"show\", \"v0.24.0:src/cinder.html\"],  # BASE_REF-family tag blob",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (v0.24.0:); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/session27-story054-qa.py",
+      "line": 24,
+      "text": "The mirror comparison reads `git show REF:src/cinder.html`, NOT the working",
+      "kind": "needs-a-decision",
+      "reason": "REF default main: git show REF:src/cinder.html plus cmp/sha256 against the live deploy mirror; archive step pins REF to the archive tag or accepts the mirror comparison as stale; owner: archive PR."
+    },
+    {
+      "path": "docs/test-plans/session27-story054-qa.py",
+      "line": 56,
+      "text": "# REF:src/cinder.html are base comparisons, never the artifact under test.",
+      "kind": "needs-a-decision",
+      "reason": "REF default main: git show REF:src/cinder.html plus cmp/sha256 against the live deploy mirror; archive step pins REF to the archive tag or accepts the mirror comparison as stale; owner: archive PR."
+    },
+    {
+      "path": "docs/test-plans/session27-story054-qa.py",
+      "line": 139,
+      "text": "rc, out = run(\"git show %s:src/cinder.html\" % REF)",
+      "kind": "needs-a-decision",
+      "reason": "REF default main: git show REF:src/cinder.html plus cmp/sha256 against the live deploy mirror; archive step pins REF to the archive tag or accepts the mirror comparison as stale; owner: archive PR."
+    },
+    {
+      "path": "docs/test-plans/session27-story054-qa.py",
+      "line": 141,
+      "text": "\"%s:src/cinder.html readable\" % REF, \"exit=%d\" % rc)",
+      "kind": "needs-a-decision",
+      "reason": "REF default main: git show REF:src/cinder.html plus cmp/sha256 against the live deploy mirror; archive step pins REF to the archive tag or accepts the mirror comparison as stale; owner: archive PR."
+    },
+    {
+      "path": "docs/test-plans/session27-story054-qa.py",
+      "line": 146,
+      "text": "print(\"$ cmp <git show %s:src/cinder.html> %s\" % (REF, LIVE_GAME))",
+      "kind": "needs-a-decision",
+      "reason": "REF default main: git show REF:src/cinder.html plus cmp/sha256 against the live deploy mirror; archive step pins REF to the archive tag or accepts the mirror comparison as stale; owner: archive PR."
+    },
+    {
+      "path": "docs/test-plans/session27-story054-qa.py",
+      "line": 167,
+      "text": "print(\"$ sha256sum <git show %s:src/cinder.html> %s\" % (REF, LIVE_GAME))",
+      "kind": "needs-a-decision",
+      "reason": "REF default main: git show REF:src/cinder.html plus cmp/sha256 against the live deploy mirror; archive step pins REF to the archive tag or accepts the mirror comparison as stale; owner: archive PR."
+    },
+    {
+      "path": "docs/test-plans/session27-story054-qa.py",
+      "line": 168,
+      "text": "print(\"%s  %s:src/cinder.html\" % (a, REF))",
+      "kind": "needs-a-decision",
+      "reason": "REF default main: git show REF:src/cinder.html plus cmp/sha256 against the live deploy mirror; archive step pins REF to the archive tag or accepts the mirror comparison as stale; owner: archive PR."
+    },
+    {
+      "path": "docs/test-plans/session27-story055-qa.py",
+      "line": 18,
+      "text": "from `git show v0.24.0:src/cinder.html` into a node vm sandbox.",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (git show v); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/session27-story055-qa.py",
+      "line": 28,
+      "text": "RECORD  path to the decision record under test",
+      "kind": "needs-a-decision",
+      "reason": "Tag-blob-only harness by design: every src/ read resolves against the v0.24.0 tag blob (historical rows), never the working tree; archive step accepts the pin; owner: archive PR (Scout confirm)."
+    },
+    {
+      "path": "docs/test-plans/session27-story055-qa.py",
+      "line": 84,
+      "text": "_, out = run(\"git show v0.24.0:src/cinder.html\")",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (git show v); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/session27-story055-qa.py",
+      "line": 96,
+      "text": "for m in re.finditer(r\"(?:src/cinder\\.html)?:(\\d{2,5})\\b\", text):  # BASE_REF-family record format",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (BASE_REF); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/session27-story055-qa.py",
+      "line": 109,
+      "text": "print(\"FAIL: could not read tagged base blob v0.24.0:src/cinder.html\")  # BASE_REF-family tag blob",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (v0.24.0:); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/v0.2.0-test-plan.md",
+      "line": 14,
+      "text": "1. Open `src/index.html` in browser",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/v0.2.0-test-plan.md",
+      "line": 24,
+      "text": "2. Verify `src/minesweeper.html` loads",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/v0.2.0-test-plan.md",
+      "line": 34,
+      "text": "2. Verify `src/simon.html` loads",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/v0.3.0-test-plan.md",
+      "line": 5,
+      "text": "**Scope:** 2048 game (src/2048.html) + Game Hub link (src/index.html)",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/v0.4.0-logic-check.js",
+      "line": 2,
+      "text": "// Scout's logic checks for v0.4.0 \u2014 extracts the real slideLine() from src/2048.html",
+      "kind": "runnable",
+      "reason": "Executes against the live tree today, reading src/ bytes at run time; archive step retargets the relative src/ reads to the moved tree; owner: archive PR."
+    },
+    {
+      "path": "docs/test-plans/v0.4.0-test-plan.md",
+      "line": 5,
+      "text": "**Target:** src/2048.html (feature/2048-polish-v0.4.0)",
+      "kind": "historical",
+      "reason": "Prose record reference to src/; not executed, so the archive changes nothing it points at; no archive-step edit needed."
+    },
+    {
+      "path": "docs/test-plans/v0.5.0-logic-check.js",
+      "line": 3,
+      "text": "* Mirrors the exact math in src/simon.html and the stats helpers in the games.",
+      "kind": "needs-a-decision",
+      "reason": "Pure-JS mirror of src/ math with no live src/ read; archive step re-verifies the mirror against the moved file or accepts it as stale; owner: archive PR."
+    },
+    {
+      "path": "docs/test-plans/v0.5.0-logic-check.js",
+      "line": 14,
+      "text": "// --- Simon difficulty presets (must match src/simon.html) ---",
+      "kind": "needs-a-decision",
+      "reason": "Pure-JS mirror of src/ math with no live src/ read; archive step re-verifies the mirror against the moved file or accepts it as stale; owner: archive PR."
+    },
+    {
+      "path": "docs/test-plans/v0.5.0-logic-check.js",
+      "line": 47,
+      "text": "// --- Per-difficulty best key (must match src/simon.html) ---",
+      "kind": "needs-a-decision",
+      "reason": "Pure-JS mirror of src/ math with no live src/ read; archive step re-verifies the mirror against the moved file or accepts it as stale; owner: archive PR."
+    },
+    {
+      "path": "docs/test-plans/v0.6.0-logic-check.js",
+      "line": 3,
+      "text": "* Mirrors the exact algorithms in src/wordfire.html.",
+      "kind": "runnable",
+      "reason": "Executes against the live tree today, reading src/ bytes at run time; archive step retargets the relative src/ reads to the moved tree; owner: archive PR."
+    },
+    {
+      "path": "docs/test-plans/v0.6.0-logic-check.js",
+      "line": 14,
+      "text": "// --- evaluate(): must match src/wordfire.html ---",
+      "kind": "runnable",
+      "reason": "Executes against the live tree today, reading src/ bytes at run time; archive step retargets the relative src/ reads to the moved tree; owner: archive PR."
+    },
+    {
+      "path": "docs/test-plans/v0.6.0-logic-check.js",
+      "line": 54,
+      "text": "// --- Streak math: must match src/wordfire.html ---",
+      "kind": "runnable",
+      "reason": "Executes against the live tree today, reading src/ bytes at run time; archive step retargets the relative src/ reads to the moved tree; owner: archive PR."
+    },
+    {
+      "path": "docs/test-plans/v0.6.0-logic-check.js",
+      "line": 87,
+      "text": "// --- Daily seeding: must match src/wordfire.html ---",
+      "kind": "runnable",
+      "reason": "Executes against the live tree today, reading src/ bytes at run time; archive step retargets the relative src/ reads to the moved tree; owner: archive PR."
+    },
+    {
+      "path": "docs/test-plans/v0.6.0-logic-check.js",
+      "line": 95,
+      "text": "const src = fs.readFileSync('src/wordfire-words.js', 'utf8');",
+      "kind": "runnable",
+      "reason": "Executes against the live tree today, reading src/ bytes at run time; archive step retargets the relative src/ reads to the moved tree; owner: archive PR."
+    },
+    {
+      "path": "docs/test-plans/v0.6.0-smoke-test.js",
+      "line": 2,
+      "text": "/* v0.6.0 smoke test \u2014 runs the real src/wordfire.html game script against a",
+      "kind": "runnable",
+      "reason": "Executes against the live tree today, reading src/ bytes at run time; archive step retargets the relative src/ reads to the moved tree; owner: archive PR."
+    },
+    {
+      "path": "docs/test-plans/v0.6.0-smoke-test.js",
+      "line": 84,
+      "text": "const wordsSrc = fs.readFileSync('src/wordfire-words.js', 'utf8');",
+      "kind": "runnable",
+      "reason": "Executes against the live tree today, reading src/ bytes at run time; archive step retargets the relative src/ reads to the moved tree; owner: archive PR."
+    },
+    {
+      "path": "docs/test-plans/v0.6.0-smoke-test.js",
+      "line": 85,
+      "text": "const gameSrc = fs.readFileSync('src/wordfire.html', 'utf8')",
+      "kind": "runnable",
+      "reason": "Executes against the live tree today, reading src/ bytes at run time; archive step retargets the relative src/ reads to the moved tree; owner: archive PR."
+    },
+    {
+      "path": "generate-hard-words.py",
+      "line": 4,
+      "text": "Reads WORDFIRE_ANSWERS + WORDFIRE_GUESSES from src/wordfire-words.js,",
+      "kind": "needs-a-decision",
+      "reason": "Docstring states the src/wordfire-words.js read behind the stale SRCJS root; same disposition as the SRCJS row; owner: archive PR."
+    },
+    {
+      "path": "generate-hard-words.py",
+      "line": 13,
+      "text": "SRCJS = \"[abs]",
+      "kind": "needs-a-decision",
+      "reason": "Stale absolute SRCJS root is a pre-existing break (out of scope for this manifest); archive step retargets it or accepts it as stale; owner: archive PR."
+    },
+    {
+      "path": "scout-qa-session24.py",
+      "line": 422,
+      "text": "base_src = subprocess.run([\"git\", \"show\", \"v0.21.0:src/cinder.html\"], capture_output=True, text=True, cwd=REPO).stdout",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (v0.21.0:); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "scripts/run-cinder-family.py",
+      "line": 5,
+      "text": "a file is in the family iff it ends in .py, it lives under src/ or",
+      "kind": "needs-a-decision",
+      "reason": "Docstring states the live src/ family rule executed today; refresh it alongside the discover() rewrite in the same PR; owner: archive PR."
+    },
+    {
+      "path": "scripts/run-cinder-family.py",
+      "line": 40,
+      "text": "CONTROL_PIN = \"77acd25:src/cinder.html\"  # S5c byte-safety control, per the",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (CONTROL_PIN); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "scripts/run-cinder-family.py",
+      "line": 113,
+      "text": "def discover(repo):",
+      "kind": "needs-a-decision",
+      "reason": "Family definition: discover() scans src/ plus docs/test-plans/ plus scout-qa-session*.py for the 19-member Cinder family, 11 of the 19 under src/; archiving src/ without the rewrite drops discovery 19 to 8 (19 - 11 = 8) with no error and no exit-code change (exit 0 either way), so M-4 (#216) would prove 11 fewer scripts; disposition: same-PR rewrite of src_dir to archive/src-games plus runner docstring line 5 src/ to archive/src-games/; owner: archive PR."
+    },
+    {
+      "path": "src/kai-story033-pure-read-proof.py",
+      "line": 28,
+      "text": "python3 src/kai-story033-pure-read-proof.py",
+      "kind": "runnable",
+      "reason": "Proof script executed against the live tree today by the family runner; moves with the archive and the runner retarget covers it; owner: archive PR."
+    },
+    {
+      "path": "src/kai-story035-pure-read-proof.py",
+      "line": 16,
+      "text": "Run:  python3 src/kai-story035-pure-read-proof.py [cinder.html]",
+      "kind": "runnable",
+      "reason": "Proof script executed against the live tree today by the family runner; moves with the archive and the runner retarget covers it; owner: archive PR."
+    },
+    {
+      "path": "src/kai-story037-badge-proof.py",
+      "line": 20,
+      "text": "python3 src/kai-story037-badge-proof.py [cinder.html]",
+      "kind": "runnable",
+      "reason": "Proof script executed against the live tree today by the family runner; moves with the archive and the runner retarget covers it; owner: archive PR."
+    },
+    {
+      "path": "src/kai-story040-pure-read-proof.py",
+      "line": 43,
+      "text": "python3 src/kai-story040-pure-read-proof.py",
+      "kind": "runnable",
+      "reason": "Proof script executed against the live tree today by the family runner; moves with the archive and the runner retarget covers it; owner: archive PR."
+    },
+    {
+      "path": "src/kai-story040-pure-read-proof.py",
+      "line": 44,
+      "text": "python3 src/kai-story040-pure-read-proof.py /path/to/cinder.html",
+      "kind": "runnable",
+      "reason": "Proof script executed against the live tree today by the family runner; moves with the archive and the runner retarget covers it; owner: archive PR."
+    },
+    {
+      "path": "src/kai-story040-pure-read-proof.py",
+      "line": 74,
+      "text": "MAIN_REF = \"main:src/cinder.html\"",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (main:src); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "src/kai-story040-pure-read-proof.py",
+      "line": 75,
+      "text": "RIVEN_REF = \"feature/040-cinder-welcome-back-riven:src/cinder.html\"",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (feature/040-cinder-welcome-back-riven:src); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "src/kai-story042-streak-proof.py",
+      "line": 80,
+      "text": "reproducible. MAIN_REF (main:src/cinder.html) is read through git show for",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (main:src); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "src/kai-story042-streak-proof.py",
+      "line": 84,
+      "text": ".venv/bin/python3 src/kai-story042-streak-proof.py",
+      "kind": "runnable",
+      "reason": "Proof script executed against the live tree today by the family runner; moves with the archive and the runner retarget covers it; owner: archive PR."
+    },
+    {
+      "path": "src/kai-story042-streak-proof.py",
+      "line": 85,
+      "text": ".venv/bin/python3 src/kai-story042-streak-proof.py /path/to/cinder.html",
+      "kind": "runnable",
+      "reason": "Proof script executed against the live tree today by the family runner; moves with the archive and the runner retarget covers it; owner: archive PR."
+    },
+    {
+      "path": "src/kai-story042-streak-proof.py",
+      "line": 115,
+      "text": "MAIN_REF = \"main:src/cinder.html\"",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (main:src); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "src/kai-story042-streak-proof.py",
+      "line": 173,
+      "text": "for ref in (\"feature/042-cinder-streak-proof-kai:src/cinder.html\", MAIN_REF):",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (feature/042-cinder-streak-proof-kai:src); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "src/kai-story044-questlog-streak-proof.py",
+      "line": 37,
+      "text": "BASE_REF (v0.21.0:src/cinder.html) lines 425-446 (max of the raw dayIndex",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (BASE_REF); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "src/kai-story044-questlog-streak-proof.py",
+      "line": 74,
+      "text": "(v0.21.0:src/cinder.html) is read through git show for the",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (v0.21.0:); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "src/kai-story044-questlog-streak-proof.py",
+      "line": 78,
+      "text": ".venv/bin/python3 src/kai-story044-questlog-streak-proof.py",
+      "kind": "runnable",
+      "reason": "Proof script executed against the live tree today by the family runner; moves with the archive and the runner retarget covers it; owner: archive PR."
+    },
+    {
+      "path": "src/kai-story044-questlog-streak-proof.py",
+      "line": 79,
+      "text": ".venv/bin/python3 src/kai-story044-questlog-streak-proof.py /path/to/cinder.html",
+      "kind": "runnable",
+      "reason": "Proof script executed against the live tree today by the family runner; moves with the archive and the runner retarget covers it; owner: archive PR."
+    },
+    {
+      "path": "src/kai-story044-questlog-streak-proof.py",
+      "line": 109,
+      "text": "BASE_REF = \"v0.21.0:src/cinder.html\"",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (BASE_REF); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "src/kai-story044-questlog-streak-proof.py",
+      "line": 162,
+      "text": "for ref in (\"feature/044-cinder-streak-source-kai:src/cinder.html\",  # BASE_REF-family historical blob",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (feature/044-cinder-streak-source-kai:src); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "src/kai-story044-questlog-streak-proof.py",
+      "line": 163,
+      "text": "\"main:src/cinder.html\"):  # BASE_REF-family historical blob",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (main:src); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "src/kai-story045-reload-guard-proof.py",
+      "line": 41,
+      "text": ".venv/bin/python3 src/kai-story045-reload-guard-proof.py",
+      "kind": "runnable",
+      "reason": "Proof script executed against the live tree today by the family runner; moves with the archive and the runner retarget covers it; owner: archive PR."
+    },
+    {
+      "path": "src/kai-story045-reload-guard-proof.py",
+      "line": 42,
+      "text": ".venv/bin/python3 src/kai-story045-reload-guard-proof.py /path/to/cinder.html",
+      "kind": "runnable",
+      "reason": "Proof script executed against the live tree today by the family runner; moves with the archive and the runner retarget covers it; owner: archive PR."
+    },
+    {
+      "path": "src/kai-story045-reload-guard-proof.py",
+      "line": 70,
+      "text": "V0210_REF = \"v0.21.0:src/cinder.html\"",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (v0.21.0:); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "src/kai-story045-reload-guard-proof.py",
+      "line": 97,
+      "text": "for ref in (\"main:src/cinder.html\", V0210_REF):",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (main:src); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "src/kai-story047-questlog-readpath-proof.py",
+      "line": 10,
+      "text": "PRE-reset anchor (BASE_REF v0.22.0 blob, src/cinder.html:629);",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (BASE_REF); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "src/kai-story047-questlog-readpath-proof.py",
+      "line": 12,
+      "text": "POST-reset dayState (BASE_REF v0.22.0 blob, src/cinder.html:627-637).",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (BASE_REF); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "src/kai-story047-questlog-readpath-proof.py",
+      "line": 14,
+      "text": "On the first load of a gap day, checkDailyReset() (BASE_REF v0.22.0 blob src/cinder.html lines 727-737)",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (BASE_REF); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "src/kai-story047-questlog-readpath-proof.py",
+      "line": 51,
+      "text": "byte-for-byte against BASE_REF (v0.22.0:src/cinder.html, extract-and-compare",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (BASE_REF); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "src/kai-story047-questlog-readpath-proof.py",
+      "line": 60,
+      "text": "BASE_REF (v0.22.0:src/cinder.html) is read through git show for the",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (BASE_REF); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "src/kai-story047-questlog-readpath-proof.py",
+      "line": 64,
+      "text": "python3 src/kai-story047-questlog-readpath-proof.py",
+      "kind": "runnable",
+      "reason": "Proof script executed against the live tree today by the family runner; moves with the archive and the runner retarget covers it; owner: archive PR."
+    },
+    {
+      "path": "src/kai-story047-questlog-readpath-proof.py",
+      "line": 65,
+      "text": "python3 src/kai-story047-questlog-readpath-proof.py /path/to/cinder.html",
+      "kind": "runnable",
+      "reason": "Proof script executed against the live tree today by the family runner; moves with the archive and the runner retarget covers it; owner: archive PR."
+    },
+    {
+      "path": "src/kai-story047-questlog-readpath-proof.py",
+      "line": 95,
+      "text": "BASE_REF = \"v0.22.0:src/cinder.html\"",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (BASE_REF); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "src/kai-story047-questlog-readpath-proof.py",
+      "line": 144,
+      "text": "for ref in (\"feature/047-049-cinder-read-path-kai:src/cinder.html\",  # BASE_REF-family historical blob",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (feature/047-049-cinder-read-path-kai:src); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "src/kai-story047-questlog-readpath-proof.py",
+      "line": 145,
+      "text": "\"main:src/cinder.html\"):  # BASE_REF-family historical blob",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (main:src); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "src/kai-story051-away-window-proof.py",
+      "line": 39,
+      "text": "byte-identical to BASE_REF (git show v0.23.0:src/cinder.html, extract each",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (BASE_REF); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "src/kai-story051-away-window-proof.py",
+      "line": 53,
+      "text": "python3 src/kai-story051-away-window-proof.py",
+      "kind": "runnable",
+      "reason": "Proof script executed against the live tree today by the family runner; moves with the archive and the runner retarget covers it; owner: archive PR."
+    },
+    {
+      "path": "src/kai-story051-away-window-proof.py",
+      "line": 54,
+      "text": "python3 src/kai-story051-away-window-proof.py /path/to/cinder.html",
+      "kind": "runnable",
+      "reason": "Proof script executed against the live tree today by the family runner; moves with the archive and the runner retarget covers it; owner: archive PR."
+    },
+    {
+      "path": "src/kai-story051-away-window-proof.py",
+      "line": 85,
+      "text": "BASE_REF = \"v0.23.0:src/cinder.html\"",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (BASE_REF); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "src/kai-story051-away-window-proof.py",
+      "line": 140,
+      "text": "for ref in (\"feature/051-cinder-away-verify-kai:src/cinder.html\",  # BASE_REF-family historical blob",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (feature/051-cinder-away-verify-kai:src); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "src/kai-story051-away-window-proof.py",
+      "line": 141,
+      "text": "\"main:src/cinder.html\"):  # BASE_REF-family historical blob",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (main:src); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "src/kai-story053-record-normalize-proof.py",
+      "line": 39,
+      "text": "python3 src/kai-story053-record-normalize-proof.py [cinder.html]",
+      "kind": "runnable",
+      "reason": "Proof script executed against the live tree today by the family runner; moves with the archive and the runner retarget covers it; owner: archive PR."
+    },
+    {
+      "path": "src/kai-story053-record-normalize-proof.py",
+      "line": 75,
+      "text": "BASE_REF = \"v0.24.0:src/cinder.html\"",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (BASE_REF); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "src/kai-story053-record-normalize-proof.py",
+      "line": 106,
+      "text": "for ref in (\"main:src/cinder.html\",):  # BASE_REF-family historical blob",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (main:src); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "src/kai-story066-notice-proof.py",
+      "line": 12,
+      "text": "python3 src/kai-story066-notice-proof.py [cinder.html]",
+      "kind": "runnable",
+      "reason": "Proof script executed against the live tree today by the family runner; moves with the archive and the runner retarget covers it; owner: archive PR."
+    },
+    {
+      "path": "src/kai-story066-notice-proof.py",
+      "line": 14,
+      "text": "pre-066 baseline ref (the BASELINE_REF default names origin/main:src/cinder.html).",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (BASELINE_REF); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    },
+    {
+      "path": "src/kai-story066-notice-proof.py",
+      "line": 47,
+      "text": "BASELINE_REF = os.environ.get(\"BASELINE_REF\", \"origin/main:src/cinder.html\")",
+      "kind": "historical",
+      "reason": "Immutable git-show pin (BASELINE_REF); read-only base comparison with no working-tree execution; no archive-step edit needed."
+    }
+  ]
+}
