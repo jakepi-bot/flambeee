@@ -1,5 +1,5 @@
 {
-  "base_commit": "cd38639cdd3ab26619f87d037eb73b08a2a4e259",
+  "base_commit": "09bb82d6730164e830728e2a36e8c02e52a55300",
   "generated_by": "dev/src-consumer-manifest.py",
   "counts": {
     "runnable": 14,
@@ -1009,7 +1009,7 @@
       "line": 4,
       "text": "Reads WORDFIRE_ANSWERS + WORDFIRE_GUESSES from src/wordfire-words.js,",
       "kind": "needs-a-decision",
-      "reason": "Docstring states the src/wordfire-words.js read behind the stale SRCJS root; same disposition as the SRCJS row; owner: archive PR."
+      "reason": "Docstring states the src/wordfire-words.js read behind the stale SRCJS root; archive step retargets the read with the SRCJS fix or accepts both rows as stale; owner: archive PR."
     },
     {
       "path": "generate-hard-words.py",

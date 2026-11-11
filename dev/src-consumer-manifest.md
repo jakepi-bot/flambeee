@@ -1,7 +1,7 @@
 # src consumer manifest (Story 131, Session 58)
 
 Generator: dev/src-consumer-manifest.py.
-Base commit: cd38639cdd3ab26619f87d037eb73b08a2a4e259.
+Base commit: 09bb82d6730164e830728e2a36e8c02e52a55300.
 Counts: runnable 14 paths, historical 32 paths, needs-a-decision 12 paths; test-plan files 38; family 19 total, 11 under src/.
 
 Scan roots: repo-root *.py, src/, docs/test-plans/, dev/, 
@@ -195,7 +195,7 @@ and 19 at head, same set.
 | docs/test-plans/v0.6.0-smoke-test.js | 2 | runnable | Executes against the live tree today, reading src/ bytes at run time; archive step retargets the relative src/ reads to the moved tree; owner: archive PR. | /* v0.6.0 smoke test — runs the real src/wordfire.html game script against a |
 | docs/test-plans/v0.6.0-smoke-test.js | 84 | runnable | Executes against the live tree today, reading src/ bytes at run time; archive step retargets the relative src/ reads to the moved tree; owner: archive PR. | const wordsSrc = fs.readFileSync('src/wordfire-words.js', 'utf8'); |
 | docs/test-plans/v0.6.0-smoke-test.js | 85 | runnable | Executes against the live tree today, reading src/ bytes at run time; archive step retargets the relative src/ reads to the moved tree; owner: archive PR. | const gameSrc = fs.readFileSync('src/wordfire.html', 'utf8') |
-| generate-hard-words.py | 4 | needs-a-decision | Docstring states the src/wordfire-words.js read behind the stale SRCJS root; same disposition as the SRCJS row; owner: archive PR. | Reads WORDFIRE_ANSWERS + WORDFIRE_GUESSES from src/wordfire-words.js, |
+| generate-hard-words.py | 4 | needs-a-decision | Docstring states the src/wordfire-words.js read behind the stale SRCJS root; archive step retargets the read with the SRCJS fix or accepts both rows as stale; owner: archive PR. | Reads WORDFIRE_ANSWERS + WORDFIRE_GUESSES from src/wordfire-words.js, |
 | generate-hard-words.py | 13 | needs-a-decision | Stale absolute SRCJS root is a pre-existing break (out of scope for this manifest); archive step retargets it or accepts it as stale; owner: archive PR. | SRCJS = "[abs] |
 | scout-qa-session24.py | 422 | historical | Immutable git-show pin (v0.21.0:); read-only base comparison with no working-tree execution; no archive-step edit needed. | base_src = subprocess.run(["git", "show", "v0.21.0:src/cinder.html"], capture_output=True, text=True, cwd=REPO).stdout |
 | scripts/run-cinder-family.py | 5 | needs-a-decision | Docstring states the live src/ family rule executed today; refresh it alongside the discover() rewrite in the same PR; owner: archive PR. | a file is in the family iff it ends in .py, it lives under src/ or |

@@ -339,8 +339,8 @@ def classify(path, lineno, text, live_src_read):
         return (
             "needs-a-decision",
             "Docstring states the src/wordfire-words.js read behind the "
-            "stale SRCJS root; same disposition as the SRCJS row; owner: "
-            "archive PR.",
+            "stale SRCJS root; archive step retargets the read with the "
+            "SRCJS fix or accepts both rows as stale; owner: archive PR.",
         )
     if path.startswith("docs/test-plans/") and path.endswith(".py"):
         return "needs-a-decision", QA_PY_REASON.get(
