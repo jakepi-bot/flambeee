@@ -36,7 +36,7 @@ It extracts the real functions out of website/games/cinder.html by paren/brace
 matching and drives them in a node vm sandbox. It does not re-implement them.
 
 Usage:
-    python3 src/kai-story053-record-normalize-proof.py [cinder.html]
+    python3 archive/src-games/kai-story053-record-normalize-proof.py [cinder.html]
 
 Env:
     CINDER_SRC  path to a website/games/cinder.html to test instead of the

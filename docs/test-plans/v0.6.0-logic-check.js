@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* v0.6.0 logic checks — Wordfire evaluate() duplicate rules + streak math + daily seeding.
- * Mirrors the exact algorithms in src/wordfire.html.
+ * Mirrors the exact algorithms in archive/src-games/wordfire.html.
  * Run: node docs/test-plans/v0.6.0-logic-check.js
  */
 'use strict';
@@ -11,7 +11,7 @@ function check(name, cond) {
   else { fail++; console.log('  FAIL ' + name); }
 }
 
-// --- evaluate(): must match src/wordfire.html ---
+// --- evaluate(): must match archive/src-games/wordfire.html ---
 function evaluate(guess, ans) {
   const COLS = 5;
   const colors = new Array(COLS).fill('gray');
@@ -51,7 +51,7 @@ check('answer repeated, guess single', JSON.stringify(evaluate('sasss', 'asset')
 // Wordle canonical: guess 'sassy' vs answer 'asset' -> s yellow, a yellow, s green, s gray, y gray
 check('wordle canonical sassy/asset', JSON.stringify(evaluate('sassy', 'asset')) === JSON.stringify(['yellow','yellow','green','gray','gray']));
 
-// --- Streak math: must match src/wordfire.html ---
+// --- Streak math: must match archive/src-games/wordfire.html ---
 function dayIndex(ts) { return Math.floor(ts / 86400000); }
 function applyStreakGap(s, today) {
   if (s.lastSolvedDay < today - 1) s.current = 0;
@@ -84,7 +84,7 @@ check('same-day win no double count', s.current === 2 && s.best === 3 && s.lastS
 s = applyStreakGap({ current: 2, best: 3, lastSolvedDay: T + 5 }, T + 8);
 check('two-day gap zeroes current', s.current === 0 && s.best === 3);
 
-// --- Daily seeding: must match src/wordfire.html ---
+// --- Daily seeding: must match archive/src-games/wordfire.html ---
 console.log('Daily seeding:');
 const ANSWERS = ['about', 'abuse', 'actor']; // stand-in for WORDFIRE_ANSWERS
 function dailyAnswerFor(day) { return ANSWERS[day % ANSWERS.length]; }
@@ -92,7 +92,7 @@ check('seed wraps pool', dailyAnswerFor(0) === 'about' && dailyAnswerFor(3) === 
 check('seed deterministic', dailyAnswerFor(1000000) === dailyAnswerFor(1000000));
 check('different days differ (within pool)', dailyAnswerFor(0) !== dailyAnswerFor(1));
 const fs = require('fs');
-const src = fs.readFileSync('src/wordfire-words.js', 'utf8');
+const src = fs.readFileSync('archive/src-games/wordfire-words.js', 'utf8');
 let answers = [], guesses = [];
 try {
   const loader = new Function(src + '; return { a: WORDFIRE_ANSWERS, g: WORDFIRE_GUESSES };');

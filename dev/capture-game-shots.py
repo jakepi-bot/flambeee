@@ -2,7 +2,7 @@
 """Palette — v0.9.0 website game card screenshots (Story 014).
 
 Captures a representative in-play state for each of the four games from the
-real game HTML (src/*.html) via Playwright, cropping to the game board region
+real game HTML (archive/src-games/*.html) via Playwright, cropping to the game board region
 for a card-friendly portrait thumbnail. Output: share/Flambeee/assets/game-*.png
 
 Truthfulness rule: every screenshot is a real render of the real game file,
@@ -19,10 +19,10 @@ os.makedirs(OUT, exist_ok=True)
 
 # (name, html_path, board selector, optional state JS)
 GAMES = [
-    ("wordfire", "src/wordfire.html", "#board", None),
-    ("minesweeper", "src/minesweeper.html", "#board, .board, #minesweeper", None),
-    ("simon", "src/simon.html", "#board, .simon-board, .game-board", None),
-    ("2048", "src/2048.html", "#grid, .board-wrap, .grid", None),
+    ("wordfire", "archive/src-games/wordfire.html", "#board", None),
+    ("minesweeper", "archive/src-games/minesweeper.html", "#board, .board, #minesweeper", None),
+    ("simon", "archive/src-games/simon.html", "#board, .simon-board, .game-board", None),
+    ("2048", "archive/src-games/2048.html", "#grid, .board-wrap, .grid", None),
 ]
 
 STATE_JS = {

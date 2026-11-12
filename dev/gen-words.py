@@ -2,7 +2,7 @@
 """Generate word lists for Wordfire (v0.6.0).
 
 - answers.js: curated common 5-letter answers (1510) + the system-dict guess list (4681).
-- Output: src/wordfire-words.js with ANSWERS and GUESSES arrays.
+- Output: archive/src-games/wordfire-words.js with ANSWERS and GUESSES arrays.
 """
 import re
 
@@ -32,7 +32,7 @@ out = (
     "// Valid-guess list (system dictionary, 5-letter)\n"
     "const WORDFIRE_GUESSES = " + repr(guesses) + ";\n"
 )
-with open('src/wordfire-words.js', 'w') as f:
+with open('archive/src-games/wordfire-words.js', 'w') as f:
     f.write(out)
 
 print('answers:', len(answers))

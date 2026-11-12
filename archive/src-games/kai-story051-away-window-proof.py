@@ -50,8 +50,8 @@ What it proves, with pasted output:
      without throwing.
 
 Run:
-  python3 src/kai-story051-away-window-proof.py
-  python3 src/kai-story051-away-window-proof.py /path/to/cinder.html
+  python3 archive/src-games/kai-story051-away-window-proof.py
+  python3 archive/src-games/kai-story051-away-window-proof.py /path/to/cinder.html
 Exit code 0 = the proof ran and every assertion held (expected against
 v0.23.0). Non-zero = the run found a real divergence or the proof itself broke.
 """

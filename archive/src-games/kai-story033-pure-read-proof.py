@@ -25,7 +25,7 @@ How:
   completeQuest, applyQuestProgress).
 
 Usage:
-  python3 src/kai-story033-pure-read-proof.py
+  python3 archive/src-games/kai-story033-pure-read-proof.py
 Exit code: 0 on all checks passing, 1 on any failure.
 """
 import json

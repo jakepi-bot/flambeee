@@ -1,11 +1,11 @@
 #!/usr/bin/env node
-// Scout's logic checks for v0.4.0 — extracts the real slideLine() from src/2048.html
+// Scout's logic checks for v0.4.0 — extracts the real slideLine() from archive/src-games/2048.html
 // and runs merge/animation-position assertions against it.
 "use strict";
 const fs = require("fs");
 const path = require("path");
 
-const html = fs.readFileSync(path.join(__dirname, "..", "..", "src", "2048.html"), "utf8");
+const html = fs.readFileSync(path.join(__dirname, "..", "..", "archive", "src-games", "2048.html"), "utf8");
 
 // Extract slideLine function (pure, no DOM deps)
 const m = html.match(/function slideLine\(line\) \{[\s\S]*?\n  \}/);

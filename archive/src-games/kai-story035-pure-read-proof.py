@@ -13,7 +13,7 @@ Verifies from the shipped website/games/cinder.html that:
      in completeQuest() and the completedQuests:[] default in ensureQuestState /
      checkDailyReset / init (backwards-compatible, existing saves load clean).
 
-Run:  python3 src/kai-story035-pure-read-proof.py [cinder.html]
+Run:  python3 archive/src-games/kai-story035-pure-read-proof.py [cinder.html]
 Exit code 0 = all checks pass. Non-zero = proof failed.
 """
 import re, subprocess, sys, tempfile, json, os

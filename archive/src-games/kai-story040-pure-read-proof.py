@@ -40,8 +40,8 @@ artifact under test.
 The resolved path and its sha256 are printed so the run is reproducible.
 
 Run:
-  python3 src/kai-story040-pure-read-proof.py
-  python3 src/kai-story040-pure-read-proof.py /path/to/cinder.html
+  python3 archive/src-games/kai-story040-pure-read-proof.py
+  python3 archive/src-games/kai-story040-pure-read-proof.py /path/to/cinder.html
 Exit code 0 = all checks pass. Non-zero = proof failed.
 """
 import hashlib
