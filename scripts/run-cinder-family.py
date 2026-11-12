@@ -113,12 +113,8 @@ def repo_root_of_runner():
 def discover(repo):
     found = []
     src_dir = os.path.join(repo, "archive", "src-games")
-    # Story 134 S1 transitional scan: the family still lives in the old
-    # directory until the git mv runs, so both roots are scanned while both
-    # can exist; this line is removed once the move lands (S3).
-    legacy_dir = os.path.join(repo, "src")
     plans_dir = os.path.join(repo, "docs", "test-plans")
-    scan_dirs = [d for d in (src_dir, legacy_dir, plans_dir) if os.path.isdir(d)]
+    scan_dirs = [d for d in (src_dir, plans_dir) if os.path.isdir(d)]
     candidates = []
     for d in scan_dirs:
         for name in sorted(os.listdir(d)):
