@@ -17,7 +17,7 @@ Verifies from the shipped website/games/cinder.html that:
      quest state; a forbidden-write token inside syncAppBadge fails the proof.
 
 Run:
-  python3 src/kai-story037-badge-proof.py [cinder.html]
+  python3 archive/src-games/kai-story037-badge-proof.py [cinder.html]
 Exit code 0 = all checks pass. Non-zero = proof failed.
 """
 import os

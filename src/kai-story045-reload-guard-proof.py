@@ -38,8 +38,8 @@ case (that would be a real defect, Story 045 Scenario 9) or if the harness
 cannot run.
 
 Run:
-  .venv/bin/python3 src/kai-story045-reload-guard-proof.py
-  .venv/bin/python3 src/kai-story045-reload-guard-proof.py /path/to/cinder.html
+  .venv/bin/python3 archive/src-games/kai-story045-reload-guard-proof.py
+  .venv/bin/python3 archive/src-games/kai-story045-reload-guard-proof.py /path/to/cinder.html
 """
 import hashlib
 import json

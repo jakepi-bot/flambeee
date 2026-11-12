@@ -61,8 +61,8 @@ BASE_REF (v0.22.0:src/cinder.html) is read through git show for the
 byte-identity checks.
 
 Run:
-  python3 src/kai-story047-questlog-readpath-proof.py
-  python3 src/kai-story047-questlog-readpath-proof.py /path/to/cinder.html
+  python3 archive/src-games/kai-story047-questlog-readpath-proof.py
+  python3 archive/src-games/kai-story047-questlog-readpath-proof.py /path/to/cinder.html
 Exit code 0 = the proof ran and every assertion held. Non-zero = proof failed.
 """
 import hashlib

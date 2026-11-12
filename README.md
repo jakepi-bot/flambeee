@@ -122,7 +122,7 @@ flambeee/
 │   ├── requirements/  (BRDs, SRS, managed by Quinn)
 │   ├── design-decisions/ (design decision records, managed by Rook)
 │   └── test-plans/    (QA docs, managed by Scout)
-└── src/               (code, managed by Kai & Riven)
+└── archive/src-games/ (archived duplicates and proofs, managed by Kai)
 ```
 
 ## Brand & Social

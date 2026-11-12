@@ -81,8 +81,8 @@ reproducible. MAIN_REF (main:src/cinder.html) is read through git show for
 byte-identity comparisons.
 
 Run:
-  .venv/bin/python3 src/kai-story042-streak-proof.py
-  .venv/bin/python3 src/kai-story042-streak-proof.py /path/to/cinder.html
+  .venv/bin/python3 archive/src-games/kai-story042-streak-proof.py
+  .venv/bin/python3 archive/src-games/kai-story042-streak-proof.py /path/to/cinder.html
 Exit code 0 = all checks pass. Non-zero = proof failed.
 """
 import hashlib

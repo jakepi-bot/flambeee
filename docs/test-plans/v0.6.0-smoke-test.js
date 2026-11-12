@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* v0.6.0 smoke test — runs the real src/wordfire.html game script against a
+/* v0.6.0 smoke test — runs the real archive/src-games/wordfire.html game script against a
  * minimal DOM stub: init, daily solve, streak increment, stats, practice mode.
  * Run: node docs/test-plans/v0.6.0-smoke-test.js
  */
@@ -81,8 +81,8 @@ const sandbox = {
 // Load word lists + game script in one VM context
 const fs = require('fs');
 const vm = require('vm');
-const wordsSrc = fs.readFileSync('src/wordfire-words.js', 'utf8');
-const gameSrc = fs.readFileSync('src/wordfire.html', 'utf8')
+const wordsSrc = fs.readFileSync('archive/src-games/wordfire-words.js', 'utf8');
+const gameSrc = fs.readFileSync('archive/src-games/wordfire.html', 'utf8')
   .match(/<script>([\s\S]*?)<\/script>/)[1];
 
 const ctx = vm.createContext(sandbox);

@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 """Generate WORDFIRE_HARD_ANSWERS for Story 016.
 
-Reads WORDFIRE_ANSWERS + WORDFIRE_GUESSES from src/wordfire-words.js,
+Reads WORDFIRE_ANSWERS + WORDFIRE_GUESSES from archive/src-games/wordfire-words.js,
 scores each answer for hardness (rare letters, repeated letters, uncommon
 starts), picks the hardest 330, verifies every pick is a valid guess-list
 word, and writes the WORDFIRE_HARD_ANSWERS array into the file.
 """
 import json
+import os
 import re
 import sys
 
-SRCJS = "/home/jake/.openclaw/workspace/flambeee/src/wordfire-words.js"
+SRCJS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "archive", "src-games", "wordfire-words.js")
 HARD_TARGET = 330  # >= 300 required; extra margin for safety
 
 # English letter frequency (relative); higher = more common
