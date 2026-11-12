@@ -1,5 +1,7 @@
 # Story 124: Archive the src/ duplicate game copies and the wordpress mockup (Session 57 refresh, P1, repo hygiene)
 
+**Superseded by Story 134 (Session 59, 2026-11-12).**
+
 **Status:** **Deferred three times, refreshed and ready.** Deferred Session 54 (2026-11-07, jakebot advisory, prepared and held; record `5ae6a4f`), deferred Session 55 (Story 127 took the window, `c078685`), deferred Session 56 (the release carrier took the window). Refreshed against base `b918475` for Session 57, 2026-11-10. **Ready for the 01:55 dev wave.** If it is not green by 02:40, leave the PR open and let the release ship without it; **it is mergeable after the release tag if it runs late.**
 **Author:** Quinn (Business Analyst), Session 57 refresh. Session 54 draft by the parent overseer.
 **Priority:** **P1.** Backlog item M-1, issue #213.
