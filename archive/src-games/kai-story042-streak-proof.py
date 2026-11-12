@@ -77,8 +77,12 @@ What is asserted, all from extracted shipped code:
 
 Source under test: resolved from argv[1], then $CINDER_SRC, then the live
 website/games/cinder.html under the repo root.
-reproducible. MAIN_REF (main:src/cinder.html) is read through git show for
-byte-identity comparisons.
+reproducible. MAIN_REF (the pinned pre-move commit
+d1c7b9280fca01960b0351dcd5a81781bc8b8f6f:src/cinder.html) is read through git
+show for byte-identity comparisons. It is pinned to a hex rather than a
+floating ref because the M-1 archive move (Session 59) makes `main:src/...`
+name a path that no longer exists on main, which would block this proof with
+exit 2 (same fix as proof 066's BASELINE_REF).
 
 Run:
   .venv/bin/python3 archive/src-games/kai-story042-streak-proof.py
@@ -112,7 +116,7 @@ def _repo_root():
 
 
 REPO = _repo_root()
-MAIN_REF = "main:src/cinder.html"
+MAIN_REF = "d1c7b9280fca01960b0351dcd5a81781bc8b8f6f:src/cinder.html"  # pinned pre-move hex; main:src/ stops existing after the Session 59 archive move
 LIVE_DEFAULT = os.path.join(REPO, "website", "games", "cinder.html")
 
 # Functions that make up the summary path this story owns.
