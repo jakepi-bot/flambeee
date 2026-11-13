@@ -1,13 +1,14 @@
 # Story 133: SALTLINE game design contract (Session 58, P2, DESIGN ONLY, builds Friday 2026-11-13)
 
-**Status:** Design accepted (Session 58, 2026-11-11). **DESIGN ONLY. No code tonight. No dev assigned until Friday.**
+**Status:** Ready for development (Session 60, 2026-11-13).
 **Author:** Quinn (Business Analyst), Wave 2, from Rook's contract.
 **Priority:** P2 (contract tonight so Friday's NEW-GAME window builds without a design sprint inside the window).
-**Assigned to:** **Unassigned until Friday** (design-only tonight; one dev, about 50 minutes, on 2026-11-13).
+**Assigned to:** **Riven** (single code owner; holds Story 137 site integration in the same PR).
 **Base commit:** `f029493`.
 **Design contract:** `flambeee-team/design-handoff.md`, Session 58, Section D (Rook; the contract wins on mechanic and input detail).
 **Session plan:** `flambeee-team/session-plan.md`, Session 58 (2026-11-11), priorities item 4.
 **Tracked by:** Session 58 plan, Story 133. Directive 6 governs: one genuinely original mechanic, not a reskin.
+Session 60 build note: design-handoff.md Section A is the binding contract; build one file plus the Story 137 site surfaces in a single PR.
 
 ## Summary
 
