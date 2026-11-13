@@ -12,6 +12,10 @@
    * States TITLE / RUN / WIN / LOSE, one screen. Timing: 60 ticks at 600 ms.
    * Tuning (contract table, all live here): TICKS 60, TICK_MS 600, P0 6,
    * PMAX 8, GAIN_DIV 6, GAIN_CAP 6, PASSCAP 8, GUST_P 0.40, STORM_P 0.08.
+   * Deal construction (contract A2, amended Session 60): a seed is dealt only
+   * if its first 20 ticks contain a storm and its first 8 ticks are survivable
+   * under both disciplined balance policies, so FR-4's "first loss no earlier
+   * than tick 8" holds on every dealt seed.
    * Test surface window.__saltline is gameplay-neutral (see comment block
    * above it). No pointer, touch, or pad input this build. */
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -143,16 +147,47 @@ function dealGusts(s) {
   return g;
 }
 
-function hasStormInFirst20(s) {
-  var g = dealGusts(s);
-  for (var i = 0; i < 20; i++) if (g[i] === 2) return true;
-  return false;
+/* ---------- Deal construction (contract A2, amended Session 60) ----------
+ * A seed is dealt only if (1) ticks 0..19 contain a storm, so the first surge
+ * arrives early, and (2) the first FAIR_TICKS ticks are survivable under both
+ * disciplined policies the balance harness uses (FR-4: first loss no earlier
+ * than tick 8). Rejected seeds are re-rolled at deal time; the seed shown on
+ * TITLE and end screens is always an accepted one. The policy simulations
+ * below must stay identical to docs/test-plans/session60-saltline-balance.js. */
+var FAIR_TICKS = 8; /* opening window FR-4 promises, ticks */
+
+/* Contract policies, exactly AC-9: push if p <= 1, else push if p <= 2 and
+ * passes >= 5 (P_skill); push every 6th tick (P_rhythm). */
+function skillPolicy(q, held) { return q <= 1 ? true : (q <= 2 && held >= 5); }
+function rhythmPolicy(q, held, t) { return ((t + 1) % 6) === 0; }
+
+/* Ticks survived in the first FAIR_TICKS of one policy on a dealt stream.
+ * Tick order and counting match doTick: action, gust, flood check. */
+function openingSurvival(g, policy) {
+  var q = P0;
+  var held = 0;
+  for (var t = 0; t < FAIR_TICKS; t++) {
+    if (policy(q, held, t)) { q = Math.min(PMAX, q + gainFor(held)); held = 0; }
+    else { held = Math.min(held + 1, PASSCAP); }
+    q = q - g[t];
+    if (q <= 0) return t + 1;
+  }
+  return FAIR_TICKS;
 }
 
-/* Fresh deal: re-roll until ticks 0..19 contain a storm, max 100 tries. */
+function dealAccepts(s) {
+  var g = dealGusts(s);
+  var storm = false;
+  for (var i = 0; i < 20; i++) if (g[i] === 2) { storm = true; break; }
+  if (!storm) return false;
+  return openingSurvival(g, skillPolicy) >= FAIR_TICKS &&
+         openingSurvival(g, rhythmPolicy) >= FAIR_TICKS;
+}
+
+/* Fresh deal: re-roll until the seed passes both rules, bounded 100 tries. */
 function dealSeed() {
   var s = Math.floor(Math.random() * SEED_SPACE);
-  for (var t = 0; t < 100 && !hasStormInFirst20(s); t++) {
+  for (var t = 0; t < 100 && !dealAccepts(s); t++) {
     s = Math.floor(Math.random() * SEED_SPACE);
   }
   return s;
@@ -294,7 +329,8 @@ document.addEventListener('visibilitychange', function () {
  * passes (banked hold ticks), tick (ticks completed 0..60), seed (dealt
  * integer), best (record integer 0..60, 0 means none), pushes (pushes used
  * this run), gain (next-push gain integer), paused (timer paused by hidden
- * tab). Drivers, gameplay-neutral for automation (normal play uses the
+ * tab), accepts(seed) (deal-rule check, pure function, no state change).
+ * Drivers, gameplay-neutral for automation (normal play uses the
  * keyboard): start(seed) begins a RUN on the given seed with no re-roll,
  * step(n) advances up to n ticks synchronously without waiting on the
  * timer (stops early on WIN/LOSE), push() queues one push for the next
@@ -311,7 +347,8 @@ window.__saltline = {
   get paused() { return paused; },
   start: function (s) { startRun(s); },
   step: function (n) { stepTicks(n); },
-  push: function () { if (state === 'RUN') pushQueued = true; }
+  push: function () { if (state === 'RUN') pushQueued = true; },
+  accepts: function (s) { return dealAccepts(s >>> 0); }
 };
 
 /* Boot: deal one seed for the TITLE screen. No tick runs until start. */
