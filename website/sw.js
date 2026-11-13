@@ -18,7 +18,7 @@
  */
 'use strict';
 
-var CACHE_VERSION = 25;
+var CACHE_VERSION = 26;
 var CACHE_NAME = 'flambeee-shell-v' + CACHE_VERSION;
 
 var PRECACHE_URLS = [
@@ -42,7 +42,8 @@ var PRECACHE_URLS = [
   './apps/coin.html',
   './apps/convert.html',
   './games/echo-rounds.html',
-  './games/typewreck.html'
+  './games/typewreck.html',
+  './games/saltline.html'
 ];
 
 self.addEventListener('install', function (event) {

@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Saltline | Flambeee</title>
+<style>
+  /* SALTLINE (Session 60, Stories 133 + 137). Single file, no build, no
+   * dependency, no network after load. Hold the line by holding back: each
+   * tick the salt front advances on a seeded gust, and the only move is PUSH
+   * (Space), whose strength is the square of how long it was refused.
+   * States TITLE / RUN / WIN / LOSE, one screen. Timing: 60 ticks at 600 ms.
+   * Tuning (contract table, all live here): TICKS 60, TICK_MS 600, P0 6,
+   * PMAX 8, GAIN_DIV 6, GAIN_CAP 6, PASSCAP 8, GUST_P 0.40, STORM_P 0.08.
+   * Test surface window.__saltline is gameplay-neutral (see comment block
+   * above it). No pointer, touch, or pad input this build. */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { max-width: 100%; overflow-x: hidden; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #10131c;
+    color: #e8e4d8;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px;
+  }
+  .back-link { align-self: flex-start; color: #e8e4d8; text-decoration: none; font-size: 14px; opacity: 0.7; }
+  .back-link:hover { opacity: 1; }
+  h1 { margin: 12px 0 2px; font-size: 1.5rem; letter-spacing: 3px; color: #8fd0ff; }
+  .tagline { font-size: 0.85rem; opacity: 0.75; margin-bottom: 10px; text-align: center; max-width: 560px; }
+  .hud { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 10px; font-size: 0.9rem; }
+  .hud .item { background: #1a1e2b; padding: 5px 12px; border-radius: 8px; border: 1px solid #2a3350; white-space: nowrap; }
+  #screen { width: 100%; max-width: 420px; display: flex; flex-direction: column; align-items: center; }
+  #sea { width: 100%; display: flex; gap: 4px; margin: 6px 0 2px; }
+  #sea .cell { flex: 1; height: 34px; border-radius: 6px; background: #0a0d15; border: 1px solid #2a3350; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; color: #5a6486; }
+  #sea .cell.held { background: #1d2f45; border-color: #8fd0ff; color: #8fd0ff; }
+  #sea .cell.front { background: #8fd0ff; border-color: #8fd0ff; color: #10131c; font-weight: 700; }
+  #sea .cell.home { border-color: #e94560; color: #e94560; }
+  .ends { width: 100%; display: flex; justify-content: space-between; font-size: 0.75rem; opacity: 0.7; margin-bottom: 8px; }
+  #panel { width: 100%; background: #1a1e2b; border: 1px solid #2a3350; border-radius: 10px; padding: 16px; text-align: center; }
+  #panel h2 { font-size: 1.3rem; letter-spacing: 2px; margin-bottom: 6px; color: #8fd0ff; }
+  #panel p { font-size: 0.9rem; line-height: 1.6; }
+  #panel .seedline { margin-top: 8px; font-size: 0.85rem; color: #9aa7d8; }
+  button {
+    background: #e94560; color: #fff; border: none; border-radius: 8px;
+    padding: 10px 22px; font-size: 0.95rem; font-weight: 700; cursor: pointer; margin-top: 12px;
+  }
+  button:hover { background: #ff5a75; }
+  button:focus-visible { outline: 2px solid #ff5a75; outline-offset: 2px; }
+  .keys { margin-top: 12px; font-size: 0.8rem; opacity: 0.7; text-align: center; max-width: 560px; }
+</style>
+</head>
+<body>
+<a class="back-link" href="../index.html">Back to Flambeee</a>
+<h1>SALTLINE</h1>
+<p class="tagline">Hold to charge. Push to hold back the sea.</p>
+
+<div class="hud">
+  <span class="item">Front: <span id="front">6</span></span>
+  <span class="item">Charge: <span id="charge">0</span> (next push +<span id="nextgain">0</span>)</span>
+  <span class="item">Seed: <span id="seed">-</span></span>
+  <span class="item">Tick: <span id="tick">0</span>/60</span>
+</div>
+
+<div id="screen">
+  <div class="ends"><span>HOME</span><span>SEA</span></div>
+  <div id="sea"></div>
+  <div id="panel">
+    <div id="title">
+      <h2>SALTLINE</h2>
+      <p>Hold to charge. Push to hold back the sea.</p>
+      <p class="seedline">Seed <span id="titleseed">-</span>. First surge lands inside 20 ticks.</p>
+      <button id="startBtn" type="button">Start (Enter)</button>
+    </div>
+    <div id="end" hidden>
+      <h2 id="endTitle"></h2>
+      <p id="endLines"></p>
+      <button id="againBtn" type="button">Again (R)</button>
+    </div>
+  </div>
+</div>
+
+<p class="keys">Enter or Space starts. Space pushes. R restarts. Waiting charges the push: 3 waits move 1, 6 waits move 6.</p>
+
+<script>
+'use strict';
+/* ---------- Tuning constants (contract table, defaults) ---------- */
+var TICKS = 60;      /* ticks per run, count (40..90) */
+var TICK_MS = 600;   /* ms per tick (400..1000) */
+var P0 = 6;          /* opening front, cells (4..8) */
+var PMAX = 8;        /* front cap, cells (6..10) */
+var GAIN_DIV = 6;    /* push divisor (4..9) */
+var GAIN_CAP = 6;    /* push cap, cells (4..8) */
+var PASSCAP = 8;     /* charge cap, ticks (6..12) */
+var GUST_P = 0.40;   /* P(gust 1) per tick (0.30..0.55) */
+var STORM_P = 0.08;  /* P(gust 2) per tick (0.04..0.15) */
+
+var BEST_KEY = 'flambeee-saltline-best';
+var SEED_SPACE = 2147483648; /* 2^31, seeds are 0..2^31-1 */
+
+/* Normative PRNG: every intermediate op wraps to unsigned 32-bit. */
+function mulberry32(a){ a = a >>> 0; return function(){ a = (a + 0x6D2B79F5) >>> 0; let t = (a ^ (a >>> 15)) >>> 0; t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) >>> 0; t = (t ^ (t >>> 14)) >>> 0; return t / 4294967296; }; }
+
+/* ---------- Run state ---------- */
+var state = 'TITLE'; /* TITLE | RUN | WIN | LOSE */
+var p = P0;          /* front position, cells 0..8 */
+var passes = 0;      /* consecutive hold ticks banked as charge */
+var tick = 0;        /* ticks completed, 0..60 */
+var seed = 0;        /* dealt seed, shown on TITLE and end screens */
+var pushes = 0;      /* pushes used this run (end screen only) */
+var gusts = [];      /* dealt gust stream, 60 entries of 0/1/2 */
+var pushQueued = false; /* at most one push per tick; extras ignored */
+var timer = 0;       /* interval id, 0 when stopped */
+var paused = false;  /* timer paused by hidden tab */
+var endReason = '';  /* LOSE reason string, 'flood' */
+var best = loadBest();
+
+var frontEl = document.getElementById('front');
+var chargeEl = document.getElementById('charge');
+var nextEl = document.getElementById('nextgain');
+var seedEl = document.getElementById('seed');
+var tickEl = document.getElementById('tick');
+var titleEl = document.getElementById('title');
+var endEl = document.getElementById('end');
+var endTitleEl = document.getElementById('endTitle');
+var endLinesEl = document.getElementById('endLines');
+var titleSeedEl = document.getElementById('titleseed');
+var startBtn = document.getElementById('startBtn');
+var againBtn = document.getElementById('againBtn');
+var seaEl = document.getElementById('sea');
+
+function gainFor(ps) { return Math.min(Math.floor((ps * ps) / GAIN_DIV), GAIN_CAP); }
+
+function dealGusts(s) {
+  var r = mulberry32(s);
+  var g = [];
+  for (var t = 0; t < TICKS; t++) {
+    var u = r();
+    g.push(u < STORM_P ? 2 : (u < STORM_P + GUST_P ? 1 : 0));
+  }
+  return g;
+}
+
+function hasStormInFirst20(s) {
+  var g = dealGusts(s);
+  for (var i = 0; i < 20; i++) if (g[i] === 2) return true;
+  return false;
+}
+
+/* Fresh deal: re-roll until ticks 0..19 contain a storm, max 100 tries. */
+function dealSeed() {
+  var s = Math.floor(Math.random() * SEED_SPACE);
+  for (var t = 0; t < 100 && !hasStormInFirst20(s); t++) {
+    s = Math.floor(Math.random() * SEED_SPACE);
+  }
+  return s;
+}
+
+function loadBest() {
+  try {
+    var raw = localStorage.getItem(BEST_KEY);
+    if (raw === null) return 0;
+    var v = JSON.parse(raw);
+    if (typeof v !== 'number' || !isFinite(v) || Math.floor(v) !== v || v < 0 || v > TICKS) return 0;
+    return v;
+  } catch (e) { return 0; }
+}
+
+function saveBest() {
+  try { localStorage.setItem(BEST_KEY, JSON.stringify(best)); } catch (e) {}
+}
+
+function stopTimer() { if (timer) { clearInterval(timer); timer = 0; } }
+
+function startTimer() {
+  stopTimer();
+  timer = setInterval(doTick, TICK_MS);
+}
+
+/* Normative tick: (1) action, (2) gust, (3) flood check. */
+function doTick() {
+  if (state !== 'RUN') return;
+  if (pushQueued) {
+    p = Math.min(PMAX, p + gainFor(passes));
+    passes = 0;
+    pushes++;
+  } else {
+    passes = Math.min(passes + 1, PASSCAP);
+  }
+  pushQueued = false;
+  p = p - gusts[tick];
+  tick++;
+  if (p <= 0) { endRun('LOSE', 'flood'); return; }
+  if (tick >= TICKS) { endRun('WIN', ''); return; }
+  render();
+}
+
+function startRun(givenSeed) {
+  seed = (givenSeed === undefined) ? dealSeed() : ((givenSeed >>> 0) % SEED_SPACE);
+  gusts = dealGusts(seed);
+  p = P0;
+  passes = 0;
+  tick = 0;
+  pushes = 0;
+  pushQueued = false;
+  endReason = '';
+  state = 'RUN';
+  paused = false;
+  startTimer();
+  render();
+}
+
+function endRun(outcome, reason) {
+  stopTimer();
+  pushQueued = false;
+  state = outcome;
+  endReason = reason;
+  if (tick > best) { best = tick; saveBest(); }
+  render();
+}
+
+function render() {
+  frontEl.textContent = String(Math.max(0, p));
+  chargeEl.textContent = String(passes);
+  nextEl.textContent = String(gainFor(passes));
+  seedEl.textContent = String(seed);
+  tickEl.textContent = String(tick);
+  var cells = '';
+  for (var i = 0; i <= PMAX; i++) {
+    var cls = 'cell';
+    if (i === 0) cls += ' home';
+    if (i < p) cls += ' held';
+    if (i === Math.max(0, Math.min(PMAX, p))) cls += ' front';
+    cells += '<div class="' + cls + '">' + (i === 0 ? 'H' : (i === p ? String(p) : '~')) + '</div>';
+  }
+  seaEl.innerHTML = cells;
+  var playing = (state === 'RUN');
+  titleEl.hidden = playing || state === 'WIN' || state === 'LOSE';
+  if (state === 'TITLE') {
+    titleEl.hidden = false;
+    endEl.hidden = true;
+    titleSeedEl.textContent = String(seed);
+  } else if (playing) {
+    titleEl.hidden = true;
+    endEl.hidden = true;
+  } else {
+    titleEl.hidden = true;
+    endEl.hidden = false;
+    endTitleEl.textContent = (state === 'WIN') ? 'HELD THE LINE' : 'FLOODED';
+    var lines = 'Ticks ' + tick + '/' + TICKS + '. Pushes ' + pushes + '. Seed ' + seed + '.';
+    if (state === 'LOSE') lines += ' Reason ' + endReason + '.';
+    lines += ' Best ' + best + '.';
+    endLinesEl.textContent = lines;
+  }
+}
+
+/* Synchronous driver for the test surface: up to n ticks, no timer wait. */
+function stepTicks(n) {
+  stopTimer();
+  var left = Math.max(0, n | 0);
+  while (left > 0 && state === 'RUN') { doTick(); left--; }
+  if (state === 'RUN' && !paused) startTimer();
+}
+
+document.addEventListener('keydown', function (e) {
+  if (e.code === 'Space') e.preventDefault();
+  if (e.repeat) return; /* key repeat never queues a second push */
+  if (state === 'TITLE') {
+    if (e.code === 'Space' || e.code === 'Enter') startRun(seed);
+  } else if (state === 'RUN') {
+    if (e.code === 'Space') pushQueued = true;
+    else if (e.code === 'KeyR') startRun();
+  } else {
+    if (e.code === 'KeyR' || e.code === 'Enter') startRun();
+  }
+});
+
+startBtn.addEventListener('click', function () { if (state === 'TITLE') startRun(seed); });
+againBtn.addEventListener('click', function () { if (state === 'WIN' || state === 'LOSE') startRun(); });
+
+/* Pause on hidden tab, resume on visible, never a catch-up burst. */
+document.addEventListener('visibilitychange', function () {
+  if (document.hidden) {
+    if (state === 'RUN' && timer) { stopTimer(); paused = true; }
+  } else {
+    if (state === 'RUN' && paused) { paused = false; startTimer(); }
+  }
+});
+
+/* Test surface window.__saltline (precedent: window.__tw, window.__echo).
+ * Readouts: state ('TITLE' | 'RUN' | 'WIN' | 'LOSE'), p (front cells 0..8),
+ * passes (banked hold ticks), tick (ticks completed 0..60), seed (dealt
+ * integer), best (record integer 0..60, 0 means none), pushes (pushes used
+ * this run), gain (next-push gain integer), paused (timer paused by hidden
+ * tab). Drivers, gameplay-neutral for automation (normal play uses the
+ * keyboard): start(seed) begins a RUN on the given seed with no re-roll,
+ * step(n) advances up to n ticks synchronously without waiting on the
+ * timer (stops early on WIN/LOSE), push() queues one push for the next
+ * tick. Neither driver changes the rules; step uses the same doTick. */
+window.__saltline = {
+  get state() { return state; },
+  get p() { return p; },
+  get passes() { return passes; },
+  get tick() { return tick; },
+  get seed() { return seed; },
+  get best() { return best; },
+  get pushes() { return pushes; },
+  get gain() { return gainFor(passes); },
+  get paused() { return paused; },
+  start: function (s) { startRun(s); },
+  step: function (n) { stepTicks(n); },
+  push: function () { if (state === 'RUN') pushQueued = true; }
+};
+
+/* Boot: deal one seed for the TITLE screen. No tick runs until start. */
+seed = dealSeed();
+gusts = dealGusts(seed);
+render();
+</script>
+</body>
+</html>
