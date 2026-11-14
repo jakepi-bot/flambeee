@@ -1,7 +1,7 @@
 # src consumer manifest (Story 131, Session 58)
 
 Generator: dev/src-consumer-manifest.py.
-Base commit: fd86a13e740206e6865b9b3058d06fc027a0abc2.
+Base commit: 050fcadf807c741135181433110b2977f5ab3ac5.
 Counts: runnable 14 paths, historical 33 paths, needs-a-decision 12 paths; test-plan files 35; family 19 total, 11 under archive/src-games/.
 
 Scan roots: repo-root *.py, archive/src-games/, docs/test-plans/, dev/, 

@@ -1,5 +1,5 @@
 {
-  "base_commit": "fd86a13e740206e6865b9b3058d06fc027a0abc2",
+  "base_commit": "050fcadf807c741135181433110b2977f5ab3ac5",
   "generated_by": "dev/src-consumer-manifest.py",
   "counts": {
     "runnable": 14,
