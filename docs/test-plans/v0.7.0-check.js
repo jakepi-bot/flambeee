@@ -11,7 +11,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const ROOT = path.join(__dirname, '..', '..', 'src');
+const ROOT = path.join(__dirname, '..', '..', 'archive', 'src-games');
 let pass = 0, fail = 0;
 const failures = [];
 
