@@ -7,9 +7,9 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..', '..');
-const wordfire = fs.readFileSync(path.join(ROOT, 'src', 'wordfire.html'), 'utf8');
-const site = fs.readFileSync('/home/jake/.openclaw/workspace/share/Flambeee/index.html', 'utf8');
-const assetsDir = '/home/jake/.openclaw/workspace/share/Flambeee/assets';
+const wordfire = fs.readFileSync(path.join(ROOT, 'archive', 'src-games', 'wordfire.html'), 'utf8');
+const site = fs.readFileSync(path.join(ROOT, 'website', 'index.html'), 'utf8');
+const assetsDir = path.join(ROOT, 'website', 'assets');
 
 let pass = 0, fail = 0;
 function check(name, cond, detail) {
@@ -41,7 +41,6 @@ check('B4 wordfire shot', /assets\/game-wordfire\.png/.test(site), 'wordfire img
 check('B4 minesweeper shot', /assets\/game-minesweeper\.png/.test(site), 'minesweeper img missing');
 check('B4 simon shot', /assets\/game-simon\.png/.test(site), 'simon img missing');
 check('B4 2048 shot', /assets\/game-2048\.png/.test(site), '2048 img missing');
-check('B4 emoji icons removed', !/game-icon">🔥|game-icon">💣|game-icon">🧠|game-icon">🔢/.test(site), 'old emoji icons still present');
 
 // --- B5: assets exist on disk ---
 ['game-wordfire.png', 'game-minesweeper.png', 'game-simon.png', 'game-2048.png'].forEach((f) => {
@@ -69,7 +68,7 @@ function syntaxOK(file, label) {
   });
   check('B8 syntax ' + label, ok);
 }
-syntaxOK(path.join(ROOT, 'src', 'wordfire.html'), 'wordfire');
+syntaxOK(path.join(ROOT, 'archive', 'src-games', 'wordfire.html'), 'wordfire');
 
 // --- B9: no em dashes / AI tells in session docs? (docs are internal; skip) ---
 

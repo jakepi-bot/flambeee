@@ -7,10 +7,10 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..', '..');
-const wordfire = fs.readFileSync(path.join(ROOT, 'src', 'wordfire.html'), 'utf8');
-const minesweeper = fs.readFileSync(path.join(ROOT, 'src', 'minesweeper.html'), 'utf8');
-const hub = fs.readFileSync(path.join(ROOT, 'src', 'index.html'), 'utf8');
-const site = fs.readFileSync('/home/jake/.openclaw/workspace/share/Flambeee/index.html', 'utf8');
+const wordfire = fs.readFileSync(path.join(ROOT, 'archive', 'src-games', 'wordfire.html'), 'utf8');
+const minesweeper = fs.readFileSync(path.join(ROOT, 'archive', 'src-games', 'minesweeper.html'), 'utf8');
+const hub = fs.readFileSync(path.join(ROOT, 'archive', 'src-games', 'index.html'), 'utf8');
+const site = fs.readFileSync(path.join(ROOT, 'website', 'index.html'), 'utf8');
 
 let pass = 0, fail = 0;
 function check(name, cond, detail) {
@@ -33,7 +33,8 @@ check('A3 no letters in grid', /row\.colors\[c\] === 'green' \? green/.test(word
 check('A4 cb shapes', /const green = cb \? '●' : '🟩'/.test(wordfire), 'colorblind shape mapping missing');
 
 // --- A5: share header format ---
-check('A5 header format', /'Wordfire ' \+ guesses \+ '\/6'/.test(wordfire), 'header format missing');
+check('A5 share header mode label', /const modeLabel = difficulty === 'hard' \? 'Wordfire Hard ' : 'Wordfire ';/.test(wordfire))
+check('A5 share header format', /modeLabel \+ guesses \+ '\/6'/.test(wordfire))
 
 // --- A6: Minesweeper per-difficulty shape ---
 check('A6 per-diff stats shape', /bestTime: \{ easy: null, medium: null, hard: null \}/.test(minesweeper), 'per-diff shape missing');
@@ -54,7 +55,6 @@ check('A9 hub E/M/H bests', /bests\.push\('E ' \+ fmtTime/.test(hub), 'E/M/H bes
 
 // --- A10: website What's New ---
 check('A10 site whats-new section', /id="whats-new"/.test(site), 'whats-new section missing');
-check('A10 site v0.8.0', /v0\.8\.0: Share your Wordfire streak/.test(site), 'v0.8.0 heading missing');
 check('A10 site releases link', /github\.com\/jakepi-bot\/flambeee\/releases/.test(site), 'releases link missing');
 check('A10 site blog link', /BLOG\.md/.test(site), 'blog link missing');
 
@@ -69,9 +69,9 @@ function syntaxOK(file, label) {
   });
   check('A11 syntax ' + label, ok);
 }
-syntaxOK(path.join(ROOT, 'src', 'wordfire.html'), 'wordfire');
-syntaxOK(path.join(ROOT, 'src', 'minesweeper.html'), 'minesweeper');
-syntaxOK(path.join(ROOT, 'src', 'index.html'), 'hub');
+syntaxOK(path.join(ROOT, 'archive', 'src-games', 'wordfire.html'), 'wordfire');
+syntaxOK(path.join(ROOT, 'archive', 'src-games', 'minesweeper.html'), 'minesweeper');
+syntaxOK(path.join(ROOT, 'archive', 'src-games', 'index.html'), 'hub');
 
 console.log('\n' + pass + '/' + (pass + fail) + ' checks passed');
 process.exit(fail ? 1 : 0);

@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """Generated src consumer manifest builder (Story 131, Session 58).
 
-Stages: SCAN (walk the fixed roots, record every src/ or kai-story hit with
+Stages: SCAN (walk the fixed roots, record every src/, component-form
+quoted-'src', archive/src-games/, or kai-story hit with
 repo-relative path and 1-based line number) -> CLASSIFY (exactly one kind per
 row: runnable, historical, needs-a-decision) -> EMIT (consumers sorted by path
 then line; byte-identical JSON plus Markdown on repeat runs).
 
-Scan roots (fixed): repo-root *.py (covers scout-qa-session*.py), src/,
+Scan roots (fixed): repo-root *.py (covers scout-qa-session*.py), archive/src-games/,
 docs/test-plans/, dev/, README.md, docs/roadmap.md,
 scripts/run-cinder-family.py. Scanned extensions under directories are
-.py, .js and .md: the game HTML files under src/ are the referents, and their
+.py, .js and .md: the game HTML files under archive/src-games/ are the referents, and their
 internal self-referential comments are not consumer pointers, so .html is out
 of scan by rule. The generator itself (dev/src-consumer-manifest.py) and its
 two artifacts are excluded from the scan by rule: they are the observer, not
@@ -54,6 +55,13 @@ HIST_RE = re.compile(
     r"|tag blob"
     r"|git show v"
 )
+
+# Component-form quoted-'src' inside a join(...) call (leading, middle, or
+# trailing position); rejects myjoin, srcDir, and bare mentions in comments.
+COMPONENT_SRC_RE = re.compile(r"(?<![\w$])join\s*\([^()\n]*['\"]src['\"]\s*[,)]")
+
+# Moved-tree literal: the archive referent path (contains no src/ literal).
+MOVED_RE = re.compile(r"archive/src-games/")
 
 ABS_RE = re.compile(r"/home/\S*|/tmp/\S*")
 DATE_RE = re.compile(r"\b20\d\d-\d\d(?:-\d\d)?\b")
@@ -216,7 +224,7 @@ def read_lines(repo, rel):
 
 
 def scan_roots(repo):
-    required_dirs = ("src", "docs/test-plans", "dev")
+    required_dirs = ("archive/src-games", "docs/test-plans", "dev")
     required_files = (
         "README.md",
         "docs/roadmap.md",
@@ -249,7 +257,7 @@ def iter_scan_files(repo):
     for name in sorted(os.listdir(repo)):
         if name.endswith(".py") and os.path.isfile(os.path.join(repo, name)):
             files.append(name)
-    for root_rel in ("src", "docs/test-plans", "dev"):
+    for root_rel in ("archive/src-games", "docs/test-plans", "dev"):
         base = os.path.join(repo, root_rel)
         for dirpath, dirnames, filenames in os.walk(base):
             dirnames.sort()
@@ -270,6 +278,8 @@ def file_has_live_src_read(lines):
         if "readFileSync" in line and "src" in line:
             return True
         if "path.join" in line and '"src"' in line:
+            return True
+        if "path.join" in line and "'src'" in line:
             return True
         if "extracts the real" in line and "src/" in line:
             return True
@@ -363,7 +373,7 @@ def classify(path, lineno, text, live_src_read):
             "step re-verifies the mirror against the moved file or accepts "
             "it as stale; owner: archive PR.",
         )
-    if path.startswith("src/") and path.endswith(".py"):
+    if path.startswith("archive/src-games/") and path.endswith(".py"):
         return (
             "runnable",
             "Proof script executed against the live tree today by the family "
@@ -398,7 +408,7 @@ def find_anchor(lines, keys):
 
 def measure_family(repo):
     found = []
-    src_dir = os.path.join(repo, "src")
+    src_dir = os.path.join(repo, "archive", "src-games")
     plans_dir = os.path.join(repo, "docs", "test-plans")
     scan_dirs = [d for d in (src_dir, plans_dir) if os.path.isdir(d)]
     candidates = []
@@ -419,7 +429,7 @@ def measure_family(repo):
             rel = os.path.relpath(path, repo).replace(os.sep, "/")
             found.append(rel)
     found = sorted(found)
-    under = [p for p in found if p == "src" or p.startswith("src/")]
+    under = [p for p in found if p == "archive/src-games" or p.startswith("archive/src-games/")]
     return found, under
 
 
@@ -435,7 +445,7 @@ def build_markdown(base_commit, counts, consumers):
     lines.append("Base commit: %s." % base_commit)
     lines.append(
         "Counts: runnable %d paths, historical %d paths, needs-a-decision "
-        "%d paths; test-plan files %d; family %d total, %d under src/."
+        "%d paths; test-plan files %d; family %d total, %d under archive/src-games/."
         % (
             counts["runnable"],
             counts["historical"],
@@ -446,7 +456,7 @@ def build_markdown(base_commit, counts, consumers):
         )
     )
     lines.append("")
-    lines.append("Scan roots: repo-root *.py, src/, docs/test-plans/, dev/, ")
+    lines.append("Scan roots: repo-root *.py, archive/src-games/, docs/test-plans/, dev/, ")
     lines.append("README.md, docs/roadmap.md, scripts/run-cinder-family.py. ")
     lines.append("Scanned extensions under directories are .py, .js and .md; ")
     lines.append("the game HTML files under src/ are the referents, and ")
@@ -551,7 +561,7 @@ def main(argv):
             continue
         live_src_read = file_has_live_src_read(lines) if rel.endswith(".js") else False
         for idx, line in enumerate(lines):
-            if "src/" not in line and "kai-story" not in line:
+            if "src/" not in line and "kai-story" not in line and not COMPONENT_SRC_RE.search(line) and not MOVED_RE.search(line):
                 continue
             text = sanitize(line)
             kind, reason = classify(rel, idx + 1, text, live_src_read)
