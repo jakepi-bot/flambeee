@@ -47,9 +47,7 @@ function makeEl(tag) {
 const byId = {};
 const els = {};
 ['streakBar','message','board','keyboard','overlay','overlayTitle','overlayAnswer',
- 'overlayText','overlayMainBtn','overlayPracticeBtn','dailyBtn','practiceBtn','colorblindToggle',
- 'stdBtn','hardBtn','distBars','distPanel','distSub','distTitle',
- 'overlayShareBtn','shareCopy','shareMsg'
+ 'overlayText','overlayMainBtn','overlayPracticeBtn','dailyBtn','practiceBtn','colorblindToggle','stdBtn','hardBtn','distBars','distPanel','distSub','distTitle','overlayShareBtn','shareCopy','shareMsg'
 ].forEach(id => { els[id] = makeEl('div'); byId[id] = els[id]; });
 
 const documentStub = {
@@ -132,9 +130,7 @@ function makeEl2(tag) {
 const byId2 = {};
 const els2 = {};
 ['streakBar','message','board','keyboard','overlay','overlayTitle','overlayAnswer',
- 'overlayText','overlayMainBtn','overlayPracticeBtn','dailyBtn','practiceBtn','colorblindToggle',
- 'stdBtn','hardBtn','distBars','distPanel','distSub','distTitle',
- 'overlayShareBtn','shareCopy','shareMsg'
+ 'overlayText','overlayMainBtn','overlayPracticeBtn','dailyBtn','practiceBtn','colorblindToggle','stdBtn','hardBtn','distBars','distPanel','distSub','distTitle','overlayShareBtn','shareCopy','shareMsg'
 ].forEach(id => { els2[id] = makeEl2('div'); byId2[id] = els2[id]; });
 const documentStub2 = {
   getElementById: function (id) { return byId2[id] || null; },
