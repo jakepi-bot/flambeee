@@ -44,8 +44,8 @@ CONTROL_PIN = "77acd25:src/cinder.html"  # S5c byte-safety control, per the
 FAMILY_ENV_KEYS = ("CINDER_SRC", "CINDER_PATH", "CANDIDATE")
 
 
-USAGE = ("usage: run-cinder-family.py [--repo DIR] [--target FILE] "
-         "[--port-base N] [--timeout S] [--include SUB] [--exclude SUB]")
+USAGE = ("usage: run-cinder-family.py [--repo DIR] [--target FILE] [--port-base N] "
+         "[--timeout S] [--include SUB] [--exclude SUB] [--python PATH] [--baseline PATH] [--no-baseline-check]")
 
 
 def fail_usage(msg):
@@ -134,6 +134,143 @@ def discover(repo):
     return sorted(found)
 
 
+# Session 62 (Story 139) instrument contract. This block documents the
+# interpreter truth, pre-flight refusal, three-way tally, and baseline
+# enforcement added below the anchor line; the docstring above (lines 1-28)
+# and the `def discover()` line number are frozen by the design contract.
+SESSION62_CONTRACT = (
+    "interpreter: explicit --python PATH, else <repo>/.venv/bin/python, "
+    "else <repo>/../.venv/bin/python; never sys.executable by default; "
+    "nonexistent --python is misuse (exit 3). "
+    "pre-flight: every DECLARED_DEPS name must import under the invoking "
+    "interpreter and under the effective child, else full ENV-SKIP refusal "
+    "(exit 2, fail=0, nothing executed). "
+    "tally: total == pass + fail + skip == FAMILY_SIZE == 19, else "
+    "INVARIANT-BROKEN (exit 2). exits first-match-wins: "
+    "misuse ? 3 : fail_closed ? 2 : (F >= 1 ? 1 : (S >= 1 ? 2 : 0)). "
+    "baseline: default docs/test-plans/cinder-family-baseline.json; "
+    "S5 shape failures exit 2 before any execution; drift marks the row "
+    "FAIL with reason=baseline-drift(expected=<X> got=<Y>)."
+)
+
+FAMILY_SIZE = 19                # S9 tripwire: the family has exactly 19 members
+DECLARED_DEPS = ("playwright",)  # S6 pre-flight deps (stdlib probe only)
+BASELINE_REL = os.path.join("docs", "test-plans", "cinder-family-baseline.json")
+BASELINE_CATEGORIES = ("stub", "stale-pin", "deep-logic", "env")
+
+
+def extract_session62_flags(argv):
+    """Split Session 62 flags out of argv; the rest goes to parse_argv."""
+    python_opt = None
+    baseline_opt = None
+    no_baseline_check = False
+    rest = []
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a == "--no-baseline-check":
+            no_baseline_check = True
+            i += 1
+        elif a in ("--python", "--baseline"):
+            if i + 1 >= len(argv):
+                return None, fail_usage("flag %s needs a value" % a)
+            v = argv[i + 1]
+            if a == "--python":
+                if not os.path.exists(v):
+                    return None, fail_usage("bad --python: %s" % v)
+                python_opt = v
+            else:
+                if not os.path.exists(v):
+                    return None, fail_usage("bad --baseline: %s" % v)
+                baseline_opt = v
+            i += 2
+        else:
+            rest.append(a)
+            i += 1
+    return ({"python": python_opt, "baseline": baseline_opt,
+             "no_baseline_check": no_baseline_check, "rest": rest}, 0)
+
+
+def resolve_child_python(repo, explicit):
+    """Effective child interpreter: flag, else repo .venv, else sibling .venv."""
+    if explicit:
+        return os.path.abspath(explicit)
+    first = os.path.join(repo, ".venv", "bin", "python")
+    if os.path.exists(first):
+        return first
+    return os.path.join(os.path.dirname(os.path.abspath(repo)),
+                        ".venv", "bin", "python")
+
+
+def dep_importable(python_bin, dep):
+    """Stdlib-only probe: can <python_bin> import <dep>? Missing binary is False."""
+    try:
+        r = subprocess.run([python_bin, "-c", "import %s" % dep],
+                           capture_output=True, timeout=60)
+        return r.returncode == 0
+    except Exception:
+        return False
+
+
+def load_baseline_file(path):
+    """Load and schema-check the baseline. Returns (data, None) or (None, token)."""
+    import json
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            data = json.load(fh)
+    except (OSError, ValueError) as e:
+        return None, "BASELINE-MALFORMED (%s: %s)" % (path, e)
+    if not isinstance(data, dict):
+        return None, "BASELINE-MALFORMED (top level is not an object)"
+    if data.get("family_size") != FAMILY_SIZE:
+        return None, "BASELINE-MALFORMED (family_size != %d)" % FAMILY_SIZE
+    if not isinstance(data.get("generated"), str) or not data.get("generated"):
+        return None, "BASELINE-MALFORMED (bad generated date)"
+    rows = data.get("rows")
+    if not isinstance(rows, list) or len(rows) != FAMILY_SIZE:
+        return None, "BASELINE-MALFORMED (rows != %d)" % FAMILY_SIZE
+    seen = set()
+    for r in rows:
+        if not isinstance(r, dict):
+            return None, "BASELINE-MALFORMED (row is not an object)"
+        script = r.get("script")
+        expected = r.get("expected")
+        category = r.get("category")
+        issue = r.get("issue")
+        note = r.get("note")
+        if not isinstance(script, str) or not script:
+            return None, "BASELINE-MALFORMED (bad script value)"
+        if script in seen:
+            return None, "BASELINE-MALFORMED (duplicate script: %s)" % script
+        seen.add(script)
+        if expected not in ("pass", "fail"):
+            return None, "BASELINE-MALFORMED (bad expected for %s)" % script
+        if category not in BASELINE_CATEGORIES:
+            return None, "BASELINE-MALFORMED (bad category for %s)" % script
+        if expected == "fail":
+            if not isinstance(issue, int) or isinstance(issue, bool):
+                return None, "BASELINE-MALFORMED (fail row with null/bad issue: %s)" % script
+        elif issue is not None:
+            return None, "BASELINE-MALFORMED (pass row with non-null issue: %s)" % script
+        if not isinstance(note, str) or not note or "\n" in note:
+            return None, "BASELINE-MALFORMED (bad note for %s)" % script
+    return data, None
+
+
+def baseline_cross_check(baseline, rels):
+    """Fail-closed discovery-vs-baseline separation. Returns token or None."""
+    want = {}
+    for r in baseline["rows"]:
+        want[r["script"]] = r["expected"]
+    missing = sorted(set(rels) - set(want))
+    if missing:
+        return "BASELINE-MISSING-ROW %s" % " ".join(missing)
+    orphan = sorted(set(want) - set(rels))
+    if orphan:
+        return "BASELINE-ORPHAN-ROW %s" % " ".join(orphan)
+    return None
+
+
 def sha256_of(path):
     h = hashlib.sha256()
     with open(path, "rb") as fh:
@@ -198,12 +335,16 @@ def run_one(python, script, target, env, timeout):
 
 
 def main(argv):
-    opts, rc = parse_argv(argv)
+    s62, rc = extract_session62_flags(argv)
+    if s62 is None:
+        return rc
+    opts, rc = parse_argv(s62["rest"])
     if opts is None:
         return rc
     repo = os.path.abspath(opts["repo"]) if opts["repo"] else repo_root_of_runner()
     if not os.path.exists(os.path.join(repo, ".git")):
         print("run-cinder-family: --repo is not a repo: %s" % repo)
+        print(USAGE)
         return 3
     target = opts["target"] or os.path.join(repo, "website", "games", "cinder.html")
     target = os.path.abspath(target)
@@ -220,15 +361,21 @@ def main(argv):
                   if not any(s in os.path.relpath(p, repo) for s in opts["exclude"])]
     filtered = bool(opts["include"] or opts["exclude"])
 
+    child_python = resolve_child_python(repo, s62["python"])
+    invoker_python = sys.executable
+
     digest = sha256_of(target)
     print("run-cinder-family")
     print("repo    : %s" % repo)
     print("target  : %s" % target)
     print("sha256  : %s" % digest)
+    print("invoker : %s" % invoker_python)
+    print("python  : %s" % child_python)
     if filtered:
         print("FILTERED RUN (include=%r exclude=%r): not the full family; "
               "never cite as full-family green"
               % (opts["include"], opts["exclude"]))
+        print("FILTERED-NO-BASELINE-CERTIFY")
     print("discovery: %d script(s)" % len(family))
     for p in family:
         print("  - %s" % os.path.relpath(p, repo))
@@ -236,13 +383,60 @@ def main(argv):
         print("run-cinder-family: zero scripts discovered")
         return 2
 
-    qa_art_dir, qa_notes = build_qa_art_dir(repo, target)
+    rels = [os.path.relpath(p, repo) for p in family]
+
+    # S5 baseline shape: fail-closed, before any execution.
+    baseline = None
+    baseline_line = None
+    enforce = (not filtered) and (not s62["no_baseline_check"])
+    if filtered:
+        baseline_line = "baseline: STALE FILTERED-NO-BASELINE-CERTIFY"
+    elif s62["no_baseline_check"]:
+        baseline_line = "baseline: OFF (triage only, not evidence)"
+    else:
+        bpath = s62["baseline"] or os.path.join(repo, BASELINE_REL)
+        baseline, berr = load_baseline_file(bpath)
+        if berr is not None:
+            print("run-cinder-family: %s" % berr)
+            return 2
+        xerr = baseline_cross_check(baseline, rels)
+        if xerr is not None:
+            print("run-cinder-family: %s" % xerr)
+            return 2
+
+    # S6 pre-flight: every declared dep importable under invoker and child.
+    # Refusal prints every discovered row ENV-SKIP, fail=0, exit 2, nothing executes.
+    for dep in DECLARED_DEPS:
+        if not dep_importable(invoker_python, dep):
+            for rel in rels:
+                print("ENV-SKIP %s  reason=env-skip: %s missing under invoker %s"
+                      % (rel, dep, invoker_python))
+            print("family: 0/%d scripts passed" % FAMILY_SIZE)
+            print("tally: pass=0 fail=0 skip=%d total=%d (assert %d==%d)"
+                  % (len(rels), len(rels), len(rels), FAMILY_SIZE))
+            print("baseline: STALE pre-flight-refusal (no comparison performed)")
+            return 2
+        if not dep_importable(child_python, dep):
+            for rel in rels:
+                print("ENV-SKIP %s  reason=env-skip: %s missing under child %s"
+                      % (rel, dep, child_python))
+            print("family: 0/%d scripts passed" % FAMILY_SIZE)
+            print("tally: pass=0 fail=0 skip=%d total=%d (assert %d==%d)"
+                  % (len(rels), len(rels), len(rels), FAMILY_SIZE))
+            print("baseline: STALE pre-flight-refusal (no comparison performed)")
+            return 2
+
+    try:
+        qa_art_dir, qa_notes = build_qa_art_dir(repo, target)
+    except Exception as e:
+        print("run-cinder-family: qa setup failed: %s" % e)
+        return 2
     for n in qa_notes:
         print("qa setup: %s" % n)
 
-    python = sys.executable
     passed = 0
     failed = []
+    actual = {}
     for i, script in enumerate(family):
         port = opts["port_base"] + i * PORT_STRIDE
         if not port_free(port):
@@ -251,6 +445,7 @@ def main(argv):
                 print("FAIL %s  reason=port (base and retry in use)"
                       % os.path.relpath(script, repo))
                 failed.append((script, "port"))
+                actual[os.path.relpath(script, repo)] = "fail"
                 continue
         env = dict(os.environ)
         env["REPO"] = repo
@@ -259,11 +454,12 @@ def main(argv):
         env["PORT"] = str(port)
         for key in FAMILY_ENV_KEYS:
             env[key] = target
-        code, out = run_one(python, script, target, env, opts["timeout"])
+        code, out = run_one(child_python, script, target, env, opts["timeout"])
         rel = os.path.relpath(script, repo)
         if code == 0:
             passed += 1
             print("PASS %s" % rel)
+            actual[rel] = "pass"
         else:
             reason = ("exit=%s" % code) if isinstance(code, int) else code
             print("FAIL %s  reason=%s" % (rel, reason))
@@ -271,17 +467,60 @@ def main(argv):
             for ln in lines:
                 print("    | %s" % ln[:300])
             failed.append((script, reason))
+            actual[rel] = "fail"
 
+    # S9 tally: drift compare, then the in-process invariant, then the verdict.
+    drifted = []
+    if enforce and baseline is not None:
+        exp = dict((r["script"], r["expected"]) for r in baseline["rows"])
+        drifted = sorted(rel for rel in rels if actual.get(rel) != exp.get(rel))
+        if drifted:
+            drift_map = {}
+            for rel in drifted:
+                drift_map[rel] = ("baseline-drift(expected=%s got=%s)"
+                                  % (exp[rel], actual.get(rel)))
+                print("FAIL %s  reason=%s" % (rel, drift_map[rel]))
+            rebuilt = []
+            seen_fail = set()
+            for script, reason in failed:
+                rel = os.path.relpath(script, repo)
+                seen_fail.add(rel)
+                rebuilt.append((script, drift_map.get(rel, reason)))
+            for rel in drifted:
+                if rel not in seen_fail:
+                    sp = [p for p in family if os.path.relpath(p, repo) == rel][0]
+                    rebuilt.append((sp, drift_map[rel]))
+            failed = sorted(rebuilt, key=lambda t: os.path.relpath(t[0], repo))
+    nfail = len(failed)
+    npass = passed - sum(1 for rel in drifted if actual.get(rel) == "pass")
+    nskip = 0
     total = len(family)
+    if npass + nfail + nskip != total or ((not filtered) and total != FAMILY_SIZE):
+        print("run-cinder-family: INVARIANT-BROKEN "
+              "(pass=%d fail=%d skip=%d total=%d family=%d)"
+              % (npass, nfail, nskip, total, FAMILY_SIZE))
+        return 2
+
     if filtered:
-        print("family (filtered): %d/%d scripts passed" % (passed, total))
+        print("family (filtered): %d/%d scripts passed" % (npass, total))
     else:
-        print("family: %d/%d scripts passed" % (passed, total))
+        print("family: %d/%d scripts passed" % (npass, total))
+    print("tally: pass=%d fail=%d skip=%d total=%d (assert %d==%d)"
+          % (npass, nfail, nskip, total, total, FAMILY_SIZE))
+    if baseline_line is not None:
+        print(baseline_line)
+    elif drifted:
+        print("baseline: MISMATCH %d row(s)" % len(drifted))
+    else:
+        print("baseline: MATCH")
     if failed:
         print("failed:")
         for script, reason in failed:
             print("  - %s (%s)" % (os.path.relpath(script, repo), reason))
+    if nfail >= 1:
         return 1
+    if nskip >= 1:
+        return 2
     return 0
 
 
