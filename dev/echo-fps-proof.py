@@ -968,21 +968,31 @@ def check07(page, ctx):
 
 def check08(page, ctx):
     miss = missing(page, ['outcome', 'over', 'started', 'player.yaw', 'target', 'targetCount',
-                          'ammoLeft', 'shots', 'gamepadConnected'])
+                          'ammoLeft', 'shots', 'gamepadConnected',
+                          'roomIndex', 'roomsTotal', 'roomsCleared', 'clearedTotal',
+                          'targetsTotal', 'transitionActive', 'roomEntryAmmo'])
     if miss:
         return False, 'missing probe fields: %s' % ', '.join(miss)
     if not ensure_started(page):
         return False, 'round did not start with Space/Enter; keyboard-only win not possible'
     if page.evaluate('window.__echo.gamepadConnected') is True:
         return False, 'a gamepad reported connected on the keyboard-only leg'
-    st = probe(page)
-    n = st['targetCount']
-    attempts_log = []
-    for i in range(n):
+    pad_seen = False
+
+    def run_state():
+        return page.evaluate(
+            '(function () { var e = window.__echo;'
+            ' return { over: e.over, outcome: e.outcome, room: e.roomIndex,'
+            ' rooms: e.roomsCleared, cleared: e.clearedTotal, shots: e.shots,'
+            ' ammo: e.ammoLeft, lit: e.litHits, trans: e.transitionActive,'
+            ' roomsTotal: e.roomsTotal, targetsTotal: e.targetsTotal,'
+            ' entryAmmo: e.roomEntryAmmo }; })()')
+
+    def clear_current_target(i, attempts_log):
+        """Clear room-local target i with keyboard only. True once cleared."""
         t = page.evaluate('(function(i){var t=window.__echo.target(i); return {x:t.x,y:t.y,cleared:t.cleared};})(%d)' % i)
         if t['cleared']:
-            continue
-        done = False
+            return True
         for a in range(3):
             aimed, err = aim_at(page, t['x'], t['y'], timeout=3.0)
             if not aimed:
@@ -990,15 +1000,13 @@ def check08(page, ctx):
                 continue
             pre = page.evaluate(JS_CONE0, i)
             if pre['cleared']:
-                done = True
-                break
+                return True
             # A shot at a lit target clears; a shot at a dark target stands and
             # primes the 500 ms pulse boost, so the follow-up shot clears.
             page.keyboard.press('f')
             time.sleep(0.35)
             if page.evaluate('(function(i){return window.__echo.target(i).cleared;})(%d)' % i):
-                done = True
-                break
+                return True
             t_f = time.time()
             while time.time() - t_f < 1.6:
                 pre = page.evaluate(JS_CONE0, i)
@@ -1010,29 +1018,93 @@ def check08(page, ctx):
                     break
                 time.sleep(0.05)
             if page.evaluate('(function(i){return window.__echo.target(i).cleared;})(%d)' % i):
-                done = True
-                break
+                return True
             attempts_log.append('t%d cycle %d not cleared (ang=%.3f lit=%s)'
                                 % (i, a, pre['ang'], pre['lit']))
             time.sleep(0.2)
-        if not done:
-            fin = probe(page)
-            return False, ('target %d never cleared after 3 keyboard cycles (%s); outcome=%s shots=%s ammo=%s'
-                           % (i, '; '.join(attempts_log) or 'no detail', fin['outcome'], fin['shots'], fin['ammoLeft']))
-    time.sleep(0.5)
-    fin = probe(page)
-    body = fin.get('bodyText') or ''
-    dom_text = 'ROOM CLEAR' in body
+        return False
+
+    def settle_room(room):
+        """After a room clear: rooms 1-2 must reach TRANSITION (skipped with Space,
+        keyboard-only per T3); room 3 must reach WIN. Returns (ok, state, note)."""
+        t0 = time.time()
+        s = run_state()
+        if room < 3:
+            while not s['trans'] and not s['over'] and time.time() - t0 < 3.0:
+                time.sleep(0.1)
+                s = run_state()
+            if s['over']:
+                return False, s, 'run ended (%s) instead of TRANSITION after room %d' % (s['outcome'], room)
+            if not s['trans']:
+                return False, s, 'no TRANSITION after clearing room %d' % room
+            exit_ammo = s['ammo']
+            page.keyboard.press('Space')  # T3 skip input; keyboard-only
+            t1 = time.time()
+            s = run_state()
+            while (s['trans'] or s['room'] != room + 1) and time.time() - t1 < 8.0:
+                time.sleep(0.15)
+                s = run_state()
+            if s['trans'] or s['room'] != room + 1:
+                return False, s, ('TRANSITION after room %d never advanced (room=%s trans=%s)'
+                                  % (room, s['room'], s['trans']))
+            if s['over']:
+                return False, s, 'run ended (%s) during TRANSITION to room %d' % (s['outcome'], room + 1)
+            return True, s, 'room %d exit ammo=%d entry ammo=%d' % (room, exit_ammo, s['entryAmmo'])
+        t0 = time.time()
+        while not s['over'] and time.time() - t0 < 10.0:
+            time.sleep(0.2)
+            s = run_state()
+        if not s['over'] or s['outcome'] != 'win':
+            return False, s, ('WIN never arrived after clearing room 3 (over=%s outcome=%s)'
+                              % (s['over'], s['outcome']))
+        return True, s, 'WIN after room 3'
+
+    attempts_log = []
+    carry_notes = []
+    expect_rooms = page.evaluate('window.__echo.roomsTotal')
+    expect_targets = page.evaluate('window.__echo.targetsTotal')
+    for room in (1, 2, 3):
+        s = run_state()
+        if s['over']:
+            return False, ('run ended early (%s) before room %d; rooms=%s cleared=%s shots=%s ammo=%s'
+                           % (s['outcome'], room, s['rooms'], s['cleared'], s['shots'], s['ammo']))
+        if s['room'] != room:
+            return False, ('expected to play room %d but probe reads room %s (rooms=%s cleared=%s)'
+                           % (room, s['room'], s['rooms'], s['cleared']))
+        n = probe(page)['targetCount']
+        for i in range(n):
+            if not clear_current_target(i, attempts_log):
+                fin = run_state()
+                return False, ('room %d target %d never cleared after 3 keyboard cycles (%s); '
+                               'rooms=%s cleared=%s outcome=%s shots=%s ammo=%s'
+                               % (room, i, '; '.join(attempts_log) or 'no detail',
+                                  fin['rooms'], fin['cleared'], fin['outcome'], fin['shots'], fin['ammo']))
+            s_mid = run_state()
+            if s_mid['trans'] or s_mid['over']:
+                break  # room clear routed onward; settled below
+        ok, s, note = settle_room(room)
+        carry_notes.append(note)
+        if not ok:
+            return False, (note + '; rooms=%s cleared=%s shots=%s ammo=%s%s' % (
+                s['rooms'], s['cleared'], s['shots'], s['ammo'],
+                ' log: ' + '; '.join(attempts_log) if attempts_log else ''))
+    time.sleep(0.3)
+    fin = run_state()
     errs = list(ctx.get('errors', []))
-    # The end-screen overlay is drawn on the canvas, so the ROOM CLEAR string is
-    # not in the DOM. The game's own outcome record is the authoritative signal.
-    ok = bool(fin['over']) and fin['outcome'] == 'win' and not errs
-    detail = ('keyboard-only round (Space start, arrow aim, F fire; no mouse and no pad input issued by the '
-              'harness, ?ammo=%d instrument): outcome=%s over=%s, shots=%s ammoLeft=%s litHits=%s '
-              'gamepadConnected=%s; ROOM CLEAR overlay drawn on canvas (DOM text present=%s); page errors=%d%s'
-              % (WIN_SCRIPT_AMMO, fin['outcome'], fin['over'], fin['shots'], fin['ammoLeft'],
-                 fin['litHits'], fin['gamepadConnected'], dom_text, len(errs),
+    ok = (bool(fin['over']) and fin['outcome'] == 'win'
+          and fin['rooms'] == expect_rooms and fin['cleared'] == expect_targets
+          and expect_rooms == 3 and expect_targets == 15 and not errs)
+    detail = ('keyboard-only full run (Space start, arrow aim, F fire, Space TRANSITION skip; '
+              'no mouse and no pad input issued by the harness, ?ammo=%d instrument): '
+              'outcome=%s over=%s, rooms=%s/%s cleared=%s/%s shots=%s ammoLeft=%s litHits=%s '
+              'gamepadConnected=%s; %s; page errors=%d%s'
+              % (WIN_SCRIPT_AMMO, fin['outcome'], fin['over'], fin['rooms'], expect_rooms,
+                 fin['cleared'], expect_targets, fin['shots'], fin['ammo'], fin['lit'],
+                 pad_seen,
+                 '; '.join(carry_notes), len(errs),
                  (' | ' + errs[0][:200]) if errs else ''))
+    if not ok and not errs:
+        detail += ' [FAIL: expected WIN with 3/3 rooms and 15/15 cleared, zero page errors]'
     return ok, detail
 
 
