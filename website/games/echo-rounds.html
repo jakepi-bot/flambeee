@@ -29,18 +29,23 @@
   #wrap { width: 100%; max-width: 960px; }
   canvas { display: block; width: 100%; height: auto; background: #000; border: 1px solid #222; border-radius: 6px; }
   .keys { margin-top: 10px; font-size: 0.8rem; opacity: 0.7; text-align: center; max-width: 640px; }
+  #summary { display: none; width: 100%; max-width: 960px; margin: 0 auto 10px; background: #101010; border: 1px solid #2a2a2a; border-radius: 8px; padding: 10px 14px; font-size: 0.85rem; line-height: 1.5; max-width: 100%; }
+  #summary .shead { color: #f0e6c0; letter-spacing: 1px; margin-bottom: 4px; }
+  #summary .srow { white-space: normal; overflow-wrap: break-word; }
 </style>
 </head>
 <body>
 <a class="back-link" href="../index.html">Back to Flambeee</a>
 <h1>ECHO ROUNDS</h1>
-<p class="tagline">One dark room, four echo cells. Shots are the only light, and every shot gives you away.</p>
+<p class="tagline">Three dark rooms, fifteen echo cells. Shots are the only light, and every shot gives you away.</p>
 <div class="hud">
-  <span class="item">Ammo: <span id="ammo">16</span></span>
-  <span class="item">Time: <span id="time">60</span>s</span>
-  <span class="item">Cleared: <span id="cleared">0</span>/4</span>
+  <span class="item">Ammo: <span id="ammo">40</span></span>
+  <span class="item">Time: <span id="time">180</span>s</span>
+  <span class="item">Room: <span id="room">1</span>/3</span>
+  <span class="item">Cleared: <span id="cleared">0</span>/15</span>
   <span class="item" id="status">Click to enter the dark room.</span>
 </div>
+<div id="summary" style="display:none"></div>
 <div id="wrap"><canvas id="c" width="960" height="600"></canvas></div>
 <p class="keys">WASD moves where you face. Arrow keys look. F fires along the crosshair. Space or Enter starts, R restarts. Click the canvas to grab pointer lock and look with the mouse. Controller support is new and unverified on physical hardware. Firing reveals you.</p>
 <script>
@@ -58,6 +63,7 @@ var ctx = canvas.getContext('2d');
 var ammoEl = document.getElementById('ammo');
 var timeEl = document.getElementById('time');
 var clearedEl = document.getElementById('cleared');
+var roomEl = document.getElementById('room');
 var statusEl = document.getElementById('status');
 
 /* Tuning constants, design handoff Story 128 section 3. */
@@ -73,15 +79,25 @@ var PAD_DEADZONE = 0.15, PAD_YAW_RATE = 2.5, PAD_PITCH_RATE = 1.8;
 var PAD_TRIGGER_THRESHOLD = 0.25;
 var PITCH_MAX = 1.2;
 var FIRE_COOLDOWN_MS = 150, PULSE_TTL = 500, REVEAL_MS = 600;
+var TRANSITION_MS = 2500; /* Story 140 J6: inter-room overlay, run clock frozen inside */
 var LIT_MS = 1400, DARK_MS = 1400;
 var PULSE_CONE_HALF = 0.35, PULSE_RANGE = 700, HIT_CONE_HALF = 0.06;
 var CYCLE_MS = LIT_MS + DARK_MS;
 var params = new URLSearchParams(location.search);
 var AMMO_BUDGET = Math.max(1, parseInt(params.get('ammo') || '16', 10) || 16);
+var RUN_AMMO_BUDGET = Math.max(1, parseInt(params.get('ammo') || '40', 10) || 40);
 var ROUND_MS = Math.max(1000, (parseInt(params.get('time') || '60', 10) || 60) * 1000);
+var RUN_MS = Math.max(1000, (parseInt(params.get('time') || '180', 10) || 180) * 1000);
 var TARGET_N = 4;
+var ROOM_N_1 = 4, ROOM_N_2 = 5, ROOM_N_3 = 6;
 var TARGET_POS = [[700, 150], [820, 320], [660, 470], [480, 300]];
+var ROOM_POS_2 = [[700, 120], [840, 300], [660, 480], [480, 220], [480, 380]];
+var ROOM_POS_3 = [[700, 100], [840, 180], [840, 420], [660, 500], [480, 300], [300, 300]];
 var PLAYER_START = { x: 120, y: 300, yaw: 0, pitch: 0 };
+var ROOM_START_2 = { x: 120, y: 450, yaw: 0, pitch: 0 };
+var ROOM_START_3 = { x: 840, y: 300, yaw: Math.PI, pitch: 0 };
+var ROOM_NAMES = ['First Light', 'Crossfire', 'Long Dark'];
+var HIT_PTS = 100, ROOM_BONUS = 250, AMMO_BONUS = 25, TIME_BONUS = 5;
 var CELL_SIZE = 40; /* world units, echo cell billboard width */
 var FLOOR_FILL = '#1e1e1e', GRID_STROKE = '#3a3a3a';
 var WALL_FILL = '#141414', WALL_STROKE = '#2a2a2a';
@@ -92,11 +108,15 @@ var DISCONNECT_LINE = 'Controller disconnected. Keyboard and mouse active.';
 var LOCKED_LINE = 'Pointer lock active. Mouse look engaged.';
 var UNLOCKED_LINE = 'Mouse unlocked. Click the canvas to lock the mouse.';
 
-/* Round state. */
+/* Run state (Story 140 J2: TITLE / RUN(roomIndex) / TRANSITION / WIN / LOSE). */
 var player = { x: PLAYER_START.x, y: PLAYER_START.y, yaw: 0, pitch: 0, visibleUntil: 0 };
 var keys = {};
 var targets = [];
 var started = false, over = false, outcome = 'undecided', loseReason = '';
+var roomIndex = 1, roomsCleared = 0, clearedTotal = 0;
+var transitionActive = false, transEnterAt = 0, transUntil = 0, frozenMs = 0;
+var roomEntryAmmo = 0, roomEntryLog = [], roomClearedLog = [];
+var endSecLeft = 0, endSecUsed = 0;
 var startAt = 0, ammoLeft = AMMO_BUDGET, lastRemain = -1;
 var shots = 0, litHits = 0, unlitShots = 0, unlitHits = 0, reveals = 0;
 var moveSteps = 0, lookEvents = 0;
@@ -137,6 +157,41 @@ function clearCount() {
   var n = 0;
   for (var i = 0; i < targets.length; i++) { if (targets[i].cleared) n++; }
   return n;
+}
+function roomTargetCount() {
+  return roomIndex === 1 ? ROOM_N_1 : (roomIndex === 2 ? ROOM_N_2 : ROOM_N_3);
+}
+function roomTargetPos() {
+  return roomIndex === 1 ? TARGET_POS : (roomIndex === 2 ? ROOM_POS_2 : ROOM_POS_3);
+}
+function roomStart() {
+  return roomIndex === 1 ? PLAYER_START : (roomIndex === 2 ? ROOM_START_2 : ROOM_START_3);
+}
+function activeMs(now) {
+  if (!started) return 0;
+  var extra = transitionActive ? (now - transEnterAt) : 0;
+  var a = now - startAt - frozenMs - extra;
+  return a < 0 ? 0 : a;
+}
+function secLeftNow() {
+  if (!started) return Math.ceil(RUN_MS / 1000);
+  if (over) return endSecLeft;
+  var r = RUN_MS - activeMs(performance.now());
+  return Math.max(0, Math.ceil(r / 1000));
+}
+function secUsedNow() {
+  if (!started) return 0;
+  if (over) return endSecUsed;
+  return activeMs(performance.now()) / 1000;
+}
+function hitPointsNow() { return HIT_PTS * litHits; }
+function roomBonusNow() { return ROOM_BONUS * roomsCleared; }
+function ammoBonusNow() { return (over && outcome === 'win') ? AMMO_BONUS * ammoLeft : 0; }
+function timeBonusNow() { return (over && outcome === 'win') ? TIME_BONUS * Math.ceil(endSecLeft) : 0; }
+function runScoreNow() { return hitPointsNow() + roomBonusNow() + ammoBonusNow() + timeBonusNow(); }
+function accuracyNow() {
+  if (!shots) return 0;
+  return Math.round(1000 * litHits / shots) / 10;
 }
 function p95ms() {
   if (!frameSamples.length) return 0;
@@ -328,6 +383,20 @@ function drawOverlay() {
     ctx.textAlign = 'left';
     return;
   }
+  if (transitionActive) {
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#7dff9a';
+    ctx.font = '48px sans-serif';
+    ctx.fillText('ROOM ' + roomIndex + ' CLEAR', W / 2, H / 2 - 20);
+    ctx.font = '20px sans-serif';
+    ctx.fillStyle = '#d8d8d8';
+    ctx.fillText('Ammo carries. Clock held at ' + secLeftNow() + 's.', W / 2, H / 2 + 20);
+    ctx.fillText('Next: Room ' + (roomIndex + 1) + ' ' + ROOM_NAMES[roomIndex] + '. Space or click pushes on.', W / 2, H / 2 + 50);
+    ctx.textAlign = 'left';
+    return;
+  }
   if (!over) return;
   ctx.fillStyle = 'rgba(0,0,0,0.7)';
   ctx.fillRect(0, 0, W, H);
@@ -335,7 +404,7 @@ function drawOverlay() {
   if (outcome === 'win') {
     ctx.fillStyle = '#7dff9a';
     ctx.font = '56px sans-serif';
-    ctx.fillText('ROOM CLEAR', W / 2, H / 2 - 10);
+    ctx.fillText('RUN CLEAR', W / 2, H / 2 - 10);
     ctx.font = '20px sans-serif';
     ctx.fillStyle = '#d8d8d8';
     ctx.fillText('Every echo answered.', W / 2, H / 2 + 30);
@@ -414,11 +483,12 @@ function draw(now) {
 /* HUD. */
 function refreshHud() {
   ammoEl.textContent = String(ammoLeft);
-  clearedEl.textContent = String(clearCount());
+  roomEl.textContent = String(roomIndex);
+  clearedEl.textContent = String(clearedTotal);
 }
 function updateTime(now) {
-  if (!started || over) return;
-  var remain = Math.max(0, Math.ceil((ROUND_MS - (now - startAt)) / 1000));
+  if (!started || over || transitionActive) return;
+  var remain = Math.max(0, Math.ceil((RUN_MS - activeMs(now)) / 1000));
   if (remain !== lastRemain) {
     lastRemain = remain;
     timeEl.textContent = String(remain);
@@ -426,13 +496,14 @@ function updateTime(now) {
 }
 function endMessage() {
   if (!over) return '';
-  if (outcome === 'win') return 'ROOM CLEAR. Every echo answered.';
+  if (outcome === 'win') return 'RUN CLEAR. Every echo answered.';
   return 'OUT OF LIGHT. ' + (loseReason === 'timer' ? 'Timer expired.' : 'Ammo spent.');
 }
 function updateStatus() {
   var end = endMessage();
   var s;
-  if (end) s = end;
+  if (transitionActive) s = 'Room ' + roomIndex + ' clear. Ammo carries, clock held. Space or click pushes on.';
+  else if (end) s = end;
   else if (padMsg) s = padMsg;
   else if (lockDenied && !locked) s = DENIED_LINE;
   else if (!started) s = 'Click to enter the dark room.';
@@ -442,48 +513,151 @@ function updateStatus() {
   statusEl.textContent = s;
 }
 
-/* Round flow. */
+/* Run flow (Story 140 J2 state machine). */
 function endRound(win, reason) {
+  if (over) return;
   over = true;
+  transitionActive = false;
   lockPending = false; /* Story 130 T4: pending never goes stale across a round end. */
   outcome = win ? 'win' : 'lose';
   loseReason = reason || '';
+  var now = performance.now();
+  endSecLeft = Math.max(0, Math.ceil((RUN_MS - activeMs(now)) / 1000));
+  endSecUsed = activeMs(now) / 1000;
   refreshHud();
   updateStatus(); /* end-state line also lands in the DOM status element */
+  renderSummary(); /* J7 rows read the same counters the probe getters read */
 }
-function startRound() {
+function buildRoom(i) {
+  var st = (i === 1 ? PLAYER_START : (i === 2 ? ROOM_START_2 : ROOM_START_3));
+  var pos = (i === 1 ? TARGET_POS : (i === 2 ? ROOM_POS_2 : ROOM_POS_3));
+  var n = (i === 1 ? ROOM_N_1 : (i === 2 ? ROOM_N_2 : ROOM_N_3));
+  player.x = st.x;
+  player.y = st.y;
+  player.yaw = st.yaw;
+  player.pitch = st.pitch;
+  player.visibleUntil = 0;
+  roomEntryAmmo = ammoLeft; /* J3: transition cost is exactly 0 */
+  roomEntryLog[i - 1] = ammoLeft;
+  targets = [];
+  for (var k = 0; k < n; k++) {
+    targets.push({
+      x: pos[k][0], y: pos[k][1], z: EYE_H,
+      phase: (k * 700) % CYCLE_MS,
+      litBoostUntil: 0, cleared: false /* J9 E7: boosts die with the old room */
+    });
+  }
+}
+function enterTransition() {
+  var now = performance.now();
+  transitionActive = true; /* ROOM_CLEAR is an event, not a state */
+  transEnterAt = now;
+  transUntil = now + TRANSITION_MS;
+  lockPending = false; /* a boundary never inherits a stale pending */
+  refreshHud();
+  updateStatus();
+}
+function advanceTransition() {
+  if (!transitionActive) return;
+  var now = performance.now();
+  frozenMs += now - transEnterAt; /* J4: the run clock does not advance inside TRANSITION */
+  transitionActive = false;
+  roomIndex++;
+  buildRoom(roomIndex);
+  refreshHud();
+  updateStatus();
+}
+function startRun() {
   started = true;
   over = false;
-  lockPending = false; /* Story 130 T4: a new round never inherits a stale pending. */
+  lockPending = false; /* Story 130 T4: a new run never inherits a stale pending. */
   outcome = 'undecided';
   loseReason = '';
+  roomIndex = 1; roomsCleared = 0; clearedTotal = 0;
+  transitionActive = false; frozenMs = 0;
+  roomEntryLog = []; roomClearedLog = [];
+  endSecLeft = 0; endSecUsed = 0;
   startAt = performance.now();
   lastT = 0; /* frame 1 dt is 0 */
   finalDrawn = false;
   lastRemain = -1;
-  ammoLeft = AMMO_BUDGET;
+  ammoLeft = RUN_AMMO_BUDGET;
   shots = 0; litHits = 0; unlitShots = 0; unlitHits = 0; reveals = 0;
   moveSteps = 0; lookEvents = 0;
   lastShotAt = -1e9;
-  player.x = PLAYER_START.x;
-  player.y = PLAYER_START.y;
-  player.yaw = PLAYER_START.yaw;
-  player.pitch = PLAYER_START.pitch;
-  player.visibleUntil = 0;
-  targets = [];
-  for (var i = 0; i < TARGET_N; i++) {
-    targets.push({
-      x: TARGET_POS[i][0], y: TARGET_POS[i][1], z: EYE_H,
-      phase: (i * 700) % CYCLE_MS,
-      litBoostUntil: 0, cleared: false
-    });
-  }
+  buildRoom(1);
+  hideSummary();
+  timeEl.textContent = String(Math.ceil(RUN_MS / 1000));
   refreshHud();
   updateStatus();
   ensureLoop();
 }
+function summaryData() {
+  var per = [];
+  for (var i = 1; i <= 3; i++) {
+    per.push({
+      room: i,
+      name: ROOM_NAMES[i - 1],
+      targets: (i === 1 ? ROOM_N_1 : (i === 2 ? ROOM_N_2 : ROOM_N_3)),
+      entryAmmo: (roomEntryLog[i - 1] === undefined ? null : roomEntryLog[i - 1]),
+      cleared: (roomClearedLog[i - 1] === undefined ? 0 : roomClearedLog[i - 1])
+    });
+  }
+  return {
+    outcome: outcome,
+    loseReason: loseReason,
+    roomsCleared: roomsCleared,
+    roomsTotal: 3,
+    clearedTotal: clearedTotal,
+    targetsTotal: 15,
+    shots: shots,
+    litHits: litHits,
+    accuracy: accuracyNow(),
+    hitPoints: hitPointsNow(),
+    roomBonus: roomBonusNow(),
+    ammoBonus: ammoBonusNow(),
+    timeBonus: timeBonusNow(),
+    runScore: runScoreNow(),
+    ammoLeft: ammoLeft,
+    secLeft: secLeftNow(),
+    secUsed: secUsedNow(),
+    roomIndex: roomIndex,
+    roomEntryAmmo: roomEntryAmmo,
+    perRoom: per
+  };
+}
+function renderSummary() {
+  var el = document.getElementById('summary');
+  var d = summaryData();
+  var h = '<div class="shead">RUN SUMMARY</div>';
+  h += '<div class="srow" data-row="1">Outcome: ' + (d.outcome === 'win' ? 'WIN' : 'LOSE ' + d.loseReason) + '</div>';
+  h += '<div class="srow" data-row="2">Rooms cleared: ' + d.roomsCleared + '/' + d.roomsTotal + '</div>';
+  h += '<div class="srow" data-row="3">Targets cleared: ' + d.clearedTotal + '/' + d.targetsTotal + '</div>';
+  h += '<div class="srow" data-row="4">Shots fired: ' + d.shots + '</div>';
+  h += '<div class="srow" data-row="5">Lit hits: ' + d.litHits + '</div>';
+  h += '<div class="srow" data-row="6">Accuracy: ' + d.accuracy.toFixed(1) + '%</div>';
+  h += '<div class="srow" data-row="7">Hit points: ' + d.hitPoints + '</div>';
+  h += '<div class="srow" data-row="8">Room bonus: ' + d.roomBonus + '</div>';
+  h += '<div class="srow" data-row="9">Ammo bonus: ' + d.ammoBonus + '</div>';
+  h += '<div class="srow" data-row="10">Time bonus: ' + d.timeBonus + '</div>';
+  h += '<div class="srow" data-row="11">Final score: ' + d.runScore + '</div>';
+  h += '<div class="srow" data-row="12">Ammo left: ' + d.ammoLeft + '</div>';
+  h += '<div class="srow" data-row="13">Time used: ' + d.secUsed.toFixed(1) + 's, left: ' + d.secLeft + 's</div>';
+  for (var i = 0; i < d.perRoom.length; i++) {
+    var p = d.perRoom[i];
+    var ea = (p.entryAmmo === null) ? 'not reached' : String(p.entryAmmo);
+    h += '<div class="srow" data-row="14">Room ' + p.room + ' ' + p.name + ': targets ' + p.targets + ', entry ammo ' + ea + ', cleared ' + p.cleared + '</div>';
+  }
+  el.innerHTML = h;
+  el.style.display = 'block';
+}
+function hideSummary() {
+  var el = document.getElementById('summary');
+  el.style.display = 'none';
+  el.innerHTML = '';
+}
 function fire() {
-  if (!started || over) return false;
+  if (!started || over || transitionActive) return false;
   var now = performance.now();
   if (now - lastShotAt < FIRE_COOLDOWN_MS) return false; /* drops extra shots, no ammo lost */
   lastShotAt = now;
@@ -526,7 +700,9 @@ function fire() {
   if (best) {
     if (litAtFire) {
       litHits++;
+      clearedTotal++;
       best.cleared = true;
+      roomClearedLog[roomIndex - 1] = (roomClearedLog[roomIndex - 1] || 0) + 1;
     } else {
       unlitShots++;
       /* Gate canary: an unlit clear would land here. The gate keeps it at 0. */
@@ -537,8 +713,13 @@ function fire() {
   }
 
   refreshHud();
-  /* Clear first, then ammo. Timer expiry is checked in the frame loop. */
-  if (clearCount() === TARGET_N) { endRound(true, ''); return true; }
+  /* Clear first, then ammo (J9 E1 final-shot precedence). Timer expiry is checked in the frame loop. */
+  if (clearCount() === roomTargetCount()) {
+    roomsCleared++;
+    if (roomIndex < 3) enterTransition();
+    else endRound(true, '');
+    return true;
+  }
   if (ammoLeft <= 0) { endRound(false, 'ammo'); return true; }
   return true;
 }
@@ -559,15 +740,16 @@ window.addEventListener('keydown', function (e) {
   if (c === 'Space' || c === 'Enter') {
     e.preventDefault();
     inputMode = 'keyboard';
-    if (!started || over) startRound();
+    if (transitionActive) { advanceTransition(); return; }
+    if (!started || over) startRun();
     return;
   }
   if (c === 'KeyR') {
-    if (over) { inputMode = 'keyboard'; startRound(); }
+    if (over) { inputMode = 'keyboard'; startRun(); }
     return;
   }
   if (c === 'KeyF') {
-    if (!e.repeat && started && !over) { inputMode = 'keyboard'; fire(); }
+    if (!e.repeat && started && !over && !transitionActive) { inputMode = 'keyboard'; fire(); }
     return;
   }
   if (c === 'ArrowLeft' || c === 'ArrowRight' || c === 'ArrowUp' || c === 'ArrowDown') {
@@ -586,7 +768,7 @@ window.addEventListener('keyup', function (e) { keys[e.code] = false; });
  * whole round: while locked it is the primary look, and the same handler is
  * what the synthetic proof event exercises when lock is unavailable. */
 window.addEventListener('mousemove', function (e) {
-  if (!started || over) return;
+  if (!started || over || transitionActive) return;
   var mx = num(e.movementX), my = num(e.movementY);
   if (!mx && !my) return;
   /* Story 130 T5: first evaluated mousemove after the latest acquisition. */
@@ -652,8 +834,9 @@ document.addEventListener('pointerlockerror', function () {
  * on the next click, or on F at any time. */
 canvas.addEventListener('mousedown', function () {
   inputMode = 'mouse';
-  if (over) { startRound(); requestLock(); return; }
-  if (!started) { startRound(); requestLock(); return; }
+  if (transitionActive) { advanceTransition(); requestLock(); return; }
+  if (over) { startRun(); requestLock(); return; }
+  if (!started) { startRun(); requestLock(); return; }
   if (locked) { fire(); return; }
   requestLock();
 });
@@ -708,7 +891,7 @@ function pollPad(dt) {
   padPx = dz(ax[0]);
   padPy = dz(ax[1]);
   var rx = dz(ax[2]), ry = dz(ax[3]);
-  if (started && !over && (rx || ry)) {
+  if (started && !over && !transitionActive && (rx || ry)) {
     inputMode = 'pad';
     lookEvents++;
     player.yaw += rx * PAD_YAW_RATE * dt;
@@ -719,16 +902,16 @@ function pollPad(dt) {
   var t = btns[7];
   var tv = t ? (typeof t.value === 'number' ? t.value : (t.pressed ? 1 : 0)) : 0;
   var trig = tv > PAD_TRIGGER_THRESHOLD;
-  if (trig && !triggerHeld && started && !over) {
+  if (trig && !triggerHeld && started && !over && !transitionActive) {
     inputMode = 'pad';
     fire();
   }
   triggerHeld = trig;
   var a = btns[0];
   var ap = !!(a && (a.pressed || a.value > 0.5));
-  if (ap && !aHeld && (!started || over)) {
-    inputMode = 'pad';
-    startRound();
+  if (ap && !aHeld) {
+    if (transitionActive) { inputMode = 'pad'; advanceTransition(); }
+    else if (!started || over) { inputMode = 'pad'; startRun(); }
   }
   aHeld = ap;
 }
@@ -796,10 +979,20 @@ function step(now) {
   }
   try {
     pollPad(dt);
-    if (started && !over) {
+    if (transitionActive) {
+      if (now >= transUntil) advanceTransition();
+    } else if (started && !over) {
       applyLook(dt);
       applyMove(dt);
-      if (performance.now() - startAt >= ROUND_MS) endRound(false, 'timer');
+      if (activeMs(performance.now()) >= RUN_MS) {
+        /* J9 E2: a clear resolved on the expiry frame wins. */
+        if (clearCount() < roomTargetCount()) endRound(false, 'timer');
+        else {
+          roomsCleared++;
+          if (roomIndex < 3) enterTransition();
+          else endRound(true, '');
+        }
+      }
     }
     if (!over) {
       draw(now);
@@ -848,6 +1041,21 @@ window.__echo = {
   get firstMx() { return firstMx; },
   get firstMy() { return firstMy; },
   get lockPending() { return lockPending; },
+  get roomIndex() { return roomIndex; },
+  get roomsTotal() { return 3; },
+  get roomsCleared() { return roomsCleared; },
+  get clearedTotal() { return clearedTotal; },
+  get targetsTotal() { return 15; },
+  get runScore() { return runScoreNow(); },
+  get hitPoints() { return hitPointsNow(); },
+  get roomBonus() { return roomBonusNow(); },
+  get ammoBonus() { return ammoBonusNow(); },
+  get timeBonus() { return timeBonusNow(); },
+  get secLeft() { return secLeftNow(); },
+  get secUsed() { return secUsedNow(); },
+  get transitionActive() { return transitionActive; },
+  get roomEntryAmmo() { return roomEntryAmmo; },
+  summary: function () { return summaryData(); },
   target: function (i) {
     var t = targets[i];
     if (!t) return null;
@@ -857,7 +1065,7 @@ window.__echo = {
       lit: started && !over ? litNow(t, now) : false
     };
   },
-  targetCount: function () { return TARGET_N; },
+  targetCount: function () { return roomTargetCount(); },
   get version() { return '128'; },
   get lastShotAt() { return lastShotAt; },
   get clippedPoints() { return clippedPoints; },
@@ -873,8 +1081,8 @@ for (var bi = 0; bi < TARGET_N; bi++) {
     litBoostUntil: 0, cleared: false
   });
 }
-ammoLeft = AMMO_BUDGET;
-timeEl.textContent = String(Math.ceil(ROUND_MS / 1000));
+ammoLeft = RUN_AMMO_BUDGET;
+timeEl.textContent = String(Math.ceil(RUN_MS / 1000));
 refreshHud();
 updateStatus();
 draw(performance.now());
