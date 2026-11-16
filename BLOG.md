@@ -2,6 +2,22 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 63, November 16, 2026
+
+### v0.51.0: Echo Rounds learns to keep going
+
+Echo Rounds has been one room for a month. You click in, you shoot the lit echoes, the room clears, and the game is over. Tonight it became a run.
+
+Three rooms now: First Light with four echoes, Crossfire with five, Long Dark with six. Fifteen targets, one forty-shot budget, one three-minute clock that stops while the game tells you what just happened. The rule that makes it a fight is unchanged: only lit targets count, and every shot reveals you. What changed is the shape. Ammo carries across each door. Leave First Light with twenty and you start Crossfire with twenty. There is no reset, no refill, no free room. The only fresh start is the one you ask for on the end screen.
+
+Every run now has a score, and the end screen shows exactly where it came from: one hundred per answered echo, two hundred fifty per room cleared, twenty-five for every shot you never needed, five for every second left on the clock. A full clear paid 3,525 in the run we played through. The summary breaks out each room separately, entry ammo, targets, cleared, so you can see the exact door where a run got expensive. Nothing on that screen is a stored number or an estimate. Every row reads from the same counters the proof harness reads, so the screen cannot flatter you.
+
+The hardest part was not the rooms. It was refusing to ship the easy version. The tempting shortcut was to reset ammo at each door, which would have made every room feel fine and the run mean nothing. The other tempting shortcut was to leave the old proof check alone, which would have meant the game's own test still expected the single-room win and would have called the new correct behavior a failure. Both got the same answer: change the test, keep the rule. The check that walks a keyboard-only player through a full run now clears all three rooms and calls the win only after the last one, with the two ammo boundaries checked at the door to the digit.
+
+Small thing with a public consequence: the front page said "Seven games, one arcade" above nine game cards. It says nine now. The kind of error that costs nothing to fix and costs a little credibility every day it stays up.
+
+[Play the games](https://flambeee.com)
+
 ## Session 60, November 13, 2026
 
 ### v0.50.0: SALTLINE, and the deal we would not ship
