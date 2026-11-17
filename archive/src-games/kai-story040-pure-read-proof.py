@@ -559,12 +559,24 @@ console.log('=== Behavioural proof: computeAwayWindow (extracted from shipped fi
 
 // 7. streakSurvived: both branches.
 (function () {
+  // K2 note (Story 141): the instrumented-helper pair below encoded the gate
+  // spec wiring (window consults computeQuestStreak). The shipped Story 042
+  // contract (7dbd421) decoupled them: computeAwayWindow counts the run over
+  // done[] and never calls computeQuestStreak, so no stub value can drive
+  // survived. RETIRED by name: 'S7 helper > 0 -> streakSurvived true' and
+  // 'S7 helper 0 -> streakSurvived false'. Coverage lost: gate-spec wiring
+  // reachability via an injected helper (dead wiring, not product behavior).
+  // Retained: the real-code survived branch (new fixture below), both
+  // renderer lines, and the 0/19 co-occurrence sweep. The stub mechanism
+  // itself (makeSandbox streakStub) is untouched.
   const live = makeSandbox({ streakStub: 3 });   // instrumented helper, reported
   const dead = makeSandbox({ streakStub: 0 });
   const wl = live.computeAwayWindow(rec(TODAY - 3, []), TODAY);
   const wd = dead.computeAwayWindow(rec(TODAY - 3, []), TODAY);
-  check(wl.streakSurvived === true, 'S7 helper > 0 -> streakSurvived true');
-  check(wd.streakSurvived === false, 'S7 helper 0 -> streakSurvived false');
+  console.log('RETIRED S7 helper > 0 -> streakSurvived true '
+    + '[stub is decoupled from the shipped window; got ' + wl.streakSurvived + ']');
+  console.log('RETIRED S7 helper 0 -> streakSurvived false '
+    + '[vacuous under the shipped run-over-done[] rule; got ' + wd.streakSurvived + ']');
   const ctxR = makeSandbox();
   const s = ctxR.awayStreakSentence;
   check(s(true) === 'Your streak survived.',
@@ -581,15 +593,17 @@ console.log('=== Behavioural proof: computeAwayWindow (extracted from shipped fi
   check(coOccur === 0,
         'S7 real shipped streak helper: a record whose history reaches yesterday keeps lastPlayIdx '
         + 'at yesterday, so the window does not open (0/19 co-occurred); the gate spec records this');
-  // The survived branch is still reachable with real code: an inconsistent record
-  // whose day stamp is old while today's quest carries a live completion. The
-  // helper anchors on the live completion, so the streak reads 1 and survives.
-  const survivedRec = rec(TODAY - 4, []);
-  survivedRec.quest.completed = true;
+  // K2 (Story 141): the survived branch IS reachable with real code. The old
+  // fixture (an empty-history stamp with a live quest.completed flag)
+  // encoded the gate spec's superseded streakSurvived formula; the shipped
+  // Story 042 contract counts the run only over done[] built from recorded
+  // completedQuests entries, so that fixture reads broken. A stale stamp
+  // carrying its own recorded completion reads run 1 and survives.
+  const survivedRec = rec(TODAY - 4, [TODAY - 4]);
   const ws = real.computeAwayWindow(survivedRec, TODAY);
-  check(ws.shouldShow === true && ws.streakSurvived === true,
-        'S7 real shipped helpers reach the survived branch: shouldShow true, streakSurvived true '
-        + '[got ' + ws.shouldShow + '/' + ws.streakSurvived + ']');
+  check(ws.shouldShow === true && ws.daysAway === 3 && ws.streakSurvived === true,
+        'S7 real shipped helpers reach the survived branch: shouldShow true, daysAway 3, '
+        + 'streakSurvived true [got ' + ws.shouldShow + '/' + ws.daysAway + '/' + ws.streakSurvived + ']');
   check(real.awayStreakSentence(ws.streakSurvived) === 'Your streak survived.',
         'S7 survived branch renders the explicit survived line end to end');
 })();

@@ -109,10 +109,14 @@ REPO = _repo_root()
 BASE_REF = "v0.21.0:src/cinder.html"
 LIVE_DEFAULT = os.path.join(REPO, "website", "games", "cinder.html")
 
-# The quest-log read path this story owns.
+# The quest-log read path this story owns. K3 (Story 141): the sandbox
+# extraction predated computeRecentQuestEntries (added by Story 047), so the
+# shipped render threw ReferenceError in a sandbox missing its own callee.
+# Extracted verbatim below, no re-implementation.
 PATH_FNS = [
     "renderQuestLog",
     "computeQuestLogStreak",
+    "computeRecentQuestEntries",
     "dayLabelForIndex",
 ]
 FORBIDDEN_TOKENS = [
@@ -491,6 +495,7 @@ function makeSandbox(opts) {
    'shouldShowWelcomeBack', 'awayDaysSentence', 'awayQuestsSentence',
    'awayStreakSentence', 'renderWelcomeBack', 'handleWelcomeBackInput',
    'dayLabelForIndex', 'renderQuestLog', 'checkDailyReset', 'ensureQuestState',
+   'computeRecentQuestEntries',
    'handleQuestLogInput'].forEach(function (n) {
     try { vm.runInContext(extract(n), ctx); } catch (e) { /* reported by caller */ }
   });
@@ -830,12 +835,19 @@ console.log('--- E. Opening row 9 writes nothing and the rendered line is the tr
   check(rows === 5, 'S8 the list is capped at 5 entries (got ' + rows + ')');
   check(listBlock.indexOf('yesterday') < listBlock.indexOf('2 days ago'),
         'S8 the list is most recent first (yesterday before 2 days ago)');
+  // Story 141 (same repair class as K4): Story 050 made labels anchor-relative
+  // (dayLabelForIndex(dayIdx, anchor) measures from the record's own
+  // lastPlayIdx), so the expectation is evaluated through the shipped two-arg
+  // form with the same loaded anchor the render uses. No assertion retired:
+  // order, cap, and exact rows are still enforced, now through shipped labels.
+  const s8anchor = ctx.questLogAnchor;
   const expected = history([TODAY - 7, TODAY - 6, TODAY - 5, TODAY - 4, TODAY - 3, TODAY - 2, TODAY - 1])
     .slice(-5).reverse().map(function (e) {
-      return '<div>' + ctx.dayLabelForIndex(e.dayIndex) + ': ' + e.objective + '</div>';
+      return '<div>' + ctx.dayLabelForIndex(e.dayIndex, s8anchor) + ': ' + e.objective + '</div>';
     }).join('');
   check(listBlock.indexOf(expected) >= 0,
-        'S8 the rendered list is identical to the pre-story expression completed.slice(-5).reverse()');
+        'S8 the rendered list is identical to the shipped expression '
+        + 'completed.slice(-5).reverse() evaluated through shipped two-arg labels');
   // And the streak line is unaffected by the list rendering: seven consecutive
   // recorded days ending at the anchor T-1, so the run is 7.
   check(renderedStreak(ctx) === 7,

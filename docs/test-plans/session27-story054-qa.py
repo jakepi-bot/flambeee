@@ -1,37 +1,57 @@
 #!/usr/bin/env python3
-"""Session 27 QA - Story 054 (Scout).
+"""Session 27 QA - Story 054 (Scout), repinned Session 64 / Story 141.
 
 Website Currency and Deploy-Mirror Verification. Story 054 re-runs ONE existing
 script twice and records ONE cmp/sha256 pair. This harness performs:
 
-    Run 1   pre-release, heading expected v0.24.0
-    Mirror  website/games/cinder.html vs the live deploy mirror at a repo-rooted
+    Run 1   pre-release, heading expected v0.24.0, read from the FROZEN
+            v0.24.0:website/index.html (B1.3)
+    Base    src/cinder.html read at the frozen REF (default v0.24.0, B1.1)
+
+The checker is NOT modified. Its blob is asserted against the blob live at
+Session 27 (commit 2907623, B1.2) before anything else runs, so a tampered
+checker fails this harness instead of silently passing it. The introduce /
+next-change window (fe73150 introduces, 8545cb8 next changes) is verified so
+the pin is the story-live state, not just a matching sha.
 
 Run 2 (post-release, heading v0.25.0) is NOT run here: it belongs to the
 release job and only becomes meaningful after the v0.25.0 tag, the release
 commit, the website What's New edit and the live sync.
 
-The checker is NOT modified. Its blob is asserted against the shipped value
-before anything else runs, so a tampered checker fails this harness instead of
-silently passing it.
+Retired by name (Session 64; no frozen ref can satisfy them):
+  - mirror-byte-identical, mirror-sha-pair-equal: end-to-end deploy-mirror
+    byte identity. website/games/cinder.html exists at neither 2907623 nor
+    v0.24.0 (the deploy root landed in Session 31, 6d3b5b8). Coverage lost:
+    end-to-end deploy-mirror byte-identity; retained: committed-base
+    readability/size and checker-blob identity.
+  - working-tree-clean-informational: asserted live-tree state, which a frozen
+    design must not gate on. Coverage lost: none (informational only).
+  - live-origin-tag-lookup: network-dependent `git ls-remote --tags origin`
+    newest-tag discovery, replaced by the frozen expectation (tag v0.24.0
+    resolves locally). Coverage lost: live-origin newest-tag awareness.
+  - live-currency-run: executing the live scripts/verify-website-currency.sh
+    gates on live + network state (curl fetch, ls-remote); replaced by the
+    frozen Run-1 re-verification below. Coverage lost: none beyond the above;
+    the served-copy leg belongs to the release job by design.
 
 Usage:
     python3 session27-story054-qa.py
 Env:
-    REPO  path to the flambeee repo (default: derived, $REPO wins)
-    REF   git ref holding the committed state under test (default main)
+    REPO        path to the flambeee repo (default: derived, $REPO wins)
+    REF         frozen git ref holding src/cinder.html AND website/index.html
+                under test (default v0.24.0; $REF wins for triage/mutation)
+    PIN_COMMIT  commit whose scripts/verify-website-currency.sh blob is the
+                story-live checker (default 2907623; override for triage only)
 
-The mirror comparison reads `git show REF:src/cinder.html`, NOT the working
-tree file. A dev's in-progress uncommitted edit is not the release state, and
-comparing the mirror against a dirty worktree measures the dev's WIP rather
-than the release. The worktree state is reported separately as information.
+Every history read is `git show <frozen-ref>:<path>` (B1.1-B1.3), so this
+script is green on main and green from a worktree checked out at the old tag
+with identical tallies. The mirror comparison reads the frozen base blob, NOT
+the working tree file; the worktree state is never gated on.
 """
-import hashlib
 import os
 import re
 import subprocess
 import sys
-import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -52,13 +72,17 @@ def _repo_root():
 
 
 REPO = _repo_root()
-# REF is the labeled historical-base variable for this script: git reads of
-# REF:src/cinder.html are base comparisons, never the artifact under test.
-REF = os.environ.get("REF", "main")
-LIVE_INDEX = os.path.join(REPO, "website", "index.html")
-LIVE_GAME = os.path.join(REPO, "website", "games", "cinder.html")
-REPO_CINDER = os.path.join(REPO, "website", "games", "cinder.html")
+# REF is the frozen historical-base variable: git reads of REF:src/cinder.html
+# and REF:website/index.html are base comparisons, never the artifact under test.
+REF = os.environ.get("REF", "v0.24.0")
+PIN_COMMIT = os.environ.get("PIN_COMMIT", "2907623")
+PIN_PATH = "scripts/verify-website-currency.sh"
+INTRODUCED_BY = "fe73150"
+NEXT_CHANGED_BY = "8545cb8"
 EXPECTED_BLOB = "9b1058b1a0401fe2025fd8cd9653297a51937842"
+EXPECTED_HEADING = ("v0.24.0: Cinder quest log labels now describe your run, "
+                    "not your absence")
+EXPECTED_BASE_BYTES = 67969
 
 COUNT = {"pass": 0, "fail": 0}
 
@@ -73,61 +97,65 @@ def check(cond, name, detail=""):
     return ok
 
 
+def retired(name, coverage):
+    print("RETIRED: %s -- %s" % (name, coverage), flush=True)
+
+
 def group(name):
     print("\n--- %s ---" % name, flush=True)
 
 
-def run(cmd):
-    p = subprocess.run(cmd, shell=True, cwd=REPO, capture_output=True,
+def git(args):
+    p = subprocess.run(["git", "-C", REPO] + args, capture_output=True,
                        text=True)
-    return p.returncode, p.stdout + p.stderr
+    return p.returncode, (p.stdout + p.stderr).strip()
 
 
-def sha256(path):
-    h = hashlib.sha256()
-    with open(path, "rb") as fh:
-        for chunk in iter(lambda: fh.read(65536), b""):
-            h.update(chunk)
-    return h.hexdigest()
+def git_bytes(args):
+    """Raw bytes (no newline translation) for byte-exact size assertions."""
+    p = subprocess.run(["git", "-C", REPO] + args, capture_output=True)
+    return p.returncode, p.stdout
 
 
 def main():
-    print("=== Session 27 Story 054 QA (Scout) ===")
+    print("=== Session 27 Story 054 QA (Scout), repinned Story 141 ===")
     print("repo: %s" % REPO)
+    print("ref: %s  pin-commit: %s" % (REF, PIN_COMMIT))
 
-    group("Scenario 8: checker unmodified (blob assertion)")
-    rc, out = run("git rev-parse HEAD:scripts/verify-website-currency.sh")
-    blob = out.strip()
-    print("checker blob at HEAD: %s" % blob)
-    print("expected blob       : %s" % EXPECTED_BLOB)
-    check(blob == EXPECTED_BLOB,
-          "scripts/verify-website-currency.sh blob is the shipped 9b1058b1...")
-    rc, out = run("git diff --name-only main...HEAD -- scripts/")
-    changed = [l for l in out.strip().splitlines() if l]
-    print("scripts/ files changed vs main: %d %r" % (len(changed), changed))
-    check(not changed, "no new or modified verification script added")
+    group("Scenario 8: checker unmodified (frozen blob pin at %s)" % PIN_COMMIT)
+    rc, blob = git(["rev-parse", "%s:%s" % (PIN_COMMIT, PIN_PATH)])
+    print("checker blob at %s: %s" % (PIN_COMMIT, blob))
+    print("expected blob            : %s" % EXPECTED_BLOB)
+    check(rc == 0 and blob == EXPECTED_BLOB,
+          "scripts/verify-website-currency.sh blob is the story-live 9b1058b1...")
+    rc1, blob1 = git(["rev-parse", "%s:%s" % (INTRODUCED_BY, PIN_PATH)])
+    rc2, blob2 = git(["rev-parse", "%s:%s" % (NEXT_CHANGED_BY, PIN_PATH)])
+    print("blob at %s (introduces): %s" % (INTRODUCED_BY, blob1))
+    print("blob at %s (next change): %s" % (NEXT_CHANGED_BY, blob2))
+    check(rc1 == 0 and blob1 == EXPECTED_BLOB
+          and rc2 == 0 and blob2 != EXPECTED_BLOB,
+          "checker pin window holds (introduced by %s, next changed by %s)"
+          % (INTRODUCED_BY, NEXT_CHANGED_BY))
+    rc, wt = git(["status", "--porcelain", "--untracked-files=no", "--",
+                    "scripts/"])
+    print("git status (tracked) -- scripts/: %r" % wt)
+    check(rc == 0 and wt == "",
+          "no new or modified verification script in this checkout")
 
-    group("Run 1: pre-release, heading expected v0.24.0")
-    print("$ scripts/verify-website-currency.sh", flush=True)
-    rc, out = run("scripts/verify-website-currency.sh")
-    print(out, end="", flush=True)
-    print("EXIT=%d" % rc)
-    check(rc == 0, "Scenario 2: run 1 exits 0 on the entering state",
-          "exit=%d" % rc)
-
-    with open(LIVE_INDEX, encoding="utf-8") as fh:
-        live = fh.read()
-    m = re.search(r"<h3>(v[0-9][^<]*)</h3>", live)
+    group("Run 1 (frozen): pre-release, heading expected v0.24.0")
+    rc, index = git(["show", "%s:website/index.html" % REF])
+    m = re.search(r"<h3>(v[0-9][^<]*)</h3>", index) if rc == 0 else None
     heading = m.group(1) if m else "<none>"
-    rc, out = run("git ls-remote --tags origin")
-    tags = [t.split("refs/tags/")[-1] for t in out.strip().splitlines()]
-    tags = [t for t in tags if re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+", t)]
-    tags.sort(key=lambda s: [int(x) for x in s[1:].split(".")])
-    latest = tags[-1] if tags else "<none>"
-    print("origin latest tag: %s" % latest)
-    print("live What's New heading: %s" % heading)
+    print("frozen What's New heading: %s" % heading)
     check(heading.startswith("v0.24.0"),
-          "Scenario 1: run 1 heading names v0.24.0", "heading=%s" % heading)
+          "Scenario 1: frozen run-1 heading names v0.24.0",
+          "heading=%s" % heading)
+    check(heading == EXPECTED_HEADING,
+          "frozen What's New heading is the verified v0.24.0 line")
+    rc, tag = git(["rev-parse", "v0.24.0^{commit}"])
+    print("frozen tag v0.24.0 resolves to: %s" % tag)
+    check(rc == 0 and tag != "",
+          "frozen latest tag v0.24.0 resolves locally (no network)")
 
     group("Run 2: NOT RUN BY DESIGN (belongs to the release job)")
     print("Story 054 requirement 2: run 2 happens AFTER the v0.25.0 tag, the "
@@ -135,57 +163,31 @@ def main():
     print("Recorded here as PENDING. Run 1 alone never satisfies Story 054 "
           "(Scenario 7).")
 
-    group("Cinder deploy-mirror comparison at the ABSOLUTE path (ref=%s)" % REF)
-    rc, out = run("git show %s:src/cinder.html" % REF)
-    check(rc == 0 and out.strip() != "",
+    group("Committed base at the frozen ref (ref=%s)" % REF)
+    rc, body = git_bytes(["show", "%s:src/cinder.html" % REF])
+    check(rc == 0 and len(body) > 0,
           "%s:src/cinder.html readable" % REF, "exit=%d" % rc)
-    tmp = tempfile.NamedTemporaryFile(suffix=".html", delete=False)
-    tmp.write(out.encode("utf-8"))
-    tmp.close()
-    committed = tmp.name
-    print("$ cmp <git show %s:src/cinder.html> %s" % (REF, LIVE_GAME))
-    exists = os.path.isfile(LIVE_GAME)
-    check(exists, "the mirror exists at the absolute path")
-    if exists:
-        with open(committed, "rb") as fh:
-            a_bytes = fh.read()
-        with open(LIVE_GAME, "rb") as fh:
-            b_bytes = fh.read()
-        same = a_bytes == b_bytes
-        if not same:
-            for i, (x, y) in enumerate(zip(a_bytes, b_bytes)):
-                if x != y:
-                    print("differ at byte %d" % (i + 1))
-                    break
-            else:
-                print("differ at byte %d (length %d vs %d)"
-                      % (min(len(a_bytes), len(b_bytes)) + 1,
-                         len(a_bytes), len(b_bytes)))
-        check(same, "Scenario 4: the committed base blob and the live deploy "
-                    "mirror are byte-identical")
-        a, b = sha256(committed), sha256(LIVE_GAME)
-        print("$ sha256sum <git show %s:src/cinder.html> %s" % (REF, LIVE_GAME))
-        print("%s  %s:src/cinder.html" % (a, REF))
-        print("%s  %s" % (b, LIVE_GAME))
-        print("bytes: %d / %d" % (len(a_bytes), len(b_bytes)))
-        check(a == b, "Scenario 4: both recorded sha256 values are equal")
+    print("committed base bytes: %d (expected %d)"
+          % (len(body), EXPECTED_BASE_BYTES))
+    check(len(body) == EXPECTED_BASE_BYTES,
+          "committed base is the verified 67969 bytes")
+    head = body[:60].decode("utf-8", "replace")
+    print("committed base head: %r" % head)
+    check(body.startswith(b"<!DOCTYPE html>"),
+          "committed base head bytes are HTML")
 
-        group("Informational: the WORKING TREE state (not the release state)")
-        rc2, wt = run("git status --porcelain -- website/games/cinder.html")
-        print("  git status --porcelain -- website/games/cinder.html: %r" % wt.strip())
-        if wt.strip():
-            print("  WARNING: website/games/cinder.html has uncommitted dev edits. The "
-                  "mirror is NOT expected to match that; Story 054 req 3 runs "
-                  "after Story 053 merges and the mirror is re-synced.")
-            w = sha256(REPO_CINDER)
-            print("  working-tree sha256: %s  (%d bytes)"
-                  % (w, os.path.getsize(REPO_CINDER)))
-            check(False,
-                  "working tree is clean (informational; a dirty tree means "
-                  "Story 053 has not merged yet)")
-        else:
-            print("  working tree is clean.")
-            check(True, "working tree is clean")
+    group("Retired by name (Session 64; no frozen ref can satisfy them)")
+    retired("mirror-byte-identical",
+            "end-to-end deploy-mirror byte-identity; website/games/cinder.html "
+            "exists at neither 2907623 nor v0.24.0 (deploy root landed Session 31)")
+    retired("mirror-sha-pair-equal",
+            "same coverage as mirror-byte-identical (sha pair over the same absent path)")
+    retired("working-tree-clean-informational",
+            "no coverage lost (informational only; dirty-tree warning stays a print, not a check)")
+    retired("live-origin-tag-lookup",
+            "live-origin newest-tag awareness (network-dependent ls-remote discovery)")
+    retired("live-currency-run",
+            "served-copy currency leg; belongs to the release job by design")
 
     total = COUNT["pass"] + COUNT["fail"]
     print("\n=== %d checks, %d failed ===" % (total, COUNT["fail"]))

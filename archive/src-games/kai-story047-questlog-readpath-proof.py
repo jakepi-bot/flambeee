@@ -765,9 +765,15 @@ console.log('--- Section 6: list contract unchanged (order, cap 5, labels, empty
   ctx.renderQuestLog();
   const list = renderedList(ctx);
   check(list.length === 5, 'S13 the list is capped at 5 entries (got ' + list.length + ')');
-  check(list[0].indexOf('yesterday') === 0, 'S13 most recent first: first row is "yesterday" (got "' + list[0] + '")');
+  // K4 (Story 141): Story 050 (bf378f8) made day labels anchor-relative
+  // (dayLabelForIndex(dayIdx, anchor) measures refIdx - dayIdx from the
+  // record's own lastPlayIdx, not getDayIndex()). The old single-arg
+  // expectation encoded the pre-050 contract the product intentionally
+  // replaced, so the first row is 'today: Objective 6', not 'yesterday'.
+  check(list[0].indexOf('today') === 0, 'S13 most recent first: first row is "today" (got "' + list[0] + '")');
+  const s13anchor = ctx.questLogAnchor;
   const expected = history(seven).slice(-5).reverse().map(function (e) {
-    return ctx.dayLabelForIndex(e.dayIndex) + ': ' + e.objective;
+    return ctx.dayLabelForIndex(e.dayIndex, s13anchor) + ': ' + e.objective;
   });
   check(JSON.stringify(list) === JSON.stringify(expected),
         'S13 the rendered list equals the shipped expression completed.slice(-5).reverse() with dayLabelForIndex labels');
