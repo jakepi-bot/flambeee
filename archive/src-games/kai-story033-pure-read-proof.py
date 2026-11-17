@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Story 033 pure-read proof for the Cinder daily-return summary (Kai, backend review).
+"""Story 033 pure-read proof for the Cinder daily-return summary (Kai, backend review),
+repinned Session 64 / Story 141 (K1: proof is stale).
 
 Purpose:
   Prove that the "come back tomorrow" preview added to renderQuest() in
@@ -19,10 +20,14 @@ How:
     - no global mutation by the selector,
     - tomorrow = determineQuestForDay(D+1) with an objective and != today.
 
-  It also greps the implementation block of renderQuestNextDayBlock +
-  renderQuest to assert no save/write/mutation call appears on the preview
-  path (no saveCharacter, saveDayState, localStorage.setItem, ensureQuestState,
-  completeQuest, applyQuestProgress).
+  It then greps the body of renderQuestNextDayBlock plus the renderQuest()
+  call site for save/write/mutation calls on the preview path (no
+  saveCharacter, saveDayState, localStorage.setItem, ensureQuestState,
+  completeQuest, applyQuestProgress). K1 repair: the old scan swept the whole
+  slice from renderQuestNextDayBlock to renderQuest(, which now spans two
+  later stories' helpers and their comments (false hits on comment lines, zero
+  inside the actual preview body). The scan is narrowed to the preview body
+  plus the call site, with comments stripped before token search.
 
 Usage:
   python3 archive/src-games/kai-story033-pure-read-proof.py
@@ -75,6 +80,53 @@ def extract_body(name: str) -> str:
                 return CINDER[start : i + 1]
         i += 1
     raise SystemExit(f"unbalanced braces in function {name}")
+
+
+def strip_comments(js: str) -> str:
+    """Blank out // and /* */ comments, preserving string literals as written.
+
+    Token scans run on the stripped text so a comment that merely names a
+    forbidden writer is not a false hit, while a real call in code still is.
+    """
+    out = []
+    i = 0
+    n = len(js)
+    quote = None
+    while i < n:
+        c = js[i]
+        if quote:
+            out.append(c)
+            if c == "\\" and i + 1 < n:
+                out.append(js[i + 1])
+                i += 2
+                continue
+            if c == quote:
+                quote = None
+            i += 1
+            continue
+        if c in "'\"`":
+            quote = c
+            out.append(c)
+            i += 1
+            continue
+        if c == "/" and i + 1 < n and js[i + 1] == "/":
+            while i < n and js[i] != "\n":
+                out.append(" ")
+                i += 1
+            continue
+        if c == "/" and i + 1 < n and js[i + 1] == "*":
+            out.append("  ")
+            i += 2
+            while i < n and not (js[i] == "*" and i + 1 < n and js[i + 1] == "/"):
+                out.append("\n" if js[i] == "\n" else " ")
+                i += 1
+            if i < n:
+                out.append("  ")
+                i += 2
+            continue
+        out.append(c)
+        i += 1
+    return "".join(out)
 
 
 def load_quest_types() -> list:
@@ -152,7 +204,11 @@ def main() -> int:
             print("  -", f)
         return 1
 
-    # Static scan of the preview path: no write/mutation call.
+    # Static scan of the preview path: the preview body plus the renderQuest()
+    # call site, comments stripped. K1: the old slice from
+    # renderQuestNextDayBlock to function renderQuest( spanned later stories'
+    # helpers and their comments (all four token hits sat on comment or
+    # intervening-helper lines, zero inside the preview body lines 373-378).
     if "renderQuestNextDayBlock" not in CINDER:
         # This checkout predates the Story 033 preview block (e.g. main base
         # without Riven's renderQuest() addition). The pure-selector proof above
@@ -160,15 +216,28 @@ def main() -> int:
         print("Preview path: Story 033 block not present in this checkout; "
               "selector proof above still validates the tomorrow derivation.")
         return 0
-    start_idx = CINDER.index("renderQuestNextDayBlock")
-    end_idx = CINDER.index("function renderQuest(", start_idx)
-    path = CINDER[start_idx:end_idx]
+    preview = extract_body("renderQuestNextDayBlock")
+    try:
+        render_quest = extract_body("renderQuest")
+    except SystemExit:
+        print("Preview path violates pure-read (renderQuest not found)")
+        return 1
+    call_lines = [ln for ln in render_quest.splitlines()
+                  if "renderQuestNextDayBlock(" in ln]
+    if not call_lines:
+        print("Preview path violates pure-read "
+              "(renderQuest never calls renderQuestNextDayBlock)")
+        return 1
+    path = strip_comments(preview + "\n" + "\n".join(call_lines))
+    print("Preview path: scanned renderQuestNextDayBlock body (%d chars) + "
+          "%d call-site line(s)" % (len(preview), len(call_lines)))
     forbidden = [
         "saveCharacter", "saveDayState", "localStorage.setItem",
         "ensureQuestState", "completeQuest", "applyQuestProgress",
         "character.", "dayState.",
     ]
     scan_fail = [f for f in forbidden if f in path]
+    print("Preview path: forbidden-token hits: %d" % len(scan_fail))
     if scan_fail:
         print("Preview path violates pure-read (found write/mutation ref):", scan_fail)
         return 1

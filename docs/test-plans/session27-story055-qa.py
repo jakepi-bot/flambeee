@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
-"""Session 27 QA - Story 055 (Scout).
+"""Session 27 QA - Story 055 (Scout), repinned Session 64 / Story 141.
 
 Cinder Record Family, Decision Record and Next Candidate Surface.
 
 Story 055 is documentation only, so its testable surface is exactly three
-things, and all three are mechanical checks against TAGGED v0.24.0 rather than
+things, all of them mechanical checks against frozen history rather than
 against whatever happens to be in the working tree:
 
   1. Every line reference the record cites resolves to the function or
      statement the record names. One reference was already corrected from
-     `:754` to `:759` in Wave 2; this harness re-verifies it and the rest.
+     `:754` to `:759` in Wave 2; this harness re-verifies it and the rest,
+     all against the tagged base blob v0.24.0:src/cinder.html.
 
   2. The open candidate (welcome-back suppression across a later UTC day
      inside one gap) is REPRODUCED BY EXECUTION, not accepted from the record's
@@ -19,13 +20,16 @@ against whatever happens to be in the working tree:
 
   3. The record is TRUTHFUL about Story 053: the load-normalization row must
      say in-flight / pending merge, never shipped, until the merged-candidate
-     run actually passes.
+     run actually passes. Read from the frozen v0.25.0 record blob
+     (`git show v0.25.0:docs/stories/055-cinder-record-family-decision-record.md`),
+     which is the record as Story 055 shipped it.
 
 Usage:
     python3 session27-story055-qa.py
 Env:
     REPO    path to the flambeee repo (default: derived, $REPO wins)
-    RECORD  path to the decision record under test
+    RECORD  triage path override for the decision record (default: the frozen
+            v0.25.0 blob above, read through git show)
 """
 import json
 import os
@@ -52,10 +56,26 @@ def _repo_root():
 
 
 REPO = _repo_root()
-RECORD = os.environ.get(
-    "RECORD", os.path.join(
-        REPO, "docs", "stories",
-        "055-cinder-record-family-decision-record.md"))
+# The record as Story 055 shipped it: resolved through git show, never the
+# live disk file (main corrected the row to "shipped in v0.25.0" in 7f6368a).
+# $RECORD still wins as a triage path override.
+FROZEN_RECORD_REF = ("v0.25.0:docs/stories/"
+                     "055-cinder-record-family-decision-record.md")
+RECORD = os.environ.get("RECORD")
+
+
+def read_record():
+    """Frozen record text: triage $RECORD path, else the v0.25.0 blob."""
+    if RECORD:
+        try:
+            with open(RECORD, encoding="utf-8") as fh:
+                return fh.read()
+        except OSError:
+            return None
+    rc, out = run("git show %s" % FROZEN_RECORD_REF)
+    if rc != 0 or not out:
+        return None
+    return out
 
 COUNT = {"pass": 0, "fail": 0}
 
@@ -99,9 +119,9 @@ def find_line_refs(text):
 
 
 def main():
-    print("=== Session 27 Story 055 QA (Scout) ===")
+    print("=== Session 27 Story 055 QA (Scout), repinned Story 141 ===")
     print("repo   : %s" % REPO)
-    print("record : %s" % RECORD)
+    print("record : %s" % (RECORD if RECORD else "git:%s" % FROZEN_RECORD_REF))
 
     src = tagged_v0240()
     lines = src.splitlines()
@@ -242,17 +262,12 @@ console.log(JSON.stringify(out, null, 2));
 
     # ---------------------------------------------------------------- part 3
     group("Part 3: the record is TRUTHFUL about Story 053")
-    if not os.path.isfile(RECORD):
-        d = os.path.join(REPO, "docs")
-        hits = []
-        for root, _dirs, files in os.walk(d):
-            for f in files:
-                if f.endswith(".md") and "055" in f:
-                    hits.append(os.path.join(root, f))
-        print("  record not at the expected path; candidates: %r" % hits)
-        check(False, "decision record file exists at %s" % RECORD)
+    rec = read_record()
+    if rec is None:
+        print("  frozen record unreadable: git show %s" % FROZEN_RECORD_REF)
+        check(False, "frozen decision record resolves at %s" % FROZEN_RECORD_REF)
     else:
-        rec = open(RECORD, encoding="utf-8").read()
+        print("  frozen record resolves: %d bytes" % len(rec.encode("utf-8")))
         low = rec.lower()
         row = [ln for ln in rec.splitlines() if "053" in ln]
         print("  Story 053 row(s) in the record:", flush=True)

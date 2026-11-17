@@ -1,20 +1,50 @@
 #!/usr/bin/env python3
-"""Session 22 Story 040 browser verification (Scout).
+"""Session 22 Story 040 browser verification (Scout), pinned Session 64 / Story 141.
 
-Runs the pinned Story 040 artifact (website/games/cinder.html; original pin was
-commit 28e5c49) over http
-in real Chromium via Playwright, covering the 14 BDD scenarios plus negative
-tests. The main-build artifact (77acd25) is used as a byte-safety control.
+Runs the pinned Story 040 artifact over http in real Chromium via Playwright,
+covering the 14 BDD scenarios plus negative tests. The served artifact is
+ALWAYS the frozen bytes `git show 28e5c49:src/cinder.html` (B3.1), materialized
+to a runtime temp dir at startup; the S5c byte-safety control is ALWAYS
+`git show 77acd25:src/cinder.html` (B3.2), materialized beside it. No live
+tree file is served or scanned. If either frozen ref fails to resolve, the
+script BLOCKs (exit 2) instead of testing the wrong bytes.
+
+B3.3 dispositions (Session 62 measured 3 of 164 on the direct run, which
+served LIVE website/games/cinder.html instead of the pin):
+  - "S5c control artifact cinder-main.html missing" was an environment shape
+    (direct run without the runner's QA_ART_DIR), not a product finding. Gone
+    by construction: the control is materialized in-script, so the four S5c
+    checks always run. All four pass: S5c day-record byte-identity HOLDS
+    (both builds backfill identically for the seeded legacy record), so no
+    retire was needed.
+  - The two S8 survived-branch checks failed on live because their seed
+    (dayIndex TODAY-3 with a live quest.completed=true flag) encodes the
+    gate spec formula the Story 042 streak source later superseded on main.
+    But this script's artifact is the FROZEN 28e5c49 build (B3.1), whose
+    shipped computeAwayWindow reads streakSurvived from
+    computeQuestStreak(rawDayState) > 0 -- and that helper counts today as a
+    live completion when the quest flag is set. Against the pinned bytes the
+    original seed reads shouldShow true, daysAway 2, streakSurvived true, so
+    all four S8 checks pass UNCHANGED. Per rule B3.3 these failures are
+    satisfiable at the frozen ref and repinned per B3.1 (serve the pin), not
+    retired and not re-seeded: the seed encodes the pinned build's own
+    shipped contract.
 
 Usage: python3 qa-story040.py
-Env: QA_ART_DIR (default = website/games under the repo root), QA_PORT (default 8731)
+Env: QA_PORT (default 8731), REPO (default derived),
+     PIN_REF (default 28e5c49:src/cinder.html, triage override only),
+     CONTROL_REF (default 77acd25:src/cinder.html, triage override only).
+     QA_ART_DIR is SUPERSEDED by the frozen pin and ignored.
 """
+import hashlib
 import http.server
 import json
 import os
 import re
 import socketserver
+import subprocess
 import sys
+import tempfile
 import threading
 import time
 
@@ -39,8 +69,14 @@ def _repo_root():
 
 
 REPO = _repo_root()
-ART_DIR = os.environ.get("QA_ART_DIR",
-                          os.path.join(REPO, "website", "games"))
+# Runtime serve dir, assigned in main() after the frozen pins materialize.
+ART_DIR = None
+# B3.1/B3.2 frozen pins. Env overrides exist for triage/mutation only; the
+# committed defaults are the binding pins.
+PIN_REF = os.environ.get("PIN_REF", "28e5c49:src/cinder.html")
+CONTROL_REF = os.environ.get("CONTROL_REF", "77acd25:src/cinder.html")
+EXPECTED_PIN_BYTES = 59250
+EXPECTED_CONTROL_BYTES = 53059
 PORT = int(os.environ.get("QA_PORT", "8731"))
 BASE = "http://127.0.0.1:%d" % PORT
 TODAY = int(time.time() * 1000 // 86400000)
@@ -148,9 +184,20 @@ class Quiet(http.server.SimpleHTTPRequestHandler):
         pass
 
 
-def serve():
+def materialize(ref, dest):
+    """Write `git show <ref>` bytes to dest. Returns (bytes, sha256)."""
+    r = subprocess.run(["git", "-C", REPO, "show", ref],
+                       capture_output=True, timeout=60)
+    if r.returncode != 0 or not r.stdout:
+        return None, None
+    with open(dest, "wb") as fh:
+        fh.write(r.stdout)
+    return r.stdout, hashlib.sha256(r.stdout).hexdigest()
+
+
+def serve(art_dir):
     socketserver.TCPServer.allow_reuse_address = True
-    handler = lambda *a, **kw: Quiet(*a, directory=ART_DIR, **kw)
+    handler = lambda *a, **kw: Quiet(*a, directory=art_dir, **kw)
     httpd = socketserver.TCPServer(("127.0.0.1", PORT), handler)
     t = threading.Thread(target=httpd.serve_forever, daemon=True)
     t.start()
@@ -223,8 +270,33 @@ def scan_copy(text):
 
 
 def main():
-    httpd = serve()
-    print("serving %s on %s (todayIdx=%d)" % (ART_DIR, BASE, TODAY), flush=True)
+    global ART_DIR
+    art_dir = tempfile.mkdtemp(prefix="story040-pinned-")
+    pin_body, pin_sha = materialize(PIN_REF, os.path.join(art_dir, "cinder.html"))
+    if pin_body is None:
+        print("BLOCK: pinned artifact unreadable: git show %s" % PIN_REF)
+        return 2
+    ctl_body, ctl_sha = materialize(CONTROL_REF,
+                                    os.path.join(art_dir, "cinder-main.html"))
+    if ctl_body is None:
+        print("BLOCK: S5c control unreadable: git show %s" % CONTROL_REF)
+        return 2
+    ART_DIR = art_dir
+    print("pinned artifact: git:%s (%d bytes, sha256 %s)"
+          % (PIN_REF, len(pin_body), pin_sha))
+    print("S5c control    : git:%s (%d bytes, sha256 %s)"
+          % (CONTROL_REF, len(ctl_body), ctl_sha))
+    if len(pin_body) != EXPECTED_PIN_BYTES:
+        print("BLOCK: pinned artifact is %d bytes, expected %d"
+              % (len(pin_body), EXPECTED_PIN_BYTES))
+        return 2
+    if len(ctl_body) != EXPECTED_CONTROL_BYTES:
+        print("BLOCK: S5c control is %d bytes, expected %d"
+              % (len(ctl_body), EXPECTED_CONTROL_BYTES))
+        return 2
+    httpd = serve(ART_DIR)
+    print("serving %s on %s (todayIdx=%d) [QA_ART_DIR superseded by B3 pin]"
+          % (ART_DIR, BASE, TODAY), flush=True)
     with sync_playwright() as p:
         browser = p.chromium.launch()
 
@@ -356,24 +428,23 @@ def main():
         check(errs == [], "S5 no page errors", errs)
         ctx.close()
 
-        # control: same seed on the pre-040 build, storage bytes must match
-        if os.path.exists(os.path.join(ART_DIR, "cinder-main.html")):
-            ctx_m, page_m, errs_m = open_page(browser, LEGACY_CHAR, legacy_day,
-                                              artifact="cinder-main.html")
-            t_m = txt(page_m)
-            check("WELCOME BACK" not in t_m and "TOWN SQUARE" in t_m,
-                  "S5c control: pre-040 build shows the hub for the same seed")
-            s_m = stored(page_m)
-            ctx, page, errs = open_page(browser, LEGACY_CHAR, legacy_day)
-            s_new = stored(page)
-            check(s_m["save"] == s_new["save"], "S5c character save byte-identical to pre-040 build")
-            check(s_m["day"] == s_new["day"], "S5c day record byte-identical to pre-040 build",
-                  "main=%s" % (s_m["day"],))
-            check(errs == [] and errs_m == [], "S5c no page errors on either build")
-            ctx.close()
-            ctx_m.close()
-        else:
-            check(False, "S5c control artifact cinder-main.html missing")
+        # control: same seed on the pre-040 build, storage bytes must match.
+        # The control is materialized in-script from CONTROL_REF (B3.2), so it
+        # always exists; a missing control BLOCKs at startup, never here.
+        ctx_m, page_m, errs_m = open_page(browser, LEGACY_CHAR, legacy_day,
+                                          artifact="cinder-main.html")
+        t_m = txt(page_m)
+        check("WELCOME BACK" not in t_m and "TOWN SQUARE" in t_m,
+              "S5c control: pre-040 build shows the hub for the same seed")
+        s_m = stored(page_m)
+        ctx, page, errs = open_page(browser, LEGACY_CHAR, legacy_day)
+        s_new = stored(page)
+        check(s_m["save"] == s_new["save"], "S5c character save byte-identical to pre-040 build")
+        check(s_m["day"] == s_new["day"], "S5c day record byte-identical to pre-040 build",
+              "main=%s" % (s_m["day"],))
+        check(errs == [] and errs_m == [], "S5c no page errors on either build")
+        ctx.close()
+        ctx_m.close()
 
         # ================================================== S6
         group("S6 no economy or balance change on return")
