@@ -1,32 +1,32 @@
 [
   {
-    "audience": "Commuter and coffee-break players on phones, 2 to 5 minute sessions",
-    "core_mechanic": "A one-screen daily microgame that opens straight into play, keeps a local streak, and shares a spoiler-free result link with zero signup.",
-    "monetization": "None in-product; brand surface for the catalog",
-    "retrieved_at": "2026-11-08T07:12:41Z",
-    "source_domain": "trendintel.io",
-    "source_url": "https://trendintel.io/trends/1126-frictionless-browser-microgames",
-    "title": "Account-free daily microgames with a deliberate no-monetization stance",
-    "why_hot": "23 signals in one week, momentum 35/100, rising since 2026-11-03: the frictionless no-account microgame format is being tracked as its own trend, not a niche."
+    "audience": "Returning strategy players from the 2000s browser era",
+    "core_mechanic": "A browser strategy game (islands, alliances, raids) whose first session is a staged gather-build-wait loop with an explicit first achievement set.",
+    "monetization": "none during the measured period; under 20 dollars a month to run",
+    "retrieved_at": "2026-11-17T07:14:19Z",
+    "source_domain": "inselnova.com",
+    "source_url": "https://inselnova.com/chronicle/2026-05-12-first-session",
+    "title": "Onboarding rebuilt five times because day-one retention was 25 percent",
+    "why_hot": "A 2026 devlog with the honest number attached: day-one retention around 25 percent, five rebuilds of the first session, and the conclusion that onboarding is not teaching controls but getting the player to a first goal and to other players. Alliance members retained at 87 percent against 16 percent solo in the same game's later writeup."
   },
   {
-    "audience": "Exploration and cozy-game players, desktop and mobile browser",
-    "core_mechanic": "A bounded curved world with no map screen: progress is spatial and memorable because the whole world fits in the player's head.",
-    "monetization": "Premium game sold on web, no ads",
-    "retrieved_at": "2026-11-08T07:12:41Z",
-    "source_domain": "wtf.me.uk",
-    "source_url": "https://www.wtf.me.uk/2026/06/messenger-tiny-browser-game-that-went.html",
-    "title": "Tiny planet you can circumnavigate in minutes",
-    "why_hot": "Viral in June 2026 from one tweet: the hook is a world small enough to walk all the way around in minutes, and the multiplayer layer is presence only, no chat and no competition."
+    "audience": "Arcade score-chasers on desktop",
+    "core_mechanic": "Arcade space shooter where consecutive hits raise a damage multiplier in visible tiers and any miss resets it to zero, with escalating screen effects per tier.",
+    "monetization": "none stated; devlog project",
+    "retrieved_at": "2026-11-17T07:14:19Z",
+    "source_domain": "scien.cx",
+    "source_url": "https://www.scien.cx/2026/05/20/the-combo-system-that-makes-neon-starfighter-addictive-a-devlog",
+    "title": "Visible combo multiplier as the whole retention spine",
+    "why_hot": "A 2026 devlog that puts a number on the feedback loop: players who reach a 10x combo in their first run return the next day 70 percent of the time, against 30 percent for players who stay under 5x. The combo is always on screen, escalates in tiers at 5, 10, and 20 hits, and resets on a miss."
   },
   {
-    "audience": "Arcade racing fans on desktop browsers with gamepad or keyboard",
-    "core_mechanic": "Drift-and-boost kart racing against AI on a procedural circuit, with power-up pickups and a single-file zero-dependency build.",
-    "monetization": "MIT open source, no monetization",
-    "retrieved_at": "2026-11-08T07:12:41Z",
-    "source_domain": "github.com",
-    "source_url": "https://github.com/atiqur-rahman-pro/claude-kart",
-    "title": "Single-file 3D kart racer on WebGPU",
-    "why_hot": "WebGPU became baseline in 2026 and this shows the ceiling of one-file browser games: 800 lines, no build, procedural audio, playable instantly."
+    "audience": "Casual players arriving from a shared link on whatever device is at hand",
+    "core_mechanic": "Not a game mechanic: a distribution thesis that the first playable frame is the product metric, with plain Canvas 2D as a deliberate size choice.",
+    "monetization": "portal ad revenue on a 13-game catalog",
+    "retrieved_at": "2026-11-17T07:14:19Z",
+    "source_domain": "salutgames.net",
+    "source_url": "https://salutgames.net/blog/browser-games-2026-instant-play",
+    "title": "Instant-play pages competing on first frame, not on features",
+    "why_hot": "October 2026 measured numbers: median first frame 0.69 seconds on a first visit and 0.2 seconds on a return, about one kilobyte downloaded, against a GameAnalytics median mobile session of 5 to 6 minutes. The article argues the cost of starting is the differentiator now that WebGPU is in all four major browsers."
   }
 ]
