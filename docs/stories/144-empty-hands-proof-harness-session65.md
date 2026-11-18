@@ -28,7 +28,7 @@ No other file. Zero paths under `website/`. The manifest is committed, not gener
 
 ## Functional requirements
 
-- FR-1. The harness runs under `env -u PYTHONPATH .venv/bin/python` (repo venv). All sim numbers are produced with that interpreter. The interpreter is named in every pasted evidence block.
+- FR-1. The harness runs under `env -u PYTHONPATH /home/jake/.hermes/flambeee/.venv/bin/python` (team venv, outside the repo). All sim numbers are produced with that interpreter. The interpreter is named in every pasted evidence block.
 - FR-2. Mirror rule: the harness reads the shipped CONFIG object from `website/games/empty-hands.html` and replays its constants (N_PER_LEVEL, SLACK_PER_LEVEL, VMIN, VMAX, SHRINK_STEP, SHRINK_FLOOR, LEVEL_CAP). Any drift between the harness copy and the shipped file is a build failure: the harness fails with the drifted constant named. A drift failure is never tuned around; the file and the harness are brought back into agreement and the gate re-runs.
 - FR-3. Sim band per level config on the committed manifest: for each of the six level shapes (n 8/9/10/11/12/12 with slack 3/2/1/0/0/0), 200 seeds, four policies: solver (exact interval DP per M.2), fixed-greedy (cheaper end, tie left), random legal-end, never-give. Reports per level: solver win rate, greedy win rate, random win rate, solver-minus-greedy gap, mean optimal spend.
 - FR-4. Gate check 1, solvable: solver spend at or below the dealt purse for every seed, 200/200 per level. Any miss means the dealer or purse formula drifted; nothing ships.
@@ -43,9 +43,9 @@ No other file. Zero paths under `website/`. The manifest is committed, not gener
 
 ## BDD acceptance criteria
 
-Threshold: 10 of 10 on the PR head. Each Then names the observable command and the expected exit code under `env -u PYTHONPATH .venv/bin/python`.
+Threshold: 10 of 10 on the PR head. Each Then names the observable command and the expected exit code under `env -u PYTHONPATH /home/jake/.hermes/flambeee/.venv/bin/python`.
 
-- AC-1 (harness runs). Given the PR head, when run as `env -u PYTHONPATH .venv/bin/python dev/empty-hands-proof.py`, then it starts, loads the committed manifest, reads the shipped CONFIG, and reports per-level numbers or fails with the cause named.
+- AC-1 (harness runs). Given the PR head, when run as `env -u PYTHONPATH /home/jake/.hermes/flambeee/.venv/bin/python dev/empty-hands-proof.py`, then it starts, loads the committed manifest, reads the shipped CONFIG, and reports per-level numbers or fails with the cause named.
 - AC-2 (manifest committed). Given the PR head, when the manifest is read, then it holds SEED_BASE 3000 with seeds `3000 + L*1000 + s`, s = 0..199, 200 runs per level config, committed in git (not generated at run time).
 - AC-3 (gate 1 solvable). Given the manifest seeds, when the solver leg runs, then optimal spend is at or below the dealt purse for 200/200 seeds on every level shape, exit 0 on this check.
 - AC-4 (gate 2 greedy band). Given the manifest seeds, when the fixed-greedy leg runs on the hardest level (L6, n=12 slack 0), then the win rate reads between 0.15 and 0.60 inclusive (probe reference 0.60).
@@ -59,7 +59,7 @@ Threshold: 10 of 10 on the PR head. Each Then names the observable command and t
 ## Acceptance command list (the 01:55 dev wave runs and pastes all of these)
 
 ```
-env -u PYTHONPATH .venv/bin/python dev/empty-hands-proof.py
+env -u PYTHONPATH /home/jake/.hermes/flambeee/.venv/bin/python dev/empty-hands-proof.py
 ```
 
 Full gate on the PR head: seven checks green, exit 0, with the per-level sim table (solver, greedy, random, gap, mean optimal) pasted in the PR body in the session-plan probe table shape.
@@ -73,7 +73,7 @@ Pasted in the PR body to prove the diff holds only the harness plus the manifest
 RED anchor (in a throwaway worktree at base `1a7e7f6`, game file absent):
 
 ```
-env -u PYTHONPATH .venv/bin/python dev/empty-hands-proof.py
+env -u PYTHONPATH /home/jake/.hermes/flambeee/.venv/bin/python dev/empty-hands-proof.py
 ```
 
 Expected: exit 2. Pasted next to the green run. A harness that stays green with the file absent is a relaxed assertion and the PR is rejected.
