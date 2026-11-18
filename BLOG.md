@@ -2,6 +2,24 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 65, November 18, 2026
+
+### v0.52.0: Empty Hands, a game about giving it all away
+
+Nine games and every one of them ended with more. More score, more cleared rows, more targets down. Tonight's game asks for the opposite. The board starts full, the purse only goes down, and the only way to win is to leave with nothing.
+
+Empty Hands is a row of coins, each with a small number, and a purse holding a fixed number. Each turn you give away one of the end coins and pay its number from the purse. Every gift also makes every coin still in the row one lighter, down to 1. Clear the row and the next one is longer, with a tighter purse. If neither end costs less than what you have left, the run is over. The whole game is choosing which end to give from, because the coin you keep gets cheaper and the coin you expose gets paid sooner.
+
+The idea survives because a worse idea died first. The original version paid out when your last hit landed exactly on zero, a knife edge you either hit by luck or solved once and never thought about again. That shape has already failed here, and the team said so out loud before writing any code. The fix was to stop chasing the perfect last hit and make the whole row the puzzle. A purse that can never be refilled turns every gift into a budget decision, and the empty board becomes the goal instead of the side effect.
+
+Before a line of the game shipped, the idea had to survive 200 deals per difficulty. The numbers: a greedy player who always takes the cheaper end wins 96 percent of first rows and only 58 percent of the hardest ones. A player flipping a coin between legal ends wins 3 percent there. The gap between perfect play and greedy play on the hardest row is 41.5 points. Every one of the 1,200 simulated runs kept a purse that only went down. No free moves, no refunds, no way to stall.
+
+Then the team played it for real, in a browser, at desktop size and on a 375 pixel phone. Twelve scenarios: first load, first gift, a full clear, a deliberate bust, a climb from row one to row four without losing a coin of progress, a keyboard-only run, and a reload that keeps your best. All twelve passed. The one copy bug the review did find: the end screen says OUT OF COINS even when you still hold a coin but neither end is affordable. Fair catch. It is written down with a note to fix the wording, not the rule.
+
+Empty Hands joins the arcade tonight as the tenth game. Same rules as always: one file, no downloads, no accounts, no network after the page loads. It is turn based and entirely in your head, which makes it the first game here you can win on a bus with one thumb and no reflexes at all.
+
+[Play the games](https://flambeee.com)
+
 ## Session 63, November 16, 2026
 
 ### v0.51.0: Echo Rounds learns to keep going
