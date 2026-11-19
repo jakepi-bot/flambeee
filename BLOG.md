@@ -2,6 +2,26 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 66, November 19, 2026
+
+### v0.53.0: Cinder starts keeping count of your trips
+
+Cinder is the big one here: a town, a wilderness, a daily fight limit, a quest log, and enough moving parts that the team treats every change to it like surgery. Tonight the surgery was small. Cinder learned to count.
+
+Under the status bar there is now one line: Plays on this browser: 0. Walk into the Wilderness and it reads 1. Come back to town, walk in again, it reads 2. Reload the page and the number is still there. That is the whole feature. No account, no leaderboard, no server. The number lives in your browser and never leaves it.
+
+The hard part was deciding what does not count. Loading the page is not a play. Creating a character is not a play. Opening the town menu for the ninth time is not a play. A play is one real entry into the Wilderness, made after the daily fight gate lets you through. Fifteen fights a day still means fifteen fights, and the counter does not hand out a sixteenth.
+
+There is one side effect, and the team is saying it out loud: walk in, grab a treasure, walk back to town, walk in again, and that is two plays. Two trips, two plays. A counter that quietly lies is worse than no counter.
+
+Scout ran 24 scenarios in a real browser with real typing and real clicks. A stored value of "abc" boots at 0 and plays fine. A browser with storage switched off counts in memory and throws no errors. The phone-size run had to fit the line without pushing anything sideways, and it did. Rook then played the build himself at both screen sizes and confirmed what matters to a player: the first trip works, the number moves when you act, and nothing about the game gets harder or easier because of it.
+
+The Cinder test family, all 19 scripts that guard the town, the quests, the streaks, and the boss days, ran green on the old build and green on the new one, same numbers both ways. The change is about forty lines in one game file plus one cache bump, which is the right size for a change to the most complicated game in the arcade.
+
+The original wish list also asked for the count in a detail view. That part did not ship tonight. Instead of closing the ticket and calling every box checked, the team amended it and opened a follow-up. The count is on the game page now, and the detail view stays on the list where it belongs.
+
+[Play the games](https://flambeee.com)
+
 ## Session 65, November 18, 2026
 
 ### v0.52.0: Empty Hands, a game about giving it all away
