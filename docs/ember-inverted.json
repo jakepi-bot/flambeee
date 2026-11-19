@@ -1,26 +1,26 @@
 [
   {
-    "concept_summary": "The fantasy of Onboarding rebuilt five times because day-one retention was 25 percent stretched over a single persistent season lasting months: one meaningful decision per evening, no grinding, no catching up. Progress compounds across real calendar time and a missed week bends the story instead of ending it. The finale is scheduled, shared, and unrepeatable.",
+    "concept_summary": "A reverse-loop game in the world of Threadline: a thread that bends only so many times: you begin holding everything the source hands out and win by giving it all back. Where the source loop is 'Draw and bend a thread with a fixed bend budget to route it past obstacles; each bend spends a shared resource.', here every move undoes the 'Draw and bend a thread with a fixed bend budget to route it past obstacles; each bend spends a shared resource.' loop step by step instead of advancing it, so the map empties and the score falls. Hoarding triggers the lose state; the end screen celebrates an empty board.",
+    "first_experiment": "Paper prototype: ten tokens stand in for everything the player owns and each turn must discard at least one; test with five players whether emptying the board feels like winning after three rounds.",
+    "inversion_axis": "mechanic",
+    "inverted_title": "Threadline in Reverse",
+    "source_idea_title": "Threadline: a thread that bends only so many times",
+    "why_it_is_opposite": "While the source rewards accumulation (Draw and bend a thread with a fixed bend budget to route it past obstacles; each bend spends a shared resource.), this concept rewards the opposite: progress means having less, so a winning run here would score zero in the source."
+  },
+  {
+    "concept_summary": "The fantasy of Sonar: see with sound, but the dark listens back stretched over a single persistent season lasting months: one meaningful decision per evening, no grinding, no catching up. Progress compounds across real calendar time and a missed week bends the story instead of ending it. The finale is scheduled, shared, and unrepeatable.",
     "first_experiment": "Concierge test: run the core decision by hand over seven daily messages with three players; if day-seven return beats the source's second-session return, the long form has legs.",
     "inversion_axis": "session length",
-    "inverted_title": "The 100-Hour Onboarding",
-    "source_idea_title": "Onboarding rebuilt five times because day-one retention was 25 percent",
+    "inverted_title": "The 100-Hour listens",
+    "source_idea_title": "Sonar: see with sound, but the dark listens back",
     "why_it_is_opposite": "While the source fits short sessions, this concept flips the clock: one season here outlasts hundreds of source sessions, so the source habit of quick payoff actively hurts."
   },
   {
-    "concept_summary": "A reverse-loop game in the world of Visible combo multiplier as the whole retention spine: you begin holding everything the source hands out and win by giving it all back. Where the source loop is 'Arcade space shooter where consecutive hits raise a damage multiplier in visible tiers and any miss resets it to zero, with escalating screen effects per tier.', here every move undoes the 'Arcade space shooter where consecutive hits raise a damage multiplier in visible tiers and any miss resets it to zero, with escalating screen effects per tier.' loop step by step instead of advancing it, so the map empties and the score falls. Hoarding triggers the lose state; the end screen celebrates an empty board.",
-    "first_experiment": "Paper prototype: ten tokens stand in for everything the player owns and each turn must discard at least one; test with five players whether emptying the board feels like winning after three rounds.",
-    "inversion_axis": "mechanic",
-    "inverted_title": "multiplier in Reverse",
-    "source_idea_title": "Visible combo multiplier as the whole retention spine",
-    "why_it_is_opposite": "While the source rewards accumulation (Arcade space shooter where consecutive hits raise a damage multiplier in visible tiers and any miss resets it to zero, with escalating screen effects per tier.), this concept rewards the opposite: progress means having less, so a winning run here would score zero in the source."
-  },
-  {
-    "concept_summary": "The same core loop as Instant-play pages competing on first frame, not on features, rebuilt end to end for hardcore instead of casual players. Controls, difficulty, session shape, and rewards assume hardcore: permadeath, no assists, and a public skill rating. Nothing in this build serves the old crowd; one client cannot satisfy both.",
+    "concept_summary": "The same core loop as COO: a 250-square-mile city built for a spy pigeon, rebuilt end to end for newcomers instead of its current crowd. Controls, difficulty, session shape, and rewards assume newcomers: a guided, jargon-free on-ramp for total beginners. Nothing in this build serves the old crowd; one client cannot satisfy both.",
     "first_experiment": "Take one level from the source fantasy, apply the inverted tuning only, and playtest with five target players for ten minutes; a quit-rate on the opposite side of half from the source baseline confirms the audience split is real.",
     "inversion_axis": "audience",
-    "inverted_title": "competing for Hardcore",
-    "source_idea_title": "Instant-play pages competing on first frame, not on features",
-    "why_it_is_opposite": "While the source is tuned for casual players (Casual players arriving from a shared link on whatever device is at hand: gentle assists, no fail states, and bite-size sessions), this concept flips every tuning decision toward hardcore (permadeath, no assists, and a public skill rating), so the two builds want mutually exclusive players."
+    "inverted_title": "square for Newcomers",
+    "source_idea_title": "COO: a 250-square-mile city built for a spy pigeon",
+    "why_it_is_opposite": "While the source is tuned for its current crowd (Players who want console-scale novelty without an install: systems tuned for veterans of the genre), this concept flips every tuning decision toward newcomers (a guided, jargon-free on-ramp for total beginners), so the two builds want mutually exclusive players."
   }
 ]

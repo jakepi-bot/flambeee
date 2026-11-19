@@ -1,32 +1,32 @@
 [
   {
-    "audience": "Returning strategy players from the 2000s browser era",
-    "core_mechanic": "A browser strategy game (islands, alliances, raids) whose first session is a staged gather-build-wait loop with an explicit first achievement set.",
-    "monetization": "none during the measured period; under 20 dollars a month to run",
-    "retrieved_at": "2026-11-17T07:14:19Z",
-    "source_domain": "inselnova.com",
-    "source_url": "https://inselnova.com/chronicle/2026-05-12-first-session",
-    "title": "Onboarding rebuilt five times because day-one retention was 25 percent",
-    "why_hot": "A 2026 devlog with the honest number attached: day-one retention around 25 percent, five rebuilds of the first session, and the conclusion that onboarding is not teaching controls but getting the player to a first goal and to other players. Alliance members retained at 87 percent against 16 percent solo in the same game's later writeup."
+    "audience": "Minimalist puzzle players",
+    "core_mechanic": "Draw and bend a thread with a fixed bend budget to route it past obstacles; each bend spends a shared resource.",
+    "monetization": "None; portal listing",
+    "retrieved_at": "2026-11-19T07:12:52Z",
+    "source_domain": "weeklyarcade.games",
+    "source_url": "https://weeklyarcade.games/best-browser-games-2026",
+    "title": "Threadline: a thread that bends only so many times",
+    "why_hot": "Listed in a 2026 roundup of 34 free browser games with a one-line pitch that reads like a mechanic, not a genre. The constraint (limited bends) is legible before the first click."
   },
   {
-    "audience": "Arcade score-chasers on desktop",
-    "core_mechanic": "Arcade space shooter where consecutive hits raise a damage multiplier in visible tiers and any miss resets it to zero, with escalating screen effects per tier.",
-    "monetization": "none stated; devlog project",
-    "retrieved_at": "2026-11-17T07:14:19Z",
-    "source_domain": "scien.cx",
-    "source_url": "https://www.scien.cx/2026/05/20/the-combo-system-that-makes-neon-starfighter-addictive-a-devlog",
-    "title": "Visible combo multiplier as the whole retention spine",
-    "why_hot": "A 2026 devlog that puts a number on the feedback loop: players who reach a 10x combo in their first run return the next day 70 percent of the time, against 30 percent for players who stay under 5x. The combo is always on screen, escalates in tiers at 5, 10, and 20 hits, and resets on a miss."
+    "audience": "Puzzle and tension players who like minimal one-screen browser games",
+    "core_mechanic": "Echolocation with a cost: a ping raycasts and briefly reveals geometry while attracting blind predators to the ping origin, so sight and safety are the same resource.",
+    "monetization": "None; open source portfolio piece",
+    "retrieved_at": "2026-11-19T07:12:52Z",
+    "source_domain": "github.com",
+    "source_url": "https://github.com/krabduke/sonar",
+    "title": "Sonar: see with sound, but the dark listens back",
+    "why_hot": "Recent no-build single-file browser game with a clean hook: every ping reveals the cave and also tells the predators exactly where you are. Novel risk-perception mechanic, 40 KB, zero dependencies."
   },
   {
-    "audience": "Casual players arriving from a shared link on whatever device is at hand",
-    "core_mechanic": "Not a game mechanic: a distribution thesis that the first playable frame is the product metric, with plain Canvas 2D as a deliberate size choice.",
-    "monetization": "portal ad revenue on a 13-game catalog",
-    "retrieved_at": "2026-11-17T07:14:19Z",
-    "source_domain": "salutgames.net",
-    "source_url": "https://salutgames.net/blog/browser-games-2026-instant-play",
-    "title": "Instant-play pages competing on first frame, not on features",
-    "why_hot": "October 2026 measured numbers: median first frame 0.69 seconds on a first visit and 0.2 seconds on a return, about one kilobyte downloaded, against a GameAnalytics median mobile session of 5 to 6 minutes. The article argues the cost of starting is the differentiator now that WebGPU is in all four major browsers."
+    "audience": "Players who want console-scale novelty without an install",
+    "core_mechanic": "Open-world mission sandbox from a non-human POV; procedural missions over a data-derived map with flight as the traversal verb.",
+    "monetization": "None; free browser build",
+    "retrieved_at": "2026-11-19T07:12:52Z",
+    "source_domain": "gizmodo.com",
+    "source_url": "https://gizmodo.com/new-browser-game-coo-reimagines-grand-theft-auto-from-the-pov-of-a-canadian-spy-pigeon-2000837873",
+    "title": "COO: a 250-square-mile city built for a spy pigeon",
+    "why_hot": "A browser 3D open world generated from real city data, built in seven days by parallel AI workstreams. Signals how far single-page scope has moved and where the novelty bar sits."
   }
 ]
