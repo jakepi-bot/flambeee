@@ -31,6 +31,22 @@
     "sourced_idea": "Single-file 3D kart racer on WebGPU",
     "title_used": "WebGPU became baseline in 2026 and this shows the ceiling of one-file browser ga"
   },
+  "https://github.com/krabduke/sonar": {
+    "domain": "github.com",
+    "first_seen": "2026-11-19",
+    "reuse_cooldown_sessions": 4,
+    "session": "Session 66",
+    "sourced_idea": "Sonar: see with sound, but the dark listens back",
+    "title_used": "Recent no-build single-file browser game with a clean hook: every ping reveals t"
+  },
+  "https://gizmodo.com/new-browser-game-coo-reimagines-grand-theft-auto-from-the-pov-of-a-canadian-spy-pigeon-2000837873": {
+    "domain": "gizmodo.com",
+    "first_seen": "2026-11-19",
+    "reuse_cooldown_sessions": 4,
+    "session": "Session 66",
+    "sourced_idea": "COO: a 250-square-mile city built for a spy pigeon",
+    "title_used": "A browser 3D open world generated from real city data, built in seven days by pa"
+  },
   "https://innovation-village.com/nigerian-developer-turns-lagos-danfo-into-viral-game": {
     "domain": "innovation-village.com",
     "first_seen": "2026-11-05",
@@ -78,6 +94,14 @@
     "session": "session-55",
     "sourced_idea": "Account-free daily microgames with a deliberate no-monetization stance",
     "title_used": "23 signals in one week, momentum 35/100, rising since 2026-11-03: the frictionle"
+  },
+  "https://weeklyarcade.games/best-browser-games-2026": {
+    "domain": "weeklyarcade.games",
+    "first_seen": "2026-11-19",
+    "reuse_cooldown_sessions": 4,
+    "session": "Session 66",
+    "sourced_idea": "Threadline: a thread that bends only so many times",
+    "title_used": "Listed in a 2026 roundup of 34 free browser games with a one-line pitch that rea"
   },
   "https://www.scien.cx/2026/05/20/the-combo-system-that-makes-neon-starfighter-addictive-a-devlog": {
     "domain": "scien.cx",
