@@ -52,6 +52,7 @@
     </div>
     <div id="storageNotice" class="storage-notice">Progress could not be read in this browser. Play continues for this session.</div>
     <div id="statusLine" class="status-line"></div>
+    <div id="playsLine" class="plays-line">Plays on this browser: 0</div>
     <div class="main-area">
       <div id="display" class="display"></div>
       <div id="promptLine" class="prompt-line">
@@ -68,6 +69,8 @@
   // === CONSTANTS ===
   const SAVE_KEY = 'flambeee-cinder-save';
   const DAY_KEY = 'flambeee-cinder-day';
+  const COUNT_KEY = 'flambeee-cinder-plays';
+  const COUNT_CAP = 9007199254740991;
   const MAX_FIGHTS_PER_DAY = 15;
   const MAX_INN_HEALS_PER_DAY = 3;
   const INN_HEAL_COST = 5;
@@ -1042,6 +1045,41 @@
   }
 
   // === UI FUNCTIONS ===
+  /* Local play counter (Story 145). Stored as a plain JSON number under
+   * COUNT_KEY. One key, one total. In-memory playsMem always renders,
+   * even when storage throws. */
+  let playsMem = 0;
+  const playsEl = document.getElementById('playsLine');
+  function sanitizePlays(v) {
+    if (typeof v === 'number') {
+      if (!isFinite(v) || Math.floor(v) !== v || v < 0 || v > COUNT_CAP) return 0;
+      return v;
+    }
+    if (typeof v === 'string' && v !== '') {
+      var n = Number(v);
+      if (!isFinite(n) || Math.floor(n) !== n || n < 0 || n > COUNT_CAP) return 0;
+      return n;
+    }
+    return 0;
+  }
+  function loadPlays() {
+    try {
+      var raw = localStorage.getItem(COUNT_KEY);
+      if (raw === null || typeof raw === 'undefined') return 0;
+      var parsed;
+      try { parsed = JSON.parse(raw); } catch (e) { return 0; }
+      if (parsed === null || typeof parsed === 'undefined') return 0;
+      return sanitizePlays(parsed);
+    } catch (e) { return 0; }
+  }
+  function renderPlays() {
+    playsEl.textContent = 'Plays on this browser: ' + playsMem;
+  }
+  function bumpPlays() {
+    playsMem = Math.min(playsMem + 1, COUNT_CAP);
+    try { localStorage.setItem(COUNT_KEY, JSON.stringify(playsMem)); } catch (e) {}
+    renderPlays();
+  }
   function renderStatus() {
     if (!character) return;
     const status = document.getElementById('statusLine');
@@ -1257,6 +1295,7 @@
     }
     clearLog();
     addLog('You venture into the Wilderness...', 'flavor');
+    bumpPlays();
     setTimeout(encounter, 800);
   }
 
@@ -1638,6 +1677,8 @@
   function init() {
     character = normalizeCharacterRecord(loadSave());
     dayState = normalizeDayRecord(loadDayState());
+    playsMem = loadPlays();
+    renderPlays();
     // Story 040: capture the loaded day record and derive the absence window
     // BEFORE checkDailyReset(), which replaces dayState wholesale and would
     // otherwise hand back today's index as the last play day. Pure read: the

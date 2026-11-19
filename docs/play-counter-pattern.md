@@ -183,3 +183,40 @@ matches the shipped logic including numeric-string sanitize and
 the return-to-setup re-render, and the boot load precedes autostart.
 Any remaining conflict between this doc and Story 121 as built
 resolves in favor of Story 121 as built.
+
+## 7. Cinder instance (Story 145, Session 66)
+
+Counting unit: one play equals one entry into `enterWilderness()`
+(`website/games/cinder.html`) that passes the daily-fight gate
+(`dayState.fightsUsed < MAX_FIGHTS_PER_DAY`, 15) and deals an encounter.
+Single `bumpPlays()` call inside `enterWilderness()`, placed after the
+failed-start gate (which returns early without counting) and before the
+encounter timer (`setTimeout(encounter, 800)`). Page load, reload, tab
+restore, town renders, welcome-back renders, character creation, failed
+starts at the cap, and WIN/LOSE accounting never increment.
+
+Re-entry consequence (known, stated so review does not relitigate it):
+`fightsUsed` increments only on a combat win, so a non-combat treasure
+entry returns to the wilderness menu without spending a fight, and
+re-entering calls `enterWilderness()` again and counts a second play.
+A player who returns to town and enters again counts again. Bounded only
+by player patience, same shape as the Typewreck restart rule above.
+
+Persistent-shell display rule: the line lives in the persistent shell
+beside `#statusLine`, outside `#display` (every menu render rewrites
+`#display` innerHTML and would erase a line placed inside it). Exact copy
+`Plays on this browser: N`, rendered on boot (0 on a first visit) and
+after every increment. No plays line on end screens.
+
+Single key: `flambeee-cinder-plays`, cap 9007199254740991, helpers
+`playsMem`, `sanitizePlays`, `loadPlays`, `renderPlays`, `bumpPlays`.
+One key only. No second key, no per-day key, no save-schema change.
+Counter stays out of `normalizeCharacterRecord` and
+`normalizeDayRecord`. Sanitizer, boot-load-then-render, try/catch write,
+and silent blocked-storage behavior match the snippet in section 2.
+
+Re-scope note: #215's detail-view clause (plays rows on
+`website/index.html`) is re-scoped to a follow-up issue covering the
+three shipped counters (Cinder, Afterglow, Typewreck), owed in this
+release wave with its number recorded when the wave opens it. #215 stays
+open until that batch lands; the game-page line alone does not close it.
