@@ -6,7 +6,7 @@
 **Assigned to:** **Scout**, QA owner of the evidence. No code owner; Riven's Story 145 PR carries the diff, Scout owns the gate record.
 **Base commit:** `f26554e` (main, v0.52.0 released).
 **Design contract:** `flambeee-team/design-handoff.md`, Story 146 sections 1 through 8. Design-owned observable criteria live in section 6 of that contract; the functional criteria below test the same gate from the requirements side.
-**Jakebot ruling (binding):** session `local-1293548acc91245a8d713b75f92c88fb013b0b03cf97518f9bb443473f4045f`. Hard-out: no merge without the full family run recorded in the PR.
+**Jakebot ruling (binding):** session `local-1293548acc91245a8d713b75f92c88fb0183b0b03cf97518f9bb443473f4045f`. Hard-out: no merge without the full family run recorded in the PR.
 
 ## Summary
 

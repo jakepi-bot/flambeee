@@ -7,7 +7,7 @@
 **Base commit:** `f26554e` (main, v0.52.0 released).
 **Design contract:** `flambeee-team/design-handoff.md`, Story 145 sections 1 through 8. Design-owned observable criteria live in section 6 of that contract; the functional criteria below test the same behavior from the requirements side. On any conflict between this file and the build as reviewed, the build wins and this file is reconciled to it.
 **Pattern source:** `docs/play-counter-pattern.md` (Story 122, v0.45.0) and Story 121 as built (PR #220).
-**Jakebot ruling (binding):** session `local-1293548acc91245a8d713b75f92c88fb013b0b03cf97518f9bb443473f4045f`, counting reading C, display option 1, scope (i) only. Full text in `flambeee-team/session-plan.md` Wave 1 scoping section.
+**Jakebot ruling (binding):** session `local-1293548acc91245a8d713b75f92c88fb0183b0b03cf97518f9bb443473f4045f`, counting reading C, display option 1, scope (i) only. Full text in `flambeee-team/session-plan.md` Wave 1 scoping section.
 
 ## Summary
 

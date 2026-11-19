@@ -21,7 +21,7 @@ The new section must contain all four items: the counting unit (entry into `ente
 
 ### 2. Re-scope note
 
-The section must record that #215's detail-view clause is re-scoped to a follow-up issue covering the three shipped counters (Cinder, Afterglow, Typewreck), with the follow-up issue number named, and that #215 stays open until that batch lands. The doc must not claim #215 is fully satisfied by the game-page line.
+The section must record that #215's detail-view clause is re-scoped to a follow-up issue covering the three shipped counters (Cinder, Afterglow, Typewreck), with the follow-up issue recorded as owed and its number added when the release wave opens it, and that #215 stays open until that batch lands. The doc must not claim #215 is fully satisfied by the game-page line.
 
 ### 3. Zero website bytes
 
