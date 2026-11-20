@@ -911,6 +911,31 @@
 (function () {
   'use strict';
 
+  // --- Shared detail-view plays read (Stories 148/149) ---
+  // Read-only mirror of the game pages' sanitizePlays: integer 0..9007199254740991,
+  // non-empty numeric strings accepted, everything else yields 0. Never writes.
+  var PLAYS_COUNT_CAP = 9007199254740991;
+  function readPlaysCount(key) {
+    var raw;
+    try {
+      raw = localStorage.getItem(key);
+    } catch (e) { return 0; }
+    if (raw === null || typeof raw === 'undefined') return 0;
+    var parsed;
+    try { parsed = JSON.parse(raw); } catch (e) { return 0; }
+    if (parsed === null || typeof parsed === 'undefined') return 0;
+    if (typeof parsed === 'number') {
+      if (!isFinite(parsed) || Math.floor(parsed) !== parsed || parsed < 0 || parsed > PLAYS_COUNT_CAP) return 0;
+      return parsed;
+    }
+    if (typeof parsed === 'string' && parsed !== '') {
+      var n = Number(parsed);
+      if (!isFinite(n) || Math.floor(n) !== n || n < 0 || n > PLAYS_COUNT_CAP) return 0;
+      return n;
+    }
+    return 0;
+  }
+
   // --- Game data ---
   const GAMES = {
     wordfire: {
@@ -986,7 +1011,7 @@
         'Swipe or tap the edge you want on mobile, or use the arrow keys or WASD on desktop'
       ],
       getStats: function () {
-        var rec = { levelsCleared: 0, runsFinished: 0, bestLevel: 0 };
+        var rec = { levelsCleared: 0, runsFinished: 0, bestLevel: 0, plays: 0 };
         try {
           var raw = localStorage.getItem('flambeee-afterglow-stats');
           if (raw) {
@@ -996,14 +1021,16 @@
             rec.bestLevel = d.bestLevel || 0;
           }
         } catch (e) { /* private mode or corrupt data */ }
+        rec.plays = readPlaysCount('flambeee-afterglow-plays');
         return rec;
       },
       formatStats: function (s) {
-        if (!s || (s.levelsCleared === 0 && s.runsFinished === 0 && s.bestLevel === 0)) return null;
+        if (!s || (s.levelsCleared === 0 && s.runsFinished === 0 && s.bestLevel === 0 && s.plays === 0)) return null;
         return [
           { label: 'Levels cleared', value: s.levelsCleared },
           { label: 'Runs finished', value: s.runsFinished },
-          { label: 'Best level', value: s.bestLevel }
+          { label: 'Best level', value: s.bestLevel },
+          { label: 'Plays', value: s.plays }
         ];
       }
     },
@@ -1148,7 +1175,7 @@
         'Daily reset at UTC midnight restores your fights and Inn heals'
       ],
       getStats: function () {
-        let stats = { level: 0, gold: 0, wins: 0, deaths: 0 };
+        let stats = { level: 0, gold: 0, wins: 0, deaths: 0, plays: 0 };
         try {
           const raw = localStorage.getItem('flambeee-cinder-save');
           if (raw) {
@@ -1159,16 +1186,56 @@
             stats.deaths = s.deaths || 0;
           }
         } catch (e) { /* private mode or corrupt data */ }
+        stats.plays = readPlaysCount('flambeee-cinder-plays');
         return stats;
       },
       formatStats: function (s) {
-        if (s.level === 0 && s.gold === 0 && s.wins === 0 && s.deaths === 0) return null;
+        if (s.level === 0 && s.gold === 0 && s.wins === 0 && s.deaths === 0 && s.plays === 0) return null;
         return [
           { label: 'Level', value: s.level },
           { label: 'Gold', value: s.gold },
           { label: 'Wins', value: s.wins },
-          { label: 'Deaths', value: s.deaths }
+          { label: 'Deaths', value: s.deaths },
+          { label: 'Plays', value: s.plays }
         ];
+      }
+    },
+    typewreck: {
+      name: 'Typewreck',
+      desc: 'Paste anything to raise a fortress wall, then wreck it with piercing shots.',
+      screenshot: 'assets/game-typewreck.png',
+      screenshotAlt: 'Typewreck fortress wall of colored blocks above a bottom cannon, with shots, blocks, and score HUD',
+      playLink: 'games/typewreck.html',
+      rules: [
+        'Paste text to raise a fortress wall; each character sets one block\'s HP',
+        'Fire piercing shots from the bottom cannon in a straight line',
+        'Each shot spends 12 damage traveling through blocks',
+        'You get 28 shots per wall',
+        'Clear every block to win; run out of shots and the wall stands',
+        'Replay the same wall or paste new text for a new one'
+      ],
+      getStats: function () {
+        var stats = { plays: 0, best: null };
+        stats.plays = readPlaysCount('flambeee-typewreck-plays');
+        try {
+          var raw = localStorage.getItem('flambeee-typewreck-best');
+          if (raw) {
+            var b = JSON.parse(raw);
+            if (b && typeof b.score === 'number' && typeof b.seed !== 'undefined') {
+              stats.best = { score: b.score, seed: b.seed };
+            }
+          }
+        } catch (e) { /* private mode or corrupt data */ }
+        return stats;
+      },
+      formatStats: function (s) {
+        var hasPlays = !!s && s.plays > 0;
+        var hasBest = !!s && !!s.best && s.best.score > 0;
+        if (!hasPlays && !hasBest) return null;
+        var items = [];
+        if (hasPlays) items.push({ label: 'Plays', value: s.plays });
+        if (hasBest) items.push({ label: 'Best score', value: s.best.score });
+        return items;
       }
     }
   };
@@ -1358,6 +1425,7 @@
     else if (href === 'games/2048.html') gameKey = '2048';
     else if (href === 'games/cinder.html') gameKey = 'cinder';
     else if (href === 'games/afterglow.html') gameKey = 'afterglow';
+    else if (href === 'games/typewreck.html') gameKey = 'typewreck';
 
     if (gameKey) {
       playBtn.addEventListener('click', function (e) {
