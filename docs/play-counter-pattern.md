@@ -220,3 +220,42 @@ Re-scope note: #215's detail-view clause (plays rows on
 three shipped counters (Cinder, Afterglow, Typewreck), owed in this
 release wave with its number recorded when the wave opens it. #215 stays
 open until that batch lands; the game-page line alone does not close it.
+
+## 8. Detail-view rule (Session 67, Stories 148/149/150)
+
+The home page (`website/index.html`) shows the shipped counters
+read-only inside the game detail modals. No game file changed for this;
+the modal only surfaces what the game already persisted.
+
+Keys surfaced, all read per modal open with no caching across opens:
+
+- `flambeee-cinder-plays` (Cinder `Plays` row, alongside the save record)
+- `flambeee-afterglow-plays` (Afterglow `Plays` row, alongside the stats record)
+- `flambeee-typewreck-plays` (Typewreck `Plays` row)
+- `flambeee-typewreck-best` with shape `{score, seed}` (Typewreck `Best score`
+  row; the modal shows the score only, never the seed)
+
+Read-only site rule: `website/index.html` never calls
+`localStorage.setItem` for these keys. Corrupt values display as absent
+(0, or the empty state) and are never repaired or written back.
+
+Shared sanitize rule (one `readPlaysCount` helper at IIFE scope, mirroring
+the game pages' `sanitizePlays`): accept integer numbers 0..9007199254740991
+and non-empty numeric strings converting to such an integer; yield 0 for
+negative, fractional, NaN, Infinity, null, undefined, absent key, corrupt
+JSON, wrong shape (object/array/boolean), empty string, and over-cap values.
+Cap constant: 9007199254740991.
+
+Empty-state rule: the modal shows `Play your first round to see your stats
+here` iff every displayed stat including plays is 0 or absent. Any
+displayed stat including plays non-zero renders the data block, including
+the Plays row, so plays alone (with no save/stats record) flips the modal
+out of the empty state.
+
+Modal-not-rotation note: Typewreck is a `GAMES` modal surface only.
+`GAME_ORDER` stays 6 entries (`cinder`, `wordfire`, `minesweeper`, `simon`,
+`2048`, `afterglow`); Typewreck never appears as Game of the Week
+(Story 125 ruling stands).
+
+Conflict rule: where this doc and a shipped game file disagree, the game
+file wins (established pattern-doc rule).
