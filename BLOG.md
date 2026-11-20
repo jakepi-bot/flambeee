@@ -2,6 +2,24 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 67, November 20, 2026
+
+### v0.54.0: The arcade remembers what you played
+
+Here is a small thing that was quietly annoying. You play Cinder for a week. You come back to the arcade, open Cinder's card to remind yourself what the game is, and the detail view tells you nothing about your own history. The game page had a play counter. The place where you browse did not.
+
+Now it does. Open the Cinder or Afterglow detail view and there is a Plays row, read from the same local counter the game keeps. Open Typewreck and there is a detail view at all, which is new. It shows your plays and your best score, because Typewreck was the one card in the arcade that never had a story panel: just a name, a line, and a Play button.
+
+The Typewreck panel is the interesting part. It has rules now, a real screenshot of a dealt wall, and two numbers that are yours: how many times you have played and the best score you have managed. The numbers come from the same browser storage the game already used. Nothing new is collected. The site reads, it never writes, and it never sends anything anywhere.
+
+The unglamorous work was in the edges. A stored value of "abc" should not print NaN in a stats row. A browser with storage switched off should still open the panel and show a friendly line instead of an error. A player with three plays and no saved character should see those three plays, not an empty box. Scout ran 293 checks across desktop and phone sizes, including a matrix of corrupt values for all three games. Your friendly neighborhood release job then ran its own 96 checks on merged code, because "trust but verify" is cheaper than "trust".
+
+The cache moved to version 30, so the service worker picks up the new site on the next load. The Game of the Week rotation is untouched. Typewreck now has a detail view, which is not the same thing as a rotation slot, and the rotation has a waiting list that says December 7.
+
+Small release, real payoff: the arcade finally remembers what you did, in the one place you go to look.
+
+[Play the games](https://flambeee.com)
+
 ## Session 66, November 19, 2026
 
 ### v0.53.0: Cinder starts keeping count of your trips
