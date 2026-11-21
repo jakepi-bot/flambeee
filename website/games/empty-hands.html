@@ -10,7 +10,7 @@
    * coins, a purse that only falls, and an empty board wins. Each gift makes
    * every remaining coin 1 lighter (floor 1). Only end coins can be given.
    * States TITLE / RUN / WIN / BUST, one screen. No game loop, no timing bar,
-   * no reaction window. Animations total under 300ms per turn.
+   * no reaction window. Animations total under 300ms per gift.
    * Tuning (contract M.3, all live in CONFIG below, nowhere else). */
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { max-width: 100%; overflow-x: hidden; }
@@ -250,7 +250,6 @@ var spent = 0;       /* spent this board */
 var purse0 = 0;      /* starting purse this board */
 var optimal = 0;     /* optimal spend this board */
 var dealSeed = 0;
-var turn = 1;        /* 1-indexed turn number within the board */
 var score = 0;       /* coins gifted this run */
 var cleared = 0;     /* deals cleared this run */
 var best = 0;
@@ -348,7 +347,7 @@ function showEnd(kind) {
     elEndLines.textContent = 'Board clear. Purse remainder ' + purse + '.';
     elAgain.textContent = 'Next row (Enter)';
   } else {
-    elEndTitle.textContent = 'OUT OF COINS';
+    elEndTitle.textContent = (kind == 'WIN') ? 'ROW CLEAR' : (purse == 0 ? 'OUT OF COINS' : 'PURSE SHORT');
     elEndLines.textContent = 'Run over. Score ' + score + ', best ' + best + '.';
     elAgain.textContent = 'New run (Enter)';
   }
@@ -368,10 +367,9 @@ function startBoard() {
   row = a.row;
   optimal = a.optimal;
   purse0 = a.purse;
-  purse = purse0;
+  purse = purse0; /* deal reset, not a spend: the only purse mutation is give(). */
   spent = 0;
   dealSeed = dealSeedFor(R, level);
-  turn = 1;
   lastResult = null;
   beatBest = false;
   setMsg('');
@@ -412,7 +410,7 @@ function neitherAffordable() {
   return row[0] > purse && row[row.length - 1] > purse;
 }
 
-/* Exact six-step turn sequence (M.1). Single purse mutation point. */
+/* Exact six-step gift sequence (M.1). Single purse mutation point. */
 function give(side) {
   if (state !== 'RUN' || animating) return;
   if (row.length === 0) return;
@@ -435,7 +433,6 @@ function give(side) {
     var v = row[i] - CONFIG.SHRINK_STEP;
     row[i] = v < CONFIG.SHRINK_FLOOR ? CONFIG.SHRINK_FLOOR : v;
   }
-  turn += 1;
   if (neitherAffordable() || (purse <= 0 && row.length > 0)) {
     endRunBust();
     return;
@@ -474,6 +471,7 @@ elAgain.addEventListener('click', function () {
 });
 
 document.addEventListener('keydown', function (e) {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
   var k = e.key;
   if (k === 'ArrowLeft' || k === 'a' || k === 'A') {
     if (state === 'RUN') { e.preventDefault(); give('L'); }
