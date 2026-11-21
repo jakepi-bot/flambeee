@@ -18,7 +18,9 @@ What it does:
      with real clicks and taps (gate 7).
 
 Exit codes: 0 every check green; 2 game file absent (RED anchor);
-1 any other failure, with the failing check named.
+1 any other failure, with the failing check named; 3 a skip flag
+(--sim-only/--viewport=/--port=) narrowed the run while every executed
+check passed (FAIL dominates SKIP, so any CHECK FAIL still exits 1).
 """
 
 import json
@@ -447,16 +449,20 @@ def browser_leg(root, game_rel, port, only_vp=None):
                         ctx.close()
                         continue
 
-                    # Full board clear via real end-coin clicks, solver order.
+                    # Full board clear via real end-coin inputs, solver order,
+                    # key-press-first with a loud click fallback.
                     gifts = 0
                     stuck = 0
+                    attempt = 0
                     while surf("state") == "RUN":
                         row = surf("row")
                         n0 = len(row)
                         purse = surf("purse")
                         take = solver_take_live(row)
                         cost = row[0] if take == 0 else row[-1]  # take is an end, not an index
-                        ok = click_end(page, take, mobile, n0)
+                        attempt += 1
+                        step = "%s L%s gift %s" % (tag, surf("level"), attempt)
+                        ok = gift_by_key_first(page, surf, take, mobile, step)
                         if not ok:
                             failures.append("%s: coin click failed at rowLen=%s" % (tag, n0))
                             break
@@ -549,7 +555,8 @@ def browser_leg(root, game_rel, port, only_vp=None):
                             # Worst affordable end: burn the purse as fast as
                             # legally possible so the bust is deliberate.
                             take = max(afford, key=lambda i: lv if i == 0 else rv)
-                            if not click_end(page, take, mobile, n0):
+                            step = "%s L%s gift %s" % (tag, surf("level"), steps + 1)
+                            if not click_end(page, take, mobile, n0, step):
                                 break
                             wait_for_change(page, surf, n0, purse, 2500)
                             steps += 1
@@ -670,15 +677,17 @@ def coin_handles(page, n0):
     return []
 
 
-def click_end(page, take, mobile, n0):
+def click_end(page, take, mobile, n0, step):
     els = coin_handles(page, n0)
     if not els:
         # Fallback: contracted keyboard input (still a real input path).
+        print("FALLBACK click->key at %s" % step, flush=True)
         page.keyboard.press("ArrowLeft" if take == 0 else "ArrowRight")
         return True
     boxes = [(e.bounding_box(), e) for e in els]
     boxes = [(b, e) for b, e in boxes if b]
     if len(boxes) != n0:
+        print("FALLBACK click->key at %s" % step, flush=True)
         page.keyboard.press("ArrowLeft" if take == 0 else "ArrowRight")
         return True
     boxes.sort(key=lambda be: be[0]["x"])
@@ -686,6 +695,25 @@ def click_end(page, take, mobile, n0):
     dbg("click take=%d xs=%s" % (take, [round(b["x"]) for b, _ in boxes]))
     click_handle(page, el, mobile)
     return True
+
+
+def gift_by_key_first(page, surf, take, mobile, step):
+    """Key-press-first gameplay step; degrades loudly to a click.
+
+    <step> is "<desktop|mobile> L<level> gift <n>" with n the 1-indexed
+    gift attempt on the current board. Prints exactly one
+    FALLBACK key->click line per degraded step, never debug-gated.
+    """
+    n0 = surf("rowLen")
+    purse0 = surf("purse")
+    # Let any gift-animation input lockout (<=120ms) clear so a healthy
+    # key press is never swallowed and misreported as a degradation.
+    page.wait_for_timeout(150)
+    page.keyboard.press("ArrowLeft" if take == 0 else "ArrowRight")
+    if wait_for_change(page, surf, n0, purse0, 1500):
+        return True
+    print("FALLBACK key->click at %s" % step, flush=True)
+    return click_end(page, take, mobile, n0, step)
 
 
 def tap_middle(page, mobile):
@@ -745,14 +773,27 @@ def main():
     import os
     global DEBUG
     DEBUG = os.environ.get("KAI_DEBUG") == "1"
-    sim_only = "--sim-only" in sys.argv
+    sim_only = False
     port = BROWSER_PORT
     only_vp = None
+    # Narrowing flags in argv order; each prints one SKIPPED line (Story 152).
+    skip_flags = []  # list of (flag_literal, what)
     for arg in sys.argv[1:]:
-        if arg.startswith("--port="):
-            port = int(arg.split("=", 1)[1])
-        if arg.startswith("--viewport="):
+        if arg == "--sim-only":
+            sim_only = True
+            skip_flags.append((arg, "browser leg"))
+        elif arg.startswith("--port="):
+            raw = arg.split("=", 1)[1]
+            try:
+                port = int(raw)
+            except ValueError:
+                print("FAIL: bad --port value %r: not an integer (reason: %s)" % (raw, arg))
+                print("RESULT: FAIL (exit 1)")
+                return 1
+            skip_flags.append((arg, "default-port serve"))
+        elif arg.startswith("--viewport="):
             only_vp = arg.split("=", 1)[1]
+            skip_flags.append((arg, "all viewports except %s" % only_vp))
     root = repo_root()
     game = root / GAME_REL
     manifest_path = root / MANIFEST_NAME
@@ -842,9 +883,16 @@ def main():
            "never-give 0/200%s" % ("; static hits: %s" % hits if hits else ", static scan clean"))
 
     if not sim_only:
-        browser_leg(root, game, port, only_vp)
+        if only_vp is not None and only_vp not in ("desktop", "mobile"):
+            record("gate7-browser", False,
+                   "unknown viewport %r in --viewport=%s (want desktop|mobile)"
+                   % (only_vp, only_vp))
+        else:
+            browser_leg(root, game, port, only_vp)
 
     # ---- report ----
+    for flag, what in skip_flags:
+        print("SKIPPED: %s (reason: %s)" % (what, flag))
     print("EMPTY HANDS gate (Story 144)  interpreter: team venv python")
     print("seed set: SEED_BASE 3000, L*1000+s, 200 runs/level")
     print("")
@@ -861,7 +909,10 @@ def main():
                                             " " + detail if detail else ""))
         if not passed:
             code = 1
-    print("RESULT: %s (exit %d)" % ("PASS" if code == 0 else "FAIL", code))
+    if code == 0 and skip_flags:
+        code = 3
+    print("RESULT: %s (exit %d)" % (
+        "PASS" if code == 0 else ("SKIP" if code == 3 else "FAIL"), code))
     return code
 
 

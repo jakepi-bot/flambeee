@@ -227,8 +227,8 @@ def load_baseline_file(path):
     if not isinstance(data.get("generated"), str) or not data.get("generated"):
         return None, "BASELINE-MALFORMED (bad generated date)"
     rows = data.get("rows")
-    if not isinstance(rows, list) or len(rows) != FAMILY_SIZE:
-        return None, "BASELINE-MALFORMED (rows != %d)" % FAMILY_SIZE
+    if not isinstance(rows, list):
+        return None, "BASELINE-MALFORMED (rows is not a list)"
     seen = set()
     for r in rows:
         if not isinstance(r, dict):
@@ -258,17 +258,23 @@ def load_baseline_file(path):
 
 
 def baseline_cross_check(baseline, rels):
-    """Fail-closed discovery-vs-baseline separation. Returns token or None."""
+    """Fail-closed discovery-vs-baseline identity. Returns a list of tokens.
+
+    missing = discovered rels minus baseline scripts; orphan = baseline
+    scripts minus discovered rels. MISSING prints first when both are set.
+    Count mismatch is exclusively this stage's work (Story 152).
+    """
     want = {}
     for r in baseline["rows"]:
         want[r["script"]] = r["expected"]
+    errs = []
     missing = sorted(set(rels) - set(want))
     if missing:
-        return "BASELINE-MISSING-ROW %s" % " ".join(missing)
+        errs.append("BASELINE-MISSING-ROW %s" % " ".join(missing))
     orphan = sorted(set(want) - set(rels))
     if orphan:
-        return "BASELINE-ORPHAN-ROW %s" % " ".join(orphan)
-    return None
+        errs.append("BASELINE-ORPHAN-ROW %s" % " ".join(orphan))
+    return errs
 
 
 def sha256_of(path):
@@ -399,13 +405,16 @@ def main(argv):
         if berr is not None:
             print("run-cinder-family: %s" % berr)
             return 2
-        xerr = baseline_cross_check(baseline, rels)
-        if xerr is not None:
+        xerrs = baseline_cross_check(baseline, rels)
+        for xerr in xerrs:
             print("run-cinder-family: %s" % xerr)
+        if xerrs:
             return 2
 
     # S6 pre-flight: every declared dep importable under invoker and child.
     # Refusal prints every discovered row ENV-SKIP, fail=0, exit 2, nothing executes.
+    team_venv_python = os.path.join(os.path.dirname(os.path.abspath(repo)),
+                                    ".venv", "bin", "python")
     for dep in DECLARED_DEPS:
         if not dep_importable(invoker_python, dep):
             for rel in rels:
@@ -415,6 +424,8 @@ def main(argv):
             print("tally: pass=0 fail=0 skip=%d total=%d (assert %d==%d)"
                   % (len(rels), len(rels), len(rels), FAMILY_SIZE))
             print("baseline: STALE pre-flight-refusal (no comparison performed)")
+            print("remediation: invoke run-cinder-family.py with %s "
+                  "(the playwright-bearing interpreter)" % team_venv_python)
             return 2
         if not dep_importable(child_python, dep):
             for rel in rels:
@@ -424,6 +435,7 @@ def main(argv):
             print("tally: pass=0 fail=0 skip=%d total=%d (assert %d==%d)"
                   % (len(rels), len(rels), len(rels), FAMILY_SIZE))
             print("baseline: STALE pre-flight-refusal (no comparison performed)")
+            print("remediation: rerun with --python %s" % team_venv_python)
             return 2
 
     try:
