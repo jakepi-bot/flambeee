@@ -259,3 +259,35 @@ Modal-not-rotation note: Typewreck is a `GAMES` modal surface only.
 
 Conflict rule: where this doc and a shipped game file disagree, the game
 file wins (established pattern-doc rule).
+
+## 9. Empty Hands instance (Story 153, Session 69)
+
+Counting unit: one play equals one entry into RUN that begins a new run.
+Exactly two entries, both routed through a single `enterRun()` helper
+(`website/games/empty-hands.html`) carrying the one and only `bumpPlays()`
+call: (a) the Start click from TITLE, which plays the level-1 board dealt
+at boot; (b) the BUST restart (`New run (Enter)`), which draws a fresh run
+seed and deals level 1.
+
+Boot-deal nuance: `newRun(false)` deals the level-1 board via `startBoard()`
+and lands on TITLE, but boot itself never counts. The TITLE preview board is
+not a play. `newRun()` itself never calls `bumpPlays()`.
+
+Display rule: one persistent HUD item inside `.hud`, outside `#panel` so
+title/end swaps cannot erase it:
+`<span class="item">Plays on this browser: <span id="plays">0</span></span>`.
+Exact copy `Plays on this browser: N`, always rendered including 0 on a
+first visit. Boot loads via `loadPlays()` then renders once. No second plays
+line on the end panel, no cross-device wording.
+
+Key, cap, helper names: single key `flambeee-empty-hands-plays` (sits beside
+`flambeee-empty-hands-best`, untouched), cap 9007199254740991, helpers
+`playsMem`, `sanitizePlays`, `loadPlays`, `renderPlays`, `bumpPlays`.
+Sanitizer, boot-load-then-render, try/catch write, and silent
+blocked-storage behavior match the snippet in section 2 (constants live on
+`CONFIG` as `COUNT_KEY`/`COUNT_CAP` in this file).
+
+WIN-advance non-count: `advance()` after a WIN deals the next level inside
+the same run and never increments. BUST and WIN themselves never increment;
+the run was counted at its start. `give()`, `endBoardWin()`, `endRunBust()`,
+`render()`, reload, tab restore, and `__empty.reset()` never count.
