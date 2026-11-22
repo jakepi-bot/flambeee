@@ -102,6 +102,7 @@
   <span class="item">Purse: <span id="purse">-</span></span>
   <span class="item">Score: <span id="score">0</span></span>
   <span class="item">Best: <span id="best">0</span></span>
+  <span class="item">Plays on this browser: <span id="plays">0</span></span>
 </div>
 
 <div id="screen">
@@ -138,6 +139,8 @@ var CONFIG = {
   SHRINK_STEP: 1,
   SHRINK_FLOOR: 1,
   BEST_KEY: 'flambeee-empty-hands-best',
+  COUNT_KEY: 'flambeee-empty-hands-plays',
+  COUNT_CAP: 9007199254740991,
   GIFT_ANIM_MS: 120,
   SHRINK_ANIM_MS: 120
 };
@@ -238,6 +241,43 @@ function writeBest(v) {
   } catch (e) {
     storageOK = false;
   }
+}
+
+/* ---------- Local play counter (Story 153): one play equals one entry into
+ * RUN that begins a new run (Start from TITLE on the boot-dealt board, or
+ * BUST restart with a fresh seed), routed through enterRun() below.
+ * Stored as a plain JSON number under CONFIG.COUNT_KEY. In-memory playsMem
+ * always renders, even when storage throws. ---------- */
+var playsMem = 0;
+function sanitizePlays(v) {
+  if (typeof v === 'number') {
+    if (!isFinite(v) || Math.floor(v) !== v || v < 0 || v > CONFIG.COUNT_CAP) return 0;
+    return v;
+  }
+  if (typeof v === 'string' && v !== '') {
+    var n = Number(v);
+    if (!isFinite(n) || Math.floor(n) !== n || n < 0 || n > CONFIG.COUNT_CAP) return 0;
+    return n;
+  }
+  return 0;
+}
+function loadPlays() {
+  try {
+    var raw = localStorage.getItem(CONFIG.COUNT_KEY);
+    if (raw === null || typeof raw === 'undefined') return 0;
+    var parsed;
+    try { parsed = JSON.parse(raw); } catch (e) { return 0; }
+    if (parsed === null || typeof parsed === 'undefined') return 0;
+    return sanitizePlays(parsed);
+  } catch (e) { return 0; }
+}
+function renderPlays() {
+  document.getElementById('plays').textContent = String(playsMem);
+}
+function bumpPlays() {
+  playsMem = Math.min(playsMem + 1, CONFIG.COUNT_CAP);
+  try { localStorage.setItem(CONFIG.COUNT_KEY, JSON.stringify(playsMem)); } catch (e) {}
+  renderPlays();
 }
 
 /* ---------- Run state ---------- */
@@ -347,7 +387,7 @@ function showEnd(kind) {
     elEndLines.textContent = 'Board clear. Purse remainder ' + purse + '.';
     elAgain.textContent = 'Next row (Enter)';
   } else {
-    elEndTitle.textContent = (kind == 'WIN') ? 'ROW CLEAR' : (purse == 0 ? 'OUT OF COINS' : 'PURSE SHORT');
+    elEndTitle.textContent = (purse <= 0) ? 'OUT OF COINS' : 'PURSE SHORT';
     elEndLines.textContent = 'Run over. Score ' + score + ', best ' + best + '.';
     elAgain.textContent = 'New run (Enter)';
   }
@@ -384,6 +424,24 @@ function newRun(toRun) {
   startBoard();
   state = toRun ? 'RUN' : 'TITLE';
   if (state === 'TITLE') showTitle(); else { elTitle.hidden = true; elEnd.hidden = true; }
+  render(false);
+}
+
+/* Single run-entry path (Story 153): the one and only bumpPlays() call.
+ * Start from TITLE plays the boot-dealt board; BUST restart deals a fresh
+ * run via newRun(true). newRun() itself never counts. */
+function enterRun() {
+  if (state !== 'TITLE' && state !== 'BUST') return;
+  var fromBust = (state === 'BUST');
+  bumpPlays();
+  if (fromBust) {
+    newRun(true);
+    return;
+  }
+  state = 'RUN';
+  elTitle.hidden = true;
+  elEnd.hidden = true;
+  setMsg('');
   render(false);
 }
 
@@ -458,16 +516,12 @@ function advance() {
 
 elStart.addEventListener('click', function () {
   if (state !== 'TITLE') return;
-  state = 'RUN';
-  elTitle.hidden = true;
-  elEnd.hidden = true;
-  setMsg('');
-  render(false);
+  enterRun();
 });
 
 elAgain.addEventListener('click', function () {
   if (state === 'WIN') advance();
-  else if (state === 'BUST') newRun(true);
+  else if (state === 'BUST') enterRun();
 });
 
 document.addEventListener('keydown', function (e) {
@@ -499,6 +553,7 @@ window.__empty = {
   purse0: function () { return purse0; },
   lastResult: function () { return lastResult ? { result: lastResult.result, spent: lastResult.spent, level: lastResult.level } : null; },
   best: function () { return best; },
+  plays: function () { return playsMem; },
   cleared: function () { return cleared; },
   ignored: function () { return ignored; },
   config: function () {
@@ -526,7 +581,9 @@ window.__empty = {
 /* First load: draw run seed, preview level 1 locked, land on TITLE. */
 best = readBest();
 memBest = best;
+playsMem = loadPlays();
 newRun(false);
+renderPlays();
 </script>
 </body>
 </html>
