@@ -622,6 +622,506 @@ def browser_leg(root, game_rel, port, only_vp=None):
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
+# --------------------------------------------------------------------------
+# Browser leg gate 8: EMPTY HANDS play counter (Story 154, Session 69).
+# Fresh profile, real clicks/keys, both viewports, in order: fresh boot 0,
+# Start 1, reload keeps 1, WIN advance +0, BUST restart exactly +1,
+# localStorage JSON number matching the probe, corrupt seeds boot to 0,
+# blocked storage increments in memory silently. A pre-153 file (no #plays
+# line, no plays() probe) FAILs here; that red is the mutation control,
+# not a defect. Zero website bytes: this harness file is the only touch.
+# --------------------------------------------------------------------------
+COUNT_KEY = "flambeee-empty-hands-plays"
+COUNT_CORRUPT_SEEDS = ["abc", "-1", "1.5", "null", "{bad json"]
+BLOCKED_STORAGE_SCRIPT = (
+    "(function () {"
+    " function denied() { throw new Error('blocked-storage'); }"
+    " try {"
+    "  Object.defineProperty(window, 'localStorage', {"
+    "   configurable: true, writable: true,"
+    "   value: { getItem: denied, setItem: denied, removeItem: denied,"
+    "            clear: denied, key: denied,"
+    "            get length() { throw new Error('blocked-storage'); } }"
+    "  });"
+    " } catch (e) {}"
+    "})();"
+)
+
+
+def gate8_surf(page):
+    def surf(fn, *args):
+        return page.evaluate("window.__empty.%s(%s)" % (fn, ",".join(
+            json.dumps(a) for a in args)))
+    return surf
+
+
+def gate8_line(page):
+    """HUD plays line text ('Plays on this browser: N'), or None."""
+    try:
+        el = page.query_selector("#plays")
+    except Exception:  # noqa: BLE001
+        return None
+    if el is None:
+        return None
+    try:
+        txt = el.evaluate(
+            "e => e.parentElement ? e.parentElement.innerText : e.innerText")
+    except Exception:  # noqa: BLE001
+        return None
+    if txt is None:
+        return None
+    return " ".join(str(txt).split())
+
+
+def gate8_probe(page):
+    """__empty.plays(), or None when the probe is absent/broken."""
+    try:
+        v = page.evaluate(
+            "typeof window.__empty !== 'undefined'"
+            " && typeof window.__empty.plays === 'function'"
+            " ? window.__empty.plays() : 'MISSING'")
+    except Exception:  # noqa: BLE001
+        return None
+    return None if v == "MISSING" else v
+
+
+def gate8_click_start(page, mobile):
+    btn = find_button(page, r"start|begin|play", 0)
+    if btn is None:
+        return False
+    click_handle(page, btn, mobile)
+    return wait_state(page, "RUN", 5000)
+
+
+def gate8_gifts_until_end(page, surf, tag, mobile, failures, mode):
+    """Drive RUN toward WIN (mode 'solver') or BUST (mode 'worst').
+
+    Returns the state reached. Key-press-first with the same loud
+    FALLBACK discipline as gate7.
+    """
+    steps = 0
+    stuck = 0
+    while surf("state") == "RUN" and steps < 40:
+        row = surf("row")
+        n0 = len(row)
+        purse = surf("purse")
+        if mode == "solver":
+            take = solver_take_live(row)
+        else:
+            lv, rv = row[0], row[-1]
+            afford = [i for i, c in ((0, lv), (1, rv)) if c <= purse]
+            if not afford:
+                # Neither end affordable: BUST evaluates now.
+                page.wait_for_timeout(800)
+                break
+            take = max(afford, key=lambda i: lv if i == 0 else rv)
+        step = "%s L%s gift %s" % (tag, surf("level"), steps + 1)
+        if mode == "solver":
+            ok = gift_by_key_first(page, surf, take, mobile, step)
+        else:
+            ok = click_end(page, take, mobile, n0, step)
+        if not ok:
+            failures.append("%s: counter %s stalled at rowLen=%s" % (tag, mode, n0))
+            return surf("state")
+        if not wait_for_change(page, surf, n0, purse, 2500):
+            # Gift-animation input lockout (<=120ms). Retry.
+            stuck += 1
+            if stuck > 6:
+                failures.append(
+                    "%s: counter %s stopped advancing at rowLen=%s" % (tag, mode, n0))
+                return surf("state")
+            page.wait_for_timeout(400)
+            continue
+        stuck = 0
+        steps += 1
+    return surf("state")
+
+
+def browser_leg_gate8(root, port, only_vp=None):
+    try:
+        from playwright.sync_api import sync_playwright
+    except Exception as exc:  # noqa: BLE001
+        return record("gate8-plays-counter", False, "playwright import failed: %s" % exc)
+
+    webdir = root / "website"
+    srv = None
+    started = False
+    for _ in range(3):
+        srv = subprocess.Popen(
+            [sys.executable, "-m", "http.server", str(port), "--directory", str(webdir)],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        for _ in range(50):
+            try:
+                urllib.request.urlopen(
+                    "http://127.0.0.1:%d/games/empty-hands.html" % port, timeout=1
+                )
+                started = True
+                break
+            except Exception:  # noqa: BLE001
+                if srv.poll() is not None:
+                    break
+                time.sleep(0.2)
+        if started:
+            break
+        try:
+            srv.wait(timeout=2)
+        except Exception:  # noqa: BLE001
+            pass
+        time.sleep(1)
+    if not started:
+        return record("gate8-plays-counter", False,
+                      "local server did not start (port %d busy?)" % port)
+    try:
+        failures = []
+        notes = []
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch(headless=True)
+            for vp, mobile in (
+                ({"width": 1280, "height": 800}, False),
+                ({"width": 375, "height": 667}, True),
+            ):
+                tag = "mobile" if mobile else "desktop"
+                if only_vp and tag != only_vp:
+                    continue
+                url = "http://127.0.0.1:%d/games/empty-hands.html" % port
+                try:
+                    # --- fresh profile: boot 0, Start 1, reload keeps 1 ---
+                    ctx = browser.new_context(
+                        viewport=vp, has_touch=mobile, is_mobile=mobile
+                    )
+                    page = ctx.new_page()
+                    cerr = []
+                    perr = []
+                    page.on("console",
+                            lambda m: cerr.append(m) if m.type == "error" else None)
+                    page.on("pageerror", lambda e: perr.append(str(e)))
+                    surf = gate8_surf(page)
+                    page.goto(url, wait_until="load", timeout=15000)
+                    page.wait_for_timeout(800)
+                    if page.evaluate("typeof window.__empty") == "undefined":
+                        failures.append("%s: window.__empty missing" % tag)
+                        ctx.close()
+                        continue
+                    if gate8_line(page) is None:
+                        failures.append(
+                            "%s: no #plays line on fresh boot (pre-153 file?)" % tag)
+                        ctx.close()
+                        continue
+                    if gate8_line(page) != "Plays on this browser: 0":
+                        failures.append(
+                            "%s: fresh line %r, want 'Plays on this browser: 0'"
+                            % (tag, gate8_line(page)))
+                        ctx.close()
+                        continue
+                    if gate8_probe(page) is None:
+                        failures.append("%s: __empty.plays() probe missing" % tag)
+                        ctx.close()
+                        continue
+                    if gate8_probe(page) != 0:
+                        failures.append(
+                            "%s: fresh probe %r, want 0" % (tag, gate8_probe(page)))
+                        ctx.close()
+                        continue
+                    notes.append("%s fresh 0 ok" % tag)
+                    if not gate8_click_start(page, mobile) or surf("state") != "RUN":
+                        failures.append("%s: Start click did not reach RUN" % tag)
+                        ctx.close()
+                        continue
+                    if (gate8_line(page) != "Plays on this browser: 1"
+                            or gate8_probe(page) != 1):
+                        failures.append(
+                            "%s: after Start line=%r probe=%r, want 1/1"
+                            % (tag, gate8_line(page), gate8_probe(page)))
+                        ctx.close()
+                        continue
+                    notes.append("%s start 1 ok" % tag)
+                    page.reload(wait_until="load", timeout=15000)
+                    page.wait_for_timeout(800)
+                    if surf("state") != "TITLE":
+                        failures.append(
+                            "%s: post-reload state=%s, want TITLE" % (tag, surf("state")))
+                    if (gate8_line(page) != "Plays on this browser: 1"
+                            or gate8_probe(page) != 1):
+                        failures.append(
+                            "%s: after reload line=%r probe=%r, want 1/1"
+                            % (tag, gate8_line(page), gate8_probe(page)))
+                    else:
+                        notes.append("%s reload keeps 1 ok" % tag)
+                    if cerr or perr:
+                        failures.append(
+                            "%s: reload-flow console errors %s %s"
+                            % (tag, [e.text for e in cerr], perr))
+                    else:
+                        notes.append("%s reload-flow console errors 0" % tag)
+                    ctx.close()
+
+                    # --- fresh profile: Start 1, WIN advance +0,
+                    #     BUST restart exactly +1, storage matches probe ---
+                    ctx = browser.new_context(
+                        viewport=vp, has_touch=mobile, is_mobile=mobile
+                    )
+                    page = ctx.new_page()
+                    cerr = []
+                    perr = []
+                    page.on("console",
+                            lambda m: cerr.append(m) if m.type == "error" else None)
+                    page.on("pageerror", lambda e: perr.append(str(e)))
+                    surf = gate8_surf(page)
+                    page.goto(url, wait_until="load", timeout=15000)
+                    page.wait_for_timeout(800)
+                    if (gate8_line(page) != "Plays on this browser: 0"
+                            or gate8_probe(page) != 0):
+                        failures.append("%s: win-flow fresh boot not 0/0" % tag)
+                        ctx.close()
+                        continue
+                    if not gate8_click_start(page, mobile) or surf("state") != "RUN":
+                        failures.append("%s: win-flow Start did not reach RUN" % tag)
+                        ctx.close()
+                        continue
+                    if gate8_probe(page) != 1:
+                        failures.append(
+                            "%s: win-flow Start probe=%r, want 1" % (tag, gate8_probe(page)))
+                        ctx.close()
+                        continue
+                    if gate8_gifts_until_end(
+                            page, surf, tag, mobile, failures, "solver") != "WIN":
+                        failures.append(
+                            "%s: solver did not reach WIN (state=%s)"
+                            % (tag, surf("state")))
+                        ctx.close()
+                        continue
+                    before = gate8_probe(page)
+                    adv = find_button(page, r"next", 0)
+                    if adv is None:
+                        failures.append("%s: no WIN advance button" % tag)
+                        ctx.close()
+                        continue
+                    lvl = surf("level")
+                    click_handle(page, adv, mobile)
+                    wait_state(page, "RUN", 5000)
+                    if surf("level") != lvl + 1:
+                        failures.append(
+                            "%s: advance level=%s want %s" % (tag, surf("level"), lvl + 1))
+                        ctx.close()
+                        continue
+                    if gate8_probe(page) != before:
+                        failures.append(
+                            "%s: WIN advance moved probe %r->%r, want no change"
+                            % (tag, before, gate8_probe(page)))
+                        ctx.close()
+                        continue
+                    notes.append("%s win-advance no-op at %r ok" % (tag, before))
+                    bust = surf("state") == "BUST"
+                    for _ in range(6):
+                        if bust:
+                            break
+                        st = surf("state")
+                        if st == "WIN":
+                            b = find_button(page, r"next", 0)
+                            if b is None:
+                                failures.append("%s: bust-flow no advance button" % tag)
+                                break
+                            prew = gate8_probe(page)
+                            click_handle(page, b, mobile)
+                            wait_state(page, "RUN", 5000)
+                            if gate8_probe(page) != prew:
+                                failures.append(
+                                    "%s: bust-flow advance moved probe" % tag)
+                                break
+                        elif st == "RUN":
+                            if gate8_gifts_until_end(
+                                    page, surf, tag, mobile, failures, "worst") == "BUST":
+                                bust = True
+                                break
+                        else:
+                            failures.append(
+                                "%s: bust-flow unexpected state %s" % (tag, st))
+                            break
+                    if not bust:
+                        bust = surf("state") == "BUST"
+                    if not bust:
+                        failures.append("%s: deliberate BUST never reached" % tag)
+                        ctx.close()
+                        continue
+                    notes.append("%s deliberate BUST ok" % tag)
+                    preR = gate8_probe(page)
+                    if preR != 1:
+                        failures.append(
+                            "%s: pre-restart probe=%r, want 1" % (tag, preR))
+                        ctx.close()
+                        continue
+                    rst = find_button(page, r"new run", 0)
+                    if rst is None:
+                        failures.append("%s: no BUST restart button" % tag)
+                        ctx.close()
+                        continue
+                    click_handle(page, rst, mobile)
+                    wait_state(page, "RUN", 5000)
+                    if surf("state") != "RUN":
+                        failures.append("%s: restart did not reach RUN" % tag)
+                        ctx.close()
+                        continue
+                    postR = gate8_probe(page)
+                    if surf("level") != 1:
+                        failures.append(
+                            "%s: restart level=%s, want 1" % (tag, surf("level")))
+                    if postR != 2:
+                        failures.append(
+                            "%s: restart moved probe %r->%r, want exactly +1 (2)"
+                            % (tag, preR, postR))
+                        ctx.close()
+                        continue
+                    notes.append("%s bust-restart +1 to 2 ok" % tag)
+                    try:
+                        raw = page.evaluate(
+                            "localStorage.getItem(%s)" % json.dumps(COUNT_KEY))
+                    except Exception as exc:  # noqa: BLE001
+                        failures.append("%s: storage read threw: %s" % (tag, exc))
+                        ctx.close()
+                        continue
+                    try:
+                        sval = json.loads(raw) if raw is not None else None
+                    except Exception:  # noqa: BLE001
+                        sval = "BADJSON:%r" % (raw,)
+                    if isinstance(sval, float) and sval.is_integer():
+                        sval = int(sval)
+                    if isinstance(sval, bool) or not isinstance(sval, int):
+                        failures.append(
+                            "%s: storage %r not a JSON number" % (tag, raw))
+                        ctx.close()
+                        continue
+                    if sval != postR:
+                        failures.append(
+                            "%s: storage %r != probe %r" % (tag, sval, postR))
+                    else:
+                        notes.append("%s storage %r matches probe ok" % (tag, sval))
+                    if cerr or perr:
+                        failures.append(
+                            "%s: win-flow console errors %s %s"
+                            % (tag, [e.text for e in cerr], perr))
+                    else:
+                        notes.append("%s win-flow console errors 0" % tag)
+                    ctx.close()
+
+                    # --- corrupt seeds boot to 0 ---
+                    ctx = browser.new_context(
+                        viewport=vp, has_touch=mobile, is_mobile=mobile
+                    )
+                    page = ctx.new_page()
+                    cerr = []
+                    perr = []
+                    page.on("console",
+                            lambda m: cerr.append(m) if m.type == "error" else None)
+                    page.on("pageerror", lambda e: perr.append(str(e)))
+                    page.goto(url, wait_until="load", timeout=15000)
+                    page.wait_for_timeout(800)
+                    for seed in COUNT_CORRUPT_SEEDS:
+                        page.evaluate(
+                            "localStorage.setItem(%s, %s)"
+                            % (json.dumps(COUNT_KEY), json.dumps(seed)))
+                        page.reload(wait_until="load", timeout=15000)
+                        page.wait_for_timeout(800)
+                        ln = gate8_line(page)
+                        pv = gate8_probe(page)
+                        if ln != "Plays on this browser: 0" or pv != 0:
+                            failures.append(
+                                "%s: corrupt seed %r booted line=%r probe=%r, want 0/0"
+                                % (tag, seed, ln, pv))
+                        else:
+                            notes.append("%s corrupt %r -> 0 ok" % (tag, seed))
+                    if cerr or perr:
+                        failures.append(
+                            "%s: corrupt-flow console errors %s %s"
+                            % (tag, [e.text for e in cerr], perr))
+                    else:
+                        notes.append("%s corrupt-flow console errors 0" % tag)
+                    ctx.close()
+
+                    # --- blocked storage: in-memory increment, silent ---
+                    ctx = browser.new_context(
+                        viewport=vp, has_touch=mobile, is_mobile=mobile
+                    )
+                    ctx.add_init_script(BLOCKED_STORAGE_SCRIPT)
+                    page = ctx.new_page()
+                    cerr = []
+                    perr = []
+                    page.on("console",
+                            lambda m: cerr.append(m) if m.type == "error" else None)
+                    page.on("pageerror", lambda e: perr.append(str(e)))
+                    surf = gate8_surf(page)
+                    try:
+                        page.goto(url, wait_until="load", timeout=15000)
+                        page.wait_for_timeout(800)
+                    except Exception as exc:  # noqa: BLE001
+                        failures.append(
+                            "%s: blocked-storage load threw: %s" % (tag, exc))
+                        ctx.close()
+                        continue
+                    try:
+                        usable = page.evaluate(
+                            "(function(){ try { localStorage.getItem('x');"
+                            " return 'USABLE'; } catch (e) { return 'BLOCKED'; } })()")
+                    except Exception:  # noqa: BLE001
+                        usable = "BLOCKED"
+                    if usable != "BLOCKED":
+                        failures.append(
+                            "%s: storage not blocked, degraded mode unproven" % tag)
+                        ctx.close()
+                        continue
+                    if (gate8_line(page) != "Plays on this browser: 0"
+                            or gate8_probe(page) != 0):
+                        failures.append(
+                            "%s: blocked-storage fresh boot not 0/0" % tag)
+                        ctx.close()
+                        continue
+                    try:
+                        started = gate8_click_start(page, mobile)
+                    except Exception as exc:  # noqa: BLE001
+                        failures.append(
+                            "%s: blocked-storage Start threw: %s" % (tag, exc))
+                        ctx.close()
+                        continue
+                    if not started or surf("state") != "RUN":
+                        failures.append(
+                            "%s: blocked-storage Start did not reach RUN" % tag)
+                        ctx.close()
+                        continue
+                    if (gate8_line(page) != "Plays on this browser: 1"
+                            or gate8_probe(page) != 1):
+                        failures.append(
+                            "%s: blocked-storage in-memory line=%r probe=%r, want 1/1"
+                            % (tag, gate8_line(page), gate8_probe(page)))
+                    else:
+                        notes.append("%s blocked-storage in-memory 1 ok" % tag)
+                    if cerr or perr:
+                        failures.append(
+                            "%s: blocked-storage console errors %s %s"
+                            % (tag, [e.text for e in cerr], perr))
+                    else:
+                        notes.append("%s blocked-storage silent ok" % tag)
+                    ctx.close()
+                except Exception as exc:  # noqa: BLE001
+                    failures.append("%s: exception %s" % (tag, exc))
+            browser.close()
+        detail = "; ".join(notes)
+        if failures:
+            return record("gate8-plays-counter", False, " | ".join(failures) + " || " + detail)
+        return record("gate8-plays-counter", True, detail)
+    finally:
+        # Port-scoped cleanup only. Prefer fuser (matches the port, never a
+        # cmdline) where present; otherwise pkill with a bracketed pattern so
+        # the invoking shell cannot match itself. Never a broad kill.
+        import shutil
+        if shutil.which("fuser"):
+            subprocess.run(["fuser", "-k", "%d/tcp" % port],
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        else:
+            subprocess.run(["pkill", "-f", "http[.]server %d" % port],
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
 def wait_state(page, want, timeout_ms):
     end = time.time() + timeout_ms / 1000.0
     while time.time() < end:
@@ -889,6 +1389,7 @@ def main():
                    % (only_vp, only_vp))
         else:
             browser_leg(root, game, port, only_vp)
+            browser_leg_gate8(root, port, only_vp)
 
     # ---- report ----
     for flag, what in skip_flags:
