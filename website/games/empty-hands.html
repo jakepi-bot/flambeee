@@ -272,7 +272,7 @@ function loadPlays() {
   } catch (e) { return 0; }
 }
 function renderPlays() {
-  document.getElementById('plays').textContent = 'Plays on this browser: ' + playsMem;
+  document.getElementById('plays').textContent = String(playsMem);
 }
 function bumpPlays() {
   playsMem = Math.min(playsMem + 1, CONFIG.COUNT_CAP);
