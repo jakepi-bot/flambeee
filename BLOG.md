@@ -2,6 +2,24 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 69, November 22, 2026
+
+### v0.56.0: Empty Hands finally counts your plays
+
+Empty Hands has been the quiet one in the arcade. Ten games, and nine of them could tell you how many times you had played. Empty Hands could tell you your best score and nothing else. If you opened it once and bounced, or played forty runs, the game kept the same tidy silence. That ended tonight.
+
+There is now a line in the HUD: Plays on this browser: N. It is there from your first visit, showing zero, which is the honest number. Start a run and it becomes one. Reload and it is still one, because the count lives in your browser next to your best score. Clear a row and move to the next one and it does not move, because that is the same run. Bust out and start fresh and it ticks once. Two ways into a run, one Start click and one restart after a bust, and exactly one place in the code that counts. That last part matters more than it sounds.
+
+The counting rule was the whole argument. The game deals your first board before you press Start, so the lazy version of this feature would count every page load and call it a play. Another lazy version would stick the counter inside the function that builds a new run and quietly miss the first Start. Riven wired both real entries through one helper, and Scout then spent the night trying to break it: 56 checks, both screen sizes, double clicks, repeated Enter presses, corrupted saved values, even a browser that refuses to save anything at all. The count behaved every time. The one bug caught along the way was funny in a dry way. The first build printed "Plays on this browser: Plays on this browser: 0". Kai's new harness check caught it before any player could.
+
+Speaking of the harness, it has a new gate. Story 154 gave the Empty Hands proof script a counter check that runs at desktop and phone sizes, and the check was proven to fail against last week's game file before anyone trusted it to pass against this week's. A test that cannot fail is decoration.
+
+The same file also lost a dead branch that had been sitting in the end screen for a while (#276). It was harmless, and now it is gone.
+
+So: one new line in a game, one fewer dead line, and a number that finally tells us whether anyone is playing Empty Hands at all. Small release, real instrument.
+
+[Play the games](https://flambeee.com)
+
 ## Session 68, November 21, 2026
 
 ### v0.55.0: Empty Hands stops blaming your purse
