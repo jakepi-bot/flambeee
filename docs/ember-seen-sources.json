@@ -1,4 +1,12 @@
 {
+  "https://aigamer.gg/news/ai-browser-game-jam-5-results-jam-6": {
+    "domain": "aigamer.gg",
+    "first_seen": "2026-11-23",
+    "reuse_cooldown_sessions": 4,
+    "session": "Session 70",
+    "sourced_idea": "Lightkeeper: steer ships with one lighthouse beam",
+    "title_used": "Tied for first in AI Browser Game Jam 5 on November 16, 2026. Its entire loop is"
+  },
   "https://aiidelist.com/blog/destroy-any-website": {
     "domain": "aiidelist.com",
     "first_seen": "2026-11-05",
@@ -14,6 +22,14 @@
     "session": "session-53",
     "sourced_idea": "Same-keyboard 2-player local duels as the growth category",
     "title_used": "2026 portal search data: 2-player local titles run about 3x the session duration"
+  },
+  "https://foundplay.io/drops": {
+    "domain": "foundplay.io",
+    "first_seen": "2026-11-23",
+    "reuse_cooldown_sessions": 4,
+    "session": "Session 70",
+    "sourced_idea": "Theodolite: map a county by triangulation",
+    "title_used": "Listed November 18, 2026 in a 94-game browser drop. A survey game whose whole ve"
   },
   "https://gamesbeat.com/brown-game-domains-more-than-doubled-as-monthly-player-sessions-grew-77-5-in-1h-nitro-reort": {
     "domain": "gamesbeat.com",
@@ -70,6 +86,14 @@
     "session": "session-53",
     "sourced_idea": "Distribution is the bottleneck, not the platform",
     "title_used": "2026 numbers: 15,000 HTML5 releases in H1 2025, Poki at 100m monthly active user"
+  },
+  "https://news.ycombinator.com/item?id=50434327": {
+    "domain": "news.ycombinator.com",
+    "first_seen": "2026-11-23",
+    "reuse_cooldown_sessions": 4,
+    "session": "Session 70",
+    "sourced_idea": "Stop Walking: one button, four air jumps, ten catches",
+    "title_used": "Show HN on November 10, 2026. A one-button 3D rage game with a clear fail state "
   },
   "https://poki.com/blog/state-of-web-gaming-report-2026": {
     "domain": "poki.com",

@@ -1,32 +1,32 @@
 [
   {
-    "audience": "Minimalist puzzle players",
-    "core_mechanic": "Draw and bend a thread with a fixed bend budget to route it past obstacles; each bend spends a shared resource.",
-    "monetization": "None; portal listing",
-    "retrieved_at": "2026-11-19T07:12:52Z",
-    "source_domain": "weeklyarcade.games",
-    "source_url": "https://weeklyarcade.games/best-browser-games-2026",
-    "title": "Threadline: a thread that bends only so many times",
-    "why_hot": "Listed in a 2026 roundup of 34 free browser games with a one-line pitch that reads like a mechanic, not a genre. The constraint (limited bends) is legible before the first click."
+    "audience": "Short-session browser players who like tension and light puzzles",
+    "core_mechanic": "Rotate a single lighthouse beam; ships steer toward the beam while rocks stay dark until lit, so the same light that saves one ship exposes another.",
+    "monetization": "None; free jam entry",
+    "retrieved_at": "2026-11-23T07:14:50Z",
+    "source_domain": "aigamer.gg",
+    "source_url": "https://aigamer.gg/news/ai-browser-game-jam-5-results-jam-6",
+    "title": "Lightkeeper: steer ships with one lighthouse beam",
+    "why_hot": "Tied for first in AI Browser Game Jam 5 on November 16, 2026. Its entire loop is one rotating beam that both reveals and guides, a one-input mechanic with a legible goal."
   },
   {
-    "audience": "Puzzle and tension players who like minimal one-screen browser games",
-    "core_mechanic": "Echolocation with a cost: a ping raycasts and briefly reveals geometry while attracting blind predators to the ping origin, so sight and safety are the same resource.",
-    "monetization": "None; open source portfolio piece",
-    "retrieved_at": "2026-11-19T07:12:52Z",
-    "source_domain": "github.com",
-    "source_url": "https://github.com/krabduke/sonar",
-    "title": "Sonar: see with sound, but the dark listens back",
-    "why_hot": "Recent no-build single-file browser game with a clean hook: every ping reveals the cave and also tells the predators exactly where you are. Novel risk-perception mechanic, 40 KB, zero dependencies."
+    "audience": "Puzzle and map players who prefer deduction over reflex",
+    "core_mechanic": "Take bearings from known stations and triangulate the positions of unseen landmarks; each measurement is a finite resource and the map fills in one fix at a time.",
+    "monetization": "Free browser listing; no monetization shown",
+    "retrieved_at": "2026-11-23T07:14:50Z",
+    "source_domain": "foundplay.io",
+    "source_url": "https://foundplay.io/drops",
+    "title": "Theodolite: map a county by triangulation",
+    "why_hot": "Listed November 18, 2026 in a 94-game browser drop. A survey game whose whole verb is triangulation, a mechanic a reader can grasp in one line and rarely sees in a web game."
   },
   {
-    "audience": "Players who want console-scale novelty without an install",
-    "core_mechanic": "Open-world mission sandbox from a non-human POV; procedural missions over a data-derived map with flight as the traversal verb.",
-    "monetization": "None; free browser build",
-    "retrieved_at": "2026-11-19T07:12:52Z",
-    "source_domain": "gizmodo.com",
-    "source_url": "https://gizmodo.com/new-browser-game-coo-reimagines-grand-theft-auto-from-the-pov-of-a-canadian-spy-pigeon-2000837873",
-    "title": "COO: a 250-square-mile city built for a spy pigeon",
-    "why_hot": "A browser 3D open world generated from real city data, built in seven days by parallel AI workstreams. Signals how far single-page scope has moved and where the novelty bar sits."
+    "audience": "Reflex players who want a 60-second challenge",
+    "core_mechanic": "The character auto-walks and the only input is a tap that jumps, up to four times in the air; the player must catch ten moving targets without stopping.",
+    "monetization": "None; Show HN project",
+    "retrieved_at": "2026-11-23T07:14:50Z",
+    "source_domain": "news.ycombinator.com",
+    "source_url": "https://news.ycombinator.com/item?id=50434327",
+    "title": "Stop Walking: one button, four air jumps, ten catches",
+    "why_hot": "Show HN on November 10, 2026. A one-button 3D rage game with a clear fail state and short levels, the exact shape of a browser session."
   }
 ]
