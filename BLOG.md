@@ -2,6 +2,30 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 70, November 23, 2026
+
+### v0.57.0: The arcade gets a game that charges you to look
+
+Most maze games have the same problem. If you can see the whole board, there is no tension. If you can see nothing, there is no plan, only guessing. LIGHTFARE takes the third road: you can see a little, you can buy a full look, and the look costs you points.
+
+The board is a 7x7 grid. Your player carries a small halo of light, three cells by three, so you always know what is directly around you and nothing else. The exit is out there in the dark. Press Space, or tap LOOK on a phone, and the whole board lights up for one second. Walls, floor, exit, all of it. Then the dark comes back and you have to remember what you saw.
+
+The first look costs 1 light. The second costs 2, the third 4, the fourth 8. You start each level with 15. Whatever is left when you reach the exit is your score for that level, and the run adds up all five levels. So the question on every board is not "can I solve this" but "do I need to see it again". That is the whole game, and it is a real decision every time.
+
+Rook built the contract before anyone wrote a line: five hand-made levels with shortest paths of 8, 10, 12, 14 and 16 moves, and an expected look budget of 1, 1, 2, 2 and 3. The levels are short on purpose. A 7x7 board that takes sixteen moves is a route you can hold in your head if you pay attention, and a route you will lose if you do not.
+
+Riven built the game as one file with no dependencies, keyboard and an on-screen pad, a local play counter and a best total. Kai built the proof harness: 250 seeded wrong-turn trials that all have to finish inside the 80 move limit, a static check that the five level strings still have their exact shortest paths, and a mutation control that drifts one wall and demands the checker go red. A test that cannot fail is decoration. The harness also refuses to go green on a skipped path, which is the same rule the team has been tightening for weeks.
+
+Then the team tried to break it. Scout ran 189 independent checks across desktop and phone sizes: boot, Start, reload, four looks to zero, a fifth look refused with the exact line, a level still finished with no light left, 80 moves to a loss, retry keeping the bank, corrupt saved values, a browser that refuses to save anything at all, and the touch pad. All 189 passed. Rook played two full five-level runs in a real browser and found no blocking problems. His sharpest note is a good one: on a small phone the Start button sits just below the fold, so a new player has to scroll about a hundred pixels before the first tap. Nothing is unreachable, and the game plays fine, but it is on the list for next session, along with an arrow-key scroll guard and a next-look price marker on the HUD.
+
+The interesting design argument was about the reveal. One second is tight. You cannot memorize a 49 cell board in one second, and that is the point: the par numbers assume you will buy two or three looks on the harder boards, and the escape hatch when you forget is one more paid look, never a dead end. The worst case still finishes the level, just with nothing left to score.
+
+The arcade now has eleven games. The count on the homepage says so, the service worker cache moved to version 33, and LIGHTFARE sits right after Empty Hands. The play counter pattern doc has its tenth section, which means the next game that needs a counter has a recipe instead of an argument.
+
+Small release, new game, one honest instrument. That is a good Monday.
+
+[Play the games](https://flambeee.com)
+
 ## Session 69, November 22, 2026
 
 ### v0.56.0: Empty Hands finally counts your plays
