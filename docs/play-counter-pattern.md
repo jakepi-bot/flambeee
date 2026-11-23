@@ -291,3 +291,92 @@ WIN-advance non-count: `advance()` after a WIN deals the next level inside
 the same run and never increments. BUST and WIN themselves never increment;
 the run was counted at its start. `give()`, `endBoardWin()`, `endRunBust()`,
 `render()`, reload, tab restore, and `__empty.reset()` never count.
+
+## 10. LIGHTFARE instance (Story 158, Session 70)
+
+Counting unit, verbatim from Story 155 (`docs/stories/155-lightfare-game-session70.md`):
+
+> One play equals one Start from TITLE that begins level 1 of a new run.
+> Retries after LOSE, advances after LEVELCLEAR, reloads, tab restores, WIN,
+> and LOSE themselves never increment.
+
+Run-start hook: one entry point, `enterRun()` (`website/games/lightfare.html`),
+carrying the one and only `bumpPlays()` call. Both of its callers are Starts
+from TITLE: the `#startBtn` click and the `Enter` key while `state === 'TITLE'`.
+Its state guard (`if (state !== 'TITLE') return;`) is the single-transition
+guard, so an auto-repeating `Enter` that lands in RUN finds no run-start
+binding and does nothing. `retry()` (after an 80-move LOSE), `advance()`
+(after LEVELCLEAR), `backToTitle()` (after WIN), `look()`, `move()`,
+`render()`, reload, tab restore, and `window.__lightfare.reset()` never reach
+`enterRun()` and never increment.
+
+Boot-deal nuance: none. Boot reads both counters, loads level 1 into memory
+for the TITLE preview, and renders `Plays on this browser: 0` and `Best: 0`.
+Nothing is pre-dealt into play; `enterRun()` is what loads level 1 fresh
+(`moves_used = 0`, `light = 15`) and enters RUN. The TITLE preview board is
+not a play.
+
+Display rule: one persistent HUD item inside `.hud`, outside `#panel`, so
+title and end-panel swaps cannot erase it:
+`<span class="item">Plays on this browser: <span id="plays">0</span></span>`.
+Exact copy `Plays on this browser: N`, always rendered including 0 on a first
+visit. Boot loads via `loadPlays()` then renders once; `renderPlays()` runs
+only on boot and after `bumpPlays()`. The best line sits in the same HUD as
+`Best: <span id="best">0</span>`. No plays line on the LEVELCLEAR, WIN, or
+LOSE panels and no cross-device wording.
+
+Key, cap, helper names: single key `flambeee-lightfare-plays` (sits beside
+`flambeee-lightfare-best`, persisted as a JSON number), cap 9007199254740991,
+helpers `playsMem`, `sanitizePlays`, `loadPlays`, `renderPlays`, `bumpPlays`.
+Sanitizer, boot-load-then-render, try/catch write, and silent blocked-storage
+behavior match the snippet in section 2 (constants live on `CONFIG` as
+`COUNT_KEY` / `BEST_KEY` / `COUNT_CAP` in this file). `best` rides the same
+integer-within-cap rule through the shared `sanitizeCount()` guard.
+
+LOSE-retry non-count: `retry()` reloads the current level only
+(`moves_used = 0`, `light = 15`, same level index) and keeps `bank`, the
+scores of already-cleared levels. It never increments.
+
+LEVELCLEAR-advance non-count: `advance()` loads level N+1 fresh
+(`moves_used = 0`, `light = 15`) with `bank` unchanged and the plays number
+unchanged. It never increments.
+
+WIN: entering WIN never increments; the run was counted at its start.
+`backToTitle()` returns to TITLE with `bank` reset, so the next run starts
+from TITLE through `enterRun()` and counts like every other run. One play
+stays one run.
+
+Formulas with units:
+
+> plays_new [plays, integer] = min(plays_old [plays, integer] + 1 [play per
+> Start from TITLE], 9007199254740991 [COUNT_CAP]). No other term exists.
+> best [points] = max(bestStored [points], runTotal [points, 0..75]) [points],
+> evaluated once at WIN, persisted as a JSON number under
+> `flambeee-lightfare-best`.
+
+Tuning table (section 10, LIGHTFARE instance):
+
+| Name | Default | Min | Max | File location |
+|---|---|---|---|---|
+| Pattern section | 10 (LIGHTFARE instance) | n/a | n/a | docs/play-counter-pattern.md (appended after section 9) |
+| COUNT_KEY | flambeee-lightfare-plays | n/a | n/a | website/games/lightfare.html (`CONFIG.COUNT_KEY`) |
+| BEST_KEY | flambeee-lightfare-best (JSON number) | n/a | n/a | website/games/lightfare.html (`CONFIG.BEST_KEY`) |
+| COUNT_CAP | 9007199254740991 | 9007199254740991 | 9007199254740991 | website/games/lightfare.html (`CONFIG.COUNT_CAP`) |
+| Run-start hook | `enterRun()`, single `bumpPlays()` inside it | n/a | n/a | website/games/lightfare.html |
+| CACHE_VERSION +1 | 32 to 33, same PR as the game file | n/a | n/a | website/sw.js (Story 156) |
+
+Conflict rules: where this section and the shipped game file disagree, the
+game file wins (established pattern-doc rule); fix the doc, never the game.
+Section numbering clash: the next free section number wins; content
+normative, number administrative.
+
+Per-game checklist (the section 5 rows, LIGHTFARE values; every row filled
+before merge):
+
+| # | Item | LIGHTFARE value |
+|---|---|---|
+| 1 | Key suffix (middle slug) | `flambeee-lightfare-plays`, beside `flambeee-lightfare-best` |
+| 2 | Display element id and placement | `#plays` inside the persistent `.hud` item `Plays on this browser: N`, beside the `#best` item |
+| 3 | Run-start hook name | `enterRun()`, single `bumpPlays()` inside it, reached only from a Start on TITLE (button click or Enter), never from a page-load path |
+| 4 | CACHE_VERSION +1 bump in `website/sw.js` | 32 to 33, same PR as the game change, plus one precache line `./games/lightfare.html` (23 to 24 entries) |
+| 5 | No-network grep | `git diff main -- website/games/lightfare.html` reads clean: no network call and no external URL anywhere in the new file |
