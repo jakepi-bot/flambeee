@@ -29,8 +29,10 @@ executed check passed and at least one narrowing flag printed its
 SKIPPED line). FAIL dominates SKIP; invalid flag values are FAILs.
 """
 
+import errno
 import json
 import re
+import socket
 import statistics
 import subprocess
 import sys
@@ -1285,6 +1287,49 @@ def run_viewport(browser, url, origin, tag, vp, mobile, layouts, notes):
     return failures
 
 
+def _preflight_port_free(port, timeout=2.0):
+    """Prove the port free before any spawn (Story 161 PREFLIGHT).
+
+    Binds 127.0.0.1:port and closes immediately. Bind success means
+    free; EADDRINUSE (or any other bind failure) means occupied.
+    One socket, no side effects, bounded by timeout.
+    """
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.settimeout(timeout)
+        # Allow rebinding past closed-connection TIME_WAIT residue; an
+        # active listener still fails the bind with EADDRINUSE.
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            s.bind(("127.0.0.1", port))
+        except OSError as exc:  # noqa: BLE001
+            if exc.errno == errno.EADDRINUSE:
+                return False
+            return False
+        return True
+    finally:
+        try:
+            s.close()
+        except Exception:  # noqa: BLE001
+            pass
+
+
+def _stop_child(srv):
+    """Stop only the spawned child PID; never anything by port."""
+    try:
+        if srv is not None and srv.poll() is None:
+            srv.terminate()
+            try:
+                srv.wait(timeout=5)
+            except Exception:  # noqa: BLE001
+                try:
+                    srv.kill()
+                except Exception:  # noqa: BLE001
+                    pass
+    except Exception:  # noqa: BLE001
+        pass
+
+
 def browser_legs(root, port, only_vp=None):
     """Serve the repo's website dir and run the Story 157 browser legs."""
     tags = [t for t, _, _ in VIEWPORTS if only_vp in (None, t)]
@@ -1296,27 +1341,52 @@ def browser_legs(root, port, only_vp=None):
                    "playwright import failed: %s" % exc)
         return
 
+    # PREFLIGHT (Story 161): prove the port free before spawning anything.
+    # Occupied means REFUSED: name it, exit 1 via the report, spawn nothing,
+    # kill nothing; the stranger is untouched.
+    if not _preflight_port_free(port):
+        print("FAIL: port-ownership: port %d already occupied before spawn; "
+              "refusing to adopt the stranger server "
+              "(reason: --port=%d or default 8943)" % (port, port))
+        record("browser-legs", False,
+               "port %d occupied at preflight; no server started, none killed"
+               % port)
+        return
+
     webdir = root / "website"
     origin = "http://127.0.0.1:%d" % port
     url = origin + "/games/lightfare.html"
     srv = None
     started = False
     for _ in range(3):
-        srv = subprocess.Popen(
-            [sys.executable, "-m", "http.server", str(port),
-             "--directory", str(webdir)],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        try:
+            srv = subprocess.Popen(
+                [sys.executable, "-m", "http.server", str(port),
+                 "--directory", str(webdir)],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception as exc:  # noqa: BLE001
+            record("browser-legs", False,
+                   "server spawn failed (port %d): %s" % (port, exc))
+            return
         for _ in range(50):
             try:
                 urllib.request.urlopen(url, timeout=1)
-                started = True
-                break
             except Exception:  # noqa: BLE001
                 if srv.poll() is not None:
                     break
                 time.sleep(0.2)
+                continue
+            # GET answered: count it only if our child is alive on this same
+            # poll tick. A stranger's answer with a dead child aborts the
+            # attempt instead of adopting.
+            if srv.poll() is None:
+                started = True
+            break
         if started:
             break
+        # Attempt failed without a live owner: reap/stop only our child,
+        # never anything by port, then retry (TOCTOU cover, at most 3).
+        _stop_child(srv)
         try:
             srv.wait(timeout=2)
         except Exception:  # noqa: BLE001
@@ -1325,7 +1395,9 @@ def browser_legs(root, port, only_vp=None):
     if not started:
         for t in tags:
             record("browser-%s" % t, False,
-                   "local server did not start (port %d busy?)" % port)
+                   "local server did not start (port %d busy?) "
+                   "child not alive to own it" % port)
+        _stop_child(srv)
         return
 
     layouts, _ = extract_layouts((root / GAME_REL).read_text())
@@ -1353,18 +1425,9 @@ def browser_legs(root, port, only_vp=None):
                     record("browser-%s" % tag, True, detail)
             browser.close()
     finally:
-        # Port-scoped cleanup only. Prefer fuser (matches the port, never a
-        # cmdline) where present; otherwise pkill with a bracketed pattern so
-        # the invoking shell cannot match itself. Never a broad kill.
-        import shutil
-        if shutil.which("fuser"):
-            subprocess.run(["fuser", "-k", "%d/tcp" % port],
-                           stdout=subprocess.DEVNULL,
-                           stderr=subprocess.DEVNULL)
-        else:
-            subprocess.run(["pkill", "-f", "http[.]server %d" % port],
-                           stdout=subprocess.DEVNULL,
-                           stderr=subprocess.DEVNULL)
+        # Child-PID cleanup only (Story 161): stop what this run spawned,
+        # never anything by port number.
+        _stop_child(srv)
 
 
 # ---------------------------------------------------------------------------
