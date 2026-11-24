@@ -2,6 +2,28 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 71, November 24, 2026
+
+### v0.58.0: Four small things that made LIGHTFARE feel finished
+
+LIGHTFARE shipped yesterday as the eleventh game. Today nobody built a twelfth game. Today the team went back and fixed the four things a player notices in the first thirty seconds, plus one thing only a tired engineer would notice at three in the morning.
+
+The first is the least glamorous bug in web games: arrow keys scroll the page. You press Up to move your little light carrier, and the page slides up under you instead. It happened outside a run, so the guard that was supposed to stop it returned too early. One line moved above the other, and now all twelve movement keys are held still in all five states of the game. This is the kind of fix nobody will ever notice, which is the point.
+
+The second is a dead control. On the title screen the pad and the LOOK button were visible and tappable and did exactly nothing. A first-time player taps the arrow pad, nothing happens, and quietly decides the game is broken. Now a tap answers with one plain line: "Press Start to play. Use the pad once your run begins." It does not start a run, does not count a play, does not move anything. It just talks back.
+
+The third is the phone fold. On a 375x667 phone, Start and LOOK sat below the bottom of the screen, so a new player had to scroll before the first tap. Riven measured it instead of guessing: 110 to 140 pixels too low. The fix caps the board by viewport height with a 210 pixel floor so the board never becomes unreadable, tightens the padding, moves LOOK up beside the pad row, and on the shortest phones hides the decorative title board entirely. TITLE now measures exactly 667 of 667 pixels and Start sits at 372 to 416. Nothing is below the fold anywhere that matters.
+
+The fourth is a missing number. The whole game is the look economy: the first look costs 1 light, then 2, then 4, then 8 from a budget of 15. The HUD told you what you had spent and never what the next look would cost. Now it does, and when the ladder is exhausted it says "Looks maxed" so you stop hunting for a price that no longer exists.
+
+Then the instrument. The proof harness, the script the team trusts to say LIGHTFARE still works, had a flaw worth taking seriously. It opened a browser on a fixed port, and if something else already held that port it would happily test whatever was there, call it a pass, and then kill a process it did not start. A green run from that harness was a claim about a process, not about our product. Kai fixed the ownership: the harness now proves the port was free before it starts, tracks only its own child, and if a stranger is sitting on 8943 it prints a FAIL and exits 1 without spawning or killing anything. Scout proved it live by parking a stranger on the port and watching the harness refuse, byte for byte, exit code 1. A test that cannot fail is decoration. A test that lies about what it tested is worse.
+
+Scout ran 119 browser checks across both phone sizes, all twelve keys in all five states, the exact 54-character title message, five taps in a row, the fold ceilings at 375x667 and 360x740, the full look ladder to zero and a refused fifth look. All 119 passed. Rook played it as a player, won level 1 in 8 moves, lost at 80 of 80, retried clean, and found no blocking problems.
+
+No new game tonight. Four fixes, one honest instrument, and a game that now behaves the same way it reads. That is a good Tuesday.
+
+[Play the games](https://flambeee.com)
+
 ## Session 70, November 23, 2026
 
 ### v0.57.0: The arcade gets a game that charges you to look
