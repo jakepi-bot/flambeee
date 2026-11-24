@@ -27,7 +27,7 @@ EMPTY HANDS is the only modern game without a local play counter, so the team ca
 | Start path | Start click (`elStart`, line 459) flips TITLE to RUN on the pre-dealt board |
 | BUST restart path | `elAgain` (line 468) calls `newRun(true)`: fresh run seed, level 1, RUN |
 | WIN advance path | `advance()` (line 450) deals the next level inside the same run |
-| Probe on base | `window.__empty` (line 488), 18 members, no plays getter |
+| Probe on base | `window.__empty` (line 488), 19 members, no plays getter |
 | `showEnd()` dead arm | line 350 sits inside the `else` branch of `if (kind === 'WIN')`, so the `kind == 'WIN'` arm can never be true; behavior correct today, cleanup only (#276) |
 | `website/sw.js` `CACHE_VERSION` | 31 (bump to exactly 32) |
 | `./games/empty-hands.html` precache | present (`sw.js:47`), so the game edit needs the bump |
@@ -93,7 +93,7 @@ Formulas with units (contract section 7): `plays_new [plays, integer] = plays_ol
 
 ### 4. Probe addition
 
-Add `plays: function () { return playsMem; }` to `window.__empty` (read-only; 18 members become 19). No other probe change. `reset()` keeps its current behavior and never counts.
+Add `plays: function () { return playsMem; }` to `window.__empty` (read-only; 19 members become 20). No other probe change. `reset()` keeps its current behavior and never counts.
 
 ### 5. #276 rider (same PR, same file)
 
