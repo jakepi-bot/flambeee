@@ -24,7 +24,7 @@ LIGHTFARE shipped with two input defects from design review finding #285. First,
 | HUD | 7 items (Level, Light, Moves, Looks, Bank, Best, Plays) |
 | `#board` | `max-width: 336px`; pad is 3x58 px cells; `#btnLook` follows the pad; body padding 12 px |
 | `#msg` element | `#msg { min-height: 22px; ... color: #ff9a9a; }`, line 63 CSS, line 134 DOM |
-| TITLE tap message string | `Press Start to play. Use the pad once your run begins.` (53 characters) |
+| TITLE tap message string | `Press Start to play. Use the pad once your run begins.` (54 characters) |
 | Guarded keys | 14 distinct `e.key` values (`ArrowUp`, `ArrowDown`, `ArrowLeft`, `ArrowRight`, `w`, `W`, `a`, `A`, `s`, `S`, `d`, `D`, `Enter`, ` `) |
 | Viewports for verification | desktop 1280x800, mobile 375x667 with touch |
 
