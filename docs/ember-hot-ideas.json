@@ -1,32 +1,32 @@
 [
   {
-    "audience": "Short-session browser players who like tension and light puzzles",
-    "core_mechanic": "Rotate a single lighthouse beam; ships steer toward the beam while rocks stay dark until lit, so the same light that saves one ship exposes another.",
-    "monetization": "None; free jam entry",
-    "retrieved_at": "2026-11-23T07:14:50Z",
-    "source_domain": "aigamer.gg",
-    "source_url": "https://aigamer.gg/news/ai-browser-game-jam-5-results-jam-6",
-    "title": "Lightkeeper: steer ships with one lighthouse beam",
-    "why_hot": "Tied for first in AI Browser Game Jam 5 on November 16, 2026. Its entire loop is one rotating beam that both reveals and guides, a one-input mechanic with a legible goal."
+    "audience": "Arcade players who want a two-minute territory round with no install and no account.",
+    "core_mechanic": "Close a fence loop around open ground; every cell the enemy's flood fill cannot reach is claimed as territory, and the claim target rises each level.",
+    "monetization": "Free, MIT source, no ads",
+    "retrieved_at": "2026-11-24T07:11:48Z",
+    "source_domain": "dev.to",
+    "source_url": "https://dev.to/nsijwali/fenceline-a-pixel-territory-game-in-one-html-file-with-a-flood-fill-and-no-audio-files-53hh",
+    "title": "Fenceline: claim territory by closing a fence the enemy cannot flood past",
+    "why_hot": "A shipped, dated example of the exact Flambeee constraint set (one file, no dependencies, no network) used for a territory mechanic, where the reverse flood fill from the enemy is a cheap, testable core rule rather than an art trick."
   },
   {
-    "audience": "Puzzle and map players who prefer deduction over reflex",
-    "core_mechanic": "Take bearings from known stations and triangulate the positions of unseen landmarks; each measurement is a finite resource and the map fills in one fix at a time.",
-    "monetization": "Free browser listing; no monetization shown",
-    "retrieved_at": "2026-11-23T07:14:50Z",
-    "source_domain": "foundplay.io",
-    "source_url": "https://foundplay.io/drops",
-    "title": "Theodolite: map a county by triangulation",
-    "why_hot": "Listed November 18, 2026 in a 94-game browser drop. A survey game whose whole verb is triangulation, a mechanic a reader can grasp in one line and rarely sees in a web game."
+    "audience": "Cozy puzzle players who want six short rooms and a quiet arrival.",
+    "core_mechanic": "Your recorded movement replays as remembered selves whose light opens bridges, so the route you already took becomes the tool that solves the room.",
+    "monetization": "Free jam entry",
+    "retrieved_at": "2026-11-24T07:11:48Z",
+    "source_domain": "harbourrelay.itch.io",
+    "source_url": "https://harbourrelay.itch.io/lantern-duet",
+    "title": "Lantern Duet: your recorded path replays and lights the bridges",
+    "why_hot": "A November 2026 jam build whose core rule is that your own recorded path replays alongside you and its light opens the bridges, which makes route planning recursive instead of a key hunt."
   },
   {
-    "audience": "Reflex players who want a 60-second challenge",
-    "core_mechanic": "The character auto-walks and the only input is a tap that jumps, up to four times in the air; the player must catch ten moving targets without stopping.",
-    "monetization": "None; Show HN project",
-    "retrieved_at": "2026-11-23T07:14:50Z",
-    "source_domain": "news.ycombinator.com",
-    "source_url": "https://news.ycombinator.com/item?id=50434327",
-    "title": "Stop Walking: one button, four air jumps, ten catches",
-    "why_hot": "Show HN on November 10, 2026. A one-button 3D rage game with a clear fail state and short levels, the exact shape of a browser session."
+    "audience": "Instant-play arcade players arriving from a feed with no patience for a menu.",
+    "core_mechanic": "Play begins the instant the page loads, and each run ends with an automatic replay of your best line so the next attempt starts with a model to beat.",
+    "monetization": "Free, no signup",
+    "retrieved_at": "2026-11-24T07:11:48Z",
+    "source_domain": "dailyaigames.com",
+    "source_url": "https://www.dailyaigames.com/blog/ai-generated-browser-games-roundup",
+    "title": "SKYHOP: play starts at page load and every run ends with your best line replayed",
+    "why_hot": "Dated play counts behind a zero-friction start (play begins at load) and an automatic best-line replay, plus a combo rule that is one sentence long and still changes every fight."
   }
 ]
