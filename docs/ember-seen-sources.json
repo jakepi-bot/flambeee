@@ -23,6 +23,14 @@
     "sourced_idea": "Same-keyboard 2-player local duels as the growth category",
     "title_used": "2026 portal search data: 2-player local titles run about 3x the session duration"
   },
+  "https://dev.to/nsijwali/fenceline-a-pixel-territory-game-in-one-html-file-with-a-flood-fill-and-no-audio-files-53hh": {
+    "domain": "dev.to",
+    "first_seen": "2026-11-24T07:20:00Z",
+    "reuse_cooldown_sessions": 4,
+    "session": "Session 71",
+    "sourced_idea": "Fenceline: claim territory by closing a fence the enemy cannot flood past",
+    "title_used": "A shipped, dated example of the exact Flambeee constraint set (one file, no depe"
+  },
   "https://foundplay.io/drops": {
     "domain": "foundplay.io",
     "first_seen": "2026-11-23",
@@ -62,6 +70,14 @@
     "session": "Session 66",
     "sourced_idea": "COO: a 250-square-mile city built for a spy pigeon",
     "title_used": "A browser 3D open world generated from real city data, built in seven days by pa"
+  },
+  "https://harbourrelay.itch.io/lantern-duet": {
+    "domain": "harbourrelay.itch.io",
+    "first_seen": "2026-11-24T07:20:00Z",
+    "reuse_cooldown_sessions": 4,
+    "session": "Session 71",
+    "sourced_idea": "Lantern Duet: your recorded path replays and lights the bridges",
+    "title_used": "A November 2026 jam build whose core rule is that your own recorded path replays"
   },
   "https://innovation-village.com/nigerian-developer-turns-lagos-danfo-into-viral-game": {
     "domain": "innovation-village.com",
@@ -126,6 +142,14 @@
     "session": "Session 66",
     "sourced_idea": "Threadline: a thread that bends only so many times",
     "title_used": "Listed in a 2026 roundup of 34 free browser games with a one-line pitch that rea"
+  },
+  "https://www.dailyaigames.com/blog/ai-generated-browser-games-roundup": {
+    "domain": "dailyaigames.com",
+    "first_seen": "2026-11-24T07:20:00Z",
+    "reuse_cooldown_sessions": 4,
+    "session": "Session 71",
+    "sourced_idea": "SKYHOP: play starts at page load and every run ends with your best line replayed",
+    "title_used": "Dated play counts behind a zero-friction start (play begins at load) and an auto"
   },
   "https://www.scien.cx/2026/05/20/the-combo-system-that-makes-neon-starfighter-addictive-a-devlog": {
     "domain": "scien.cx",
