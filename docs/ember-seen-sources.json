@@ -23,6 +23,14 @@
     "sourced_idea": "Same-keyboard 2-player local duels as the growth category",
     "title_used": "2026 portal search data: 2-player local titles run about 3x the session duration"
   },
+  "https://caen.co.jp/en/news/kyokara-omaeha-release": {
+    "domain": "caen.co.jp",
+    "first_seen": "2026-11-25",
+    "reuse_cooldown_sessions": 4,
+    "session": "Session 72",
+    "sourced_idea": "Ink Debt: every stroke you draw is spent from a visible ink budget, and the level is built from what survives",
+    "title_used": "14.5 million plays in five days (2026), browser, no install, shareable personal "
+  },
   "https://dev.to/nsijwali/fenceline-a-pixel-territory-game-in-one-html-file-with-a-flood-fill-and-no-audio-files-53hh": {
     "domain": "dev.to",
     "first_seen": "2026-11-24T07:20:00Z",
@@ -30,6 +38,14 @@
     "session": "Session 71",
     "sourced_idea": "Fenceline: claim territory by closing a fence the enemy cannot flood past",
     "title_used": "A shipped, dated example of the exact Flambeee constraint set (one file, no depe"
+  },
+  "https://discord.com/trending-games/category/indie/2026-11-19": {
+    "domain": "discord.com",
+    "first_seen": "2026-11-25",
+    "reuse_cooldown_sessions": 4,
+    "session": "Session 72",
+    "sourced_idea": "Bodycam browser slice: a first-person view that is a camera feed you can lose",
+    "title_used": "Discord trending indie chart for the week of 2026-11-19, body-camera FPS up 267 "
   },
   "https://foundplay.io/drops": {
     "domain": "foundplay.io",
@@ -126,6 +142,14 @@
     "session": "session-64",
     "sourced_idea": "Instant-play pages competing on first frame, not on features",
     "title_used": "October 2026 measured numbers: median first frame 0.69 seconds on a first visit "
+  },
+  "https://simonwon.itch.io/number-gate-rush/devlog/1803534/number-gate-rush-is-out-a-3d-gate-runner-you-can-play-in-your-browser": {
+    "domain": "simonwon.itch.io",
+    "first_seen": "2026-11-25",
+    "reuse_cooldown_sessions": 4,
+    "session": "Session 72",
+    "sourced_idea": "Gate Ledger: every gate you pass writes a debt or a credit that settles at the end of the run",
+    "title_used": "Brand new 2026 itch.io browser release with an explicit bot-tuned difficulty met"
   },
   "https://trendintel.io/trends/1126-frictionless-browser-microgames": {
     "domain": "trendintel.io",
