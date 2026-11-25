@@ -1,32 +1,32 @@
 [
   {
-    "audience": "Arcade players who want a two-minute territory round with no install and no account.",
-    "core_mechanic": "Close a fence loop around open ground; every cell the enemy's flood fill cannot reach is claimed as territory, and the claim target rises each level.",
-    "monetization": "Free, MIT source, no ads",
-    "retrieved_at": "2026-11-24T07:11:48Z",
-    "source_domain": "dev.to",
-    "source_url": "https://dev.to/nsijwali/fenceline-a-pixel-territory-game-in-one-html-file-with-a-flood-fill-and-no-audio-files-53hh",
-    "title": "Fenceline: claim territory by closing a fence the enemy cannot flood past",
-    "why_hot": "A shipped, dated example of the exact Flambeee constraint set (one file, no dependencies, no network) used for a territory mechanic, where the reverse flood fill from the enemy is a cheap, testable core rule rather than an art trick."
+    "audience": "Casual action players on mobile browsers",
+    "core_mechanic": "A runner where each gate choice multiplies or adds to a squad value, so steering and quick arithmetic compete for the same attention",
+    "monetization": "Free, cosmetic unlocks",
+    "retrieved_at": "2026-11-25T07:13:41Z",
+    "source_domain": "simonwon.itch.io",
+    "source_url": "https://simonwon.itch.io/number-gate-rush/devlog/1803534/number-gate-rush-is-out-a-3d-gate-runner-you-can-play-in-your-browser",
+    "title": "Gate Ledger: every gate you pass writes a debt or a credit that settles at the end of the run",
+    "why_hot": "Brand new 2026 itch.io browser release with an explicit bot-tuned difficulty method and 15 stages"
   },
   {
-    "audience": "Cozy puzzle players who want six short rooms and a quiet arrival.",
-    "core_mechanic": "Your recorded movement replays as remembered selves whose light opens bridges, so the route you already took becomes the tool that solves the room.",
-    "monetization": "Free jam entry",
-    "retrieved_at": "2026-11-24T07:11:48Z",
-    "source_domain": "harbourrelay.itch.io",
-    "source_url": "https://harbourrelay.itch.io/lantern-duet",
-    "title": "Lantern Duet: your recorded path replays and lights the bridges",
-    "why_hot": "A November 2026 jam build whose core rule is that your own recorded path replays alongside you and its light opens the bridges, which makes route planning recursive instead of a key hunt."
+    "audience": "Mass mobile and desktop, non-gamers, social sharers",
+    "core_mechanic": "The player draws a single continuous stroke with finger or mouse; the game measures it and rebuilds the same line into the level geometry the player then has to traverse",
+    "monetization": "Free, no accounts, no ads",
+    "retrieved_at": "2026-11-25T07:13:41Z",
+    "source_domain": "caen.co.jp",
+    "source_url": "https://caen.co.jp/en/news/kyokara-omaeha-release",
+    "title": "Ink Debt: every stroke you draw is spent from a visible ink budget, and the level is built from what survives",
+    "why_hot": "14.5 million plays in five days (2026), browser, no install, shareable personal artifact"
   },
   {
-    "audience": "Instant-play arcade players arriving from a feed with no patience for a menu.",
-    "core_mechanic": "Play begins the instant the page loads, and each run ends with an automatic replay of your best line so the next attempt starts with a model to beat.",
-    "monetization": "Free, no signup",
-    "retrieved_at": "2026-11-24T07:11:48Z",
-    "source_domain": "dailyaigames.com",
-    "source_url": "https://www.dailyaigames.com/blog/ai-generated-browser-games-roundup",
-    "title": "SKYHOP: play starts at page load and every run ends with your best line replayed",
-    "why_hot": "Dated play counts behind a zero-friction start (play begins at load) and an automatic best-line replay, plus a combo rule that is one sentence long and still changes every fight."
+    "audience": "FPS players, desktop with mouse",
+    "core_mechanic": "First-person combat framed entirely through a body-mounted camera view, so the interface itself is the constraint",
+    "monetization": "Paid PC game",
+    "retrieved_at": "2026-11-25T07:13:41Z",
+    "source_domain": "discord.com",
+    "source_url": "https://discord.com/trending-games/category/indie/2026-11-19",
+    "title": "Bodycam browser slice: a first-person view that is a camera feed you can lose",
+    "why_hot": "Discord trending indie chart for the week of 2026-11-19, body-camera FPS up 267 percent plays and 587 percent streams"
   }
 ]
