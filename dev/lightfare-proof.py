@@ -57,7 +57,10 @@ BROWSER_PORT = 8943  # new; no clash with 8932 or 8941
 VIEWPORTS = (
     ("desktop", {"width": 1280, "height": 800}, False),
     ("mobile", {"width": 375, "height": 667}, True),
+    ("mobile-600", {"width": 375, "height": 600}, True),
+    ("mobile-568", {"width": 320, "height": 568}, True),
 )
+SHORT_VIEWPORT_TAGS = ("mobile-600", "mobile-568")
 
 COUNT_KEY = "flambeee-lightfare-plays"
 BEST_KEY = "flambeee-lightfare-best"
@@ -1287,6 +1290,198 @@ def run_viewport(browser, url, origin, tag, vp, mobile, layouts, notes):
     return failures
 
 
+# ---------------------------------------------------------------------------
+# Story 165 short-viewport legs (mobile-600 375x600, mobile-568 320x568).
+# Fresh profile, real input: TITLE-board assert plus title artifact, Start,
+# L1 BFS path to LEVELCLEAR ends-fit assert, advance to L2, 80-move exhaust
+# to LOSE ends-fit assert plus ends artifact, zero page-error console gate.
+# ---------------------------------------------------------------------------
+def _short_metrics(page):
+    """Viewport geometry for the Story 165 asserts, all read at scrollY 0."""
+    return page.evaluate(
+        "(function () {"
+        " window.scrollTo(0, 0);"
+        " var out = {sy: window.scrollY, ih: window.innerHeight,"
+        "  iw: window.innerWidth,"
+        "  sheight: document.documentElement.scrollHeight,"
+        "  swidth: document.documentElement.scrollWidth};"
+        " var b = document.querySelector('#board');"
+        " out.bdisplay = b ? getComputedStyle(b).display : 'absent';"
+        " var br = b ? b.getBoundingClientRect() : null;"
+        " out.bw = br ? br.width : 0;"
+        " out.bh = br ? br.height : 0;"
+        " var s = document.querySelector('#startBtn');"
+        " var sr = s ? s.getBoundingClientRect() : null;"
+        " out.stop = sr ? sr.top : null;"
+        " out.sbottom = sr ? sr.bottom : null;"
+        " var a = document.querySelector('#againBtn');"
+        " var ar = a ? a.getBoundingClientRect() : null;"
+        " out.atop = ar ? ar.top : null;"
+        " out.abottom = ar ? ar.bottom : null;"
+        " out.aheight = ar ? ar.height : 0;"
+        " return out; })()")
+
+
+def _short_ends_read(page, tag, state_label):
+    """One ends arrival read at scrollY 0. Returns (ok, detail)."""
+    try:
+        m = _short_metrics(page)
+    except Exception as exc:  # noqa: BLE001
+        return False, "%s: %s ends read failed: %s" % (tag, state_label, exc)
+    bad = []
+    if m["sy"] != 0:
+        bad.append("scrollY %s want 0" % (m["sy"],))
+    if m["sheight"] > m["ih"]:
+        bad.append("scrollHeight %s > innerHeight %s"
+                   % (m["sheight"], m["ih"]))
+    if m["atop"] is None or m["atop"] < 0 or m["abottom"] is None \
+            or m["abottom"] > m["ih"]:
+        bad.append("againBtn rect %s..%s outside 0..%s"
+                   % (m["atop"], m["abottom"], m["ih"]))
+    if m["aheight"] < 44:
+        bad.append("againBtn height %s < 44" % (m["aheight"],))
+    if bad:
+        return False, ("%s: %s " % (tag, state_label)) + "; ".join(bad)
+    return True, ("%s: scrollHeight %s <= %s, againBtn %s..%s h%s ok"
+                 % (state_label, m["sheight"], m["ih"],
+                    m["atop"], m["abottom"], m["aheight"]))
+
+
+def run_short_viewport(browser, url, origin, tag, vp, layouts):
+    """Story 165 short leg. Returns 2 rows: title-board, ends-fit."""
+    import tempfile  # local: the module header (Story 161 block) is untouched
+
+    title_bad = []
+    ends_bad = []
+    title_info = []
+    ends_info = []
+    ctx = browser.new_context(viewport=vp, has_touch=True, is_mobile=True)
+    page = ctx.new_page()
+    cerr, perr = [], []
+    page.on("console", lambda m: cerr.append(m) if m.type == "error" else None)
+    page.on("pageerror", lambda e: perr.append(str(e)))
+    try:
+        page.goto(url, wait_until="load", timeout=15000)
+        page.wait_for_timeout(800)
+        reader = Reader(page, origin)
+        if reader.state() != "TITLE":
+            title_bad.append("%s: title-board not on TITLE (state=%s)"
+                             % (tag, reader.state()))
+        try:
+            m = _short_metrics(page)
+            body = page.inner_text("body")
+        except Exception as exc:  # noqa: BLE001
+            m = None
+            body = ""
+            title_bad.append("%s: title-board metrics read failed: %s"
+                             % (tag, exc))
+        if m is not None:
+            if m["sy"] != 0:
+                title_bad.append("%s: title-board scrollY %s want 0"
+                                 % (tag, m["sy"]))
+            if m["bdisplay"] == "none" or m["bdisplay"] == "absent":
+                title_bad.append("%s: title-board display %r (want != 'none')"
+                                 % (tag, m["bdisplay"]))
+            if not (m["bw"] >= 140 and m["bh"] > 0):
+                title_bad.append("%s: title-board rect %sx%s "
+                                 "(want width >= 140, height > 0)"
+                                 % (tag, m["bw"], m["bh"]))
+            if ONELINER not in body:
+                title_bad.append("%s: title-board one-liner not visible"
+                                 % tag)
+            if m["stop"] is None or m["stop"] < 0 \
+                    or m["sbottom"] is None or m["sbottom"] > m["ih"]:
+                title_bad.append("%s: title-board startBtn rect %s..%s "
+                                 "outside 0..%s"
+                                 % (tag, m["stop"], m["sbottom"], m["ih"]))
+            title_info.append("display %s board %sx%s start %s..%s ih %s "
+                              "scrollY %s oneliner %s"
+                              % (m["bdisplay"], m["bw"], m["bh"],
+                                 m["stop"], m["sbottom"], m["ih"], m["sy"],
+                                 "present" if ONELINER in body else "absent"))
+        title_path = str(Path(tempfile.gettempdir())
+                         / ("lightfare-proof-%s-title.png" % tag))
+        try:
+            page.screenshot(path=title_path, full_page=True)
+            print("ARTIFACT: %s" % title_path, flush=True)
+            title_info.append("artifact %s" % title_path)
+        except Exception as exc:  # noqa: BLE001
+            title_bad.append("%s: artifact-write: %s: %s"
+                             % (tag, title_path, exc))
+        if not press_start(reader, page, tag, True):
+            ends_bad.append("%s: ends-fit Start did not reach RUN" % tag)
+        elif not drive_path(reader, page, layouts[0], tag, 1, True, ends_bad):
+            pass
+        elif not wait_state(reader, "LEVELCLEAR", 5.0):
+            ends_bad.append("%s: ends-fit L1 clear did not reach LEVELCLEAR "
+                            "(state=%s)" % (tag, reader.state()))
+        else:
+            ok1, d1 = _short_ends_read(page, tag, "LEVELCLEAR")
+            ends_info.append(d1)
+            if not ok1:
+                ends_bad.append(d1)
+            if not advance_level(reader, page, tag, True):
+                ends_bad.append("%s: ends-fit LEVELCLEAR advance did not "
+                                "reach RUN" % tag)
+            elif not drive_exhaust(reader, page, layouts[1], tag, 2, True,
+                                   ends_bad):
+                pass
+            elif not wait_state(reader, "LOSE", 5.0):
+                ends_bad.append("%s: ends-fit 80 moves did not reach LOSE "
+                                "(state=%s)" % (tag, reader.state()))
+            else:
+                ok2, d2 = _short_ends_read(page, tag, "LOSE")
+                ends_info.append(d2)
+                if not ok2:
+                    ends_bad.append(d2)
+                plays_before = reader.plays()
+                if not retry_level(reader, page, tag, True):
+                    ends_bad.append("%s: ends-fit LOSE retry did not reach "
+                                    "RUN" % tag)
+                elif reader.plays() != plays_before:
+                    ends_bad.append("%s: ends-fit LOSE retry changed plays "
+                                    "%r -> %r (want unchanged)"
+                                    % (tag, plays_before, reader.plays()))
+                elif reader.light() != 15 or reader.moves() != 0:
+                    ends_bad.append("%s: ends-fit after retry light=%r "
+                                    "moves=%r want 15/0"
+                                    % (tag, reader.light(), reader.moves()))
+                else:
+                    ends_info.append("retry reaches RUN light 15 moves 0 "
+                                     "plays unchanged ok")
+                ends_path = str(Path(tempfile.gettempdir())
+                                / ("lightfare-proof-%s-ends.png" % tag))
+                try:
+                    page.screenshot(path=ends_path, full_page=True)
+                    print("ARTIFACT: %s" % ends_path, flush=True)
+                    ends_info.append("artifact %s" % ends_path)
+                except Exception as exc:  # noqa: BLE001
+                    ends_bad.append("%s: artifact-write: %s: %s"
+                                    % (tag, ends_path, exc))
+        errs = attributable_errors(cerr, perr, origin)
+        if errs:
+            ends_bad.append("%s: ends-fit page-attributable errors: %s"
+                            % (tag, errs[:5]))
+        else:
+            ends_info.append("console errors 0")
+    except Exception as exc:  # noqa: BLE001
+        title_bad.append("%s: exception %s" % (tag, exc))
+        ends_bad.append("%s: exception %s" % (tag, exc))
+    finally:
+        try:
+            ctx.close()
+        except Exception:  # noqa: BLE001
+            pass
+    title_detail = "; ".join(title_info)
+    if title_bad:
+        title_detail = " | ".join(title_bad) + " || " + title_detail
+    ends_detail = "; ".join(ends_info)
+    if ends_bad:
+        ends_detail = " | ".join(ends_bad) + " || " + ends_detail
+    return [("browser-%s-title-board" % tag, not title_bad, title_detail),
+            ("browser-%s-ends-fit" % tag, not ends_bad, ends_detail)]
+
+
 def _preflight_port_free(port, timeout=2.0):
     """Prove the port free before any spawn (Story 161 PREFLIGHT).
 
@@ -1337,8 +1532,14 @@ def browser_legs(root, port, only_vp=None):
         from playwright.sync_api import sync_playwright
     except Exception as exc:  # noqa: BLE001
         for t in tags:
-            record("browser-%s" % t, False,
-                   "playwright import failed: %s" % exc)
+            if t in SHORT_VIEWPORT_TAGS:
+                record("browser-%s-title-board" % t, False,
+                       "playwright import failed: %s" % exc)
+                record("browser-%s-ends-fit" % t, False,
+                       "playwright import failed: %s" % exc)
+            else:
+                record("browser-%s" % t, False,
+                       "playwright import failed: %s" % exc)
         return
 
     # PREFLIGHT (Story 161): prove the port free before spawning anything.
@@ -1394,18 +1595,34 @@ def browser_legs(root, port, only_vp=None):
         time.sleep(1)
     if not started:
         for t in tags:
-            record("browser-%s" % t, False,
-                   "local server did not start (port %d busy?) "
-                   "child not alive to own it" % port)
+            if t in SHORT_VIEWPORT_TAGS:
+                record("browser-%s-title-board" % t, False,
+                       "local server did not start (port %d busy?) "
+                       "child not alive to own it" % port)
+                record("browser-%s-ends-fit" % t, False,
+                       "local server did not start (port %d busy?) "
+                       "child not alive to own it" % port)
+            else:
+                record("browser-%s" % t, False,
+                       "local server did not start (port %d busy?) "
+                       "child not alive to own it" % port)
         _stop_child(srv)
         return
 
     layouts, _ = extract_layouts((root / GAME_REL).read_text())
     if len(layouts) != 5:
         for t in tags:
-            record("browser-%s" % t, False,
-                   "cannot extract 5 layouts for path driving (%d found)"
-                   % len(layouts))
+            if t in SHORT_VIEWPORT_TAGS:
+                record("browser-%s-title-board" % t, False,
+                       "cannot extract 5 layouts for path driving (%d found)"
+                       % len(layouts))
+                record("browser-%s-ends-fit" % t, False,
+                       "cannot extract 5 layouts for path driving (%d found)"
+                       % len(layouts))
+            else:
+                record("browser-%s" % t, False,
+                       "cannot extract 5 layouts for path driving (%d found)"
+                       % len(layouts))
         return
 
     try:
@@ -1413,6 +1630,11 @@ def browser_legs(root, port, only_vp=None):
             browser = pw.chromium.launch(headless=True)
             for tag, vp, mobile in VIEWPORTS:
                 if only_vp and tag != only_vp:
+                    continue
+                if tag in SHORT_VIEWPORT_TAGS:
+                    for name, passed, detail in run_short_viewport(
+                            browser, url, origin, tag, vp, layouts):
+                        record(name, passed, detail)
                     continue
                 notes = []
                 failures = run_viewport(browser, url, origin, tag, vp,
@@ -1448,8 +1670,9 @@ def main():
             v = arg.split("=", 1)[1]
             only_vp = v
             skip_flags.append((arg, "all viewports except %s" % v))
-            if v not in ("desktop", "mobile"):
-                vp_error = ("unknown viewport %r in %s (want desktop|mobile)"
+            if v not in ("desktop", "mobile", "mobile-600", "mobile-568"):
+                vp_error = ("unknown viewport %r in %s (want desktop|mobile|"
+                            "mobile-600|mobile-568)"
                             % (v, arg))
         elif arg.startswith("--port="):
             raw = arg.split("=", 1)[1]
@@ -1465,7 +1688,8 @@ def main():
             skip_flags.append((arg, "default-port serve"))
         else:
             print("FAIL: unknown argument %r (valid: --sim-only, "
-                  "--viewport=desktop|mobile, --port=N)" % arg)
+                  "--viewport=desktop|mobile|mobile-600|mobile-568, --port=N)"
+                  % arg)
             print("RESULT: FAIL (exit 1)")
             return 1
 
