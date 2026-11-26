@@ -3,6 +3,16 @@
 
 Runs under:
     env -u PYTHONPATH python3 dev/trace-proof.py
+or (documents the team-venv invocation, cf. dev/lightfare-proof.py):
+    env -u PYTHONPATH /home/jake/.hermes/flambeee/.venv/bin/python dev/trace-proof.py
+
+Self-heal: at startup, before any legs run, the harness re-execs itself
+under the team venv python (/home/jake/.hermes/flambeee/.venv/bin/python)
+so the browser legs reach PASS even when launched with the system python3
+(which has no playwright). The re-exec is guarded by FLAMBEee_TRACE_REEXEC
+and never loops; if the venv python is missing or the re-exec fails, the
+harness falls through to the current behaviour (a playwright import
+failure becomes a SKIP reason, unchanged).
 
 What it does:
   1. Mirrors the contract forge rule (design-handoff 1.2) and the day
@@ -35,6 +45,7 @@ import bisect
 import errno
 import json
 import math
+import os
 import re
 import socket
 import subprocess
@@ -44,6 +55,22 @@ import urllib.request
 from collections import deque
 from datetime import date, datetime, timezone
 from pathlib import Path
+
+# Self-heal re-exec: run the whole harness under the team venv python so
+# the browser legs have playwright even when launched with system python3.
+# Guarded by FLAMBEee_TRACE_REEXEC so it never loops; missing venv python
+# or a failed re-exec falls through to the current behaviour.
+_TEAM_VENV_PY = "/home/jake/.hermes/flambeee/.venv/bin/python"
+if (not os.environ.get("FLAMBEee_TRACE_REEXEC")
+        and Path(_TEAM_VENV_PY).is_file()):
+    try:
+        _reexec_env = os.environ.copy()
+        _reexec_env.pop("PYTHONPATH", None)
+        _reexec_env["FLAMBEee_TRACE_REEXEC"] = "1"
+        os.execve(_TEAM_VENV_PY, [_TEAM_VENV_PY] + sys.argv,
+                  _reexec_env)
+    except OSError:
+        pass
 
 # ---------------------------------------------------------------------------
 # Contract constants (design-handoff 1.2, 1.3, 2.1; story 169 FR-6).
@@ -928,7 +955,7 @@ def main():
     else:
         record("browser-legs", False, detail)
 
-    print("TRACE proof harness (Story 169)")
+    print("TRACE proof harness (Story 169) [python: %s]" % sys.executable)
     print("forge: resample 2 px, floor+clamp 9x9, border wall, "
           "carve START/EXIT, L-stitch BFS; day: mulberry32(D)")
     print("")
