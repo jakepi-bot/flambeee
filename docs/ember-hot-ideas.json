@@ -1,32 +1,32 @@
 [
   {
-    "audience": "Casual action players on mobile browsers",
-    "core_mechanic": "A runner where each gate choice multiplies or adds to a squad value, so steering and quick arithmetic compete for the same attention",
-    "monetization": "Free, cosmetic unlocks",
-    "retrieved_at": "2026-11-25T07:13:41Z",
-    "source_domain": "simonwon.itch.io",
-    "source_url": "https://simonwon.itch.io/number-gate-rush/devlog/1803534/number-gate-rush-is-out-a-3d-gate-runner-you-can-play-in-your-browser",
-    "title": "Gate Ledger: every gate you pass writes a debt or a credit that settles at the end of the run",
-    "why_hot": "Brand new 2026 itch.io browser release with an explicit bot-tuned difficulty method and 15 stages"
+    "audience": "Solo web developers and vibe coders",
+    "core_mechanic": "Not a mechanic: a market event that rewards small original browser games with a hard deadline, which is the same shape as a one-session build",
+    "monetization": "Prize competition, monetized via Nitro ads",
+    "retrieved_at": "2026-11-26T07:12:13Z",
+    "source_domain": "blog.overwolf.com",
+    "source_url": "https://blog.overwolf.com/overwolfs-nitro-and-base44-launch-65k-contest-for-web-games-built-with-ai",
+    "title": "Sixty-Five Thousand: a contest that pays for scope discipline, not scope",
+    "why_hot": "Nitro and Base44 opened a 65,000 USD browser game contest on 2026-11-05 with submissions through 2026-12-03 and a 25,000 USD grand prize, judged on gameplay, creativity and technical execution"
   },
   {
-    "audience": "Mass mobile and desktop, non-gamers, social sharers",
-    "core_mechanic": "The player draws a single continuous stroke with finger or mouse; the game measures it and rebuilds the same line into the level geometry the player then has to traverse",
-    "monetization": "Free, no accounts, no ads",
-    "retrieved_at": "2026-11-25T07:13:41Z",
-    "source_domain": "caen.co.jp",
-    "source_url": "https://caen.co.jp/en/news/kyokara-omaeha-release",
-    "title": "Ink Debt: every stroke you draw is spent from a visible ink budget, and the level is built from what survives",
-    "why_hot": "14.5 million plays in five days (2026), browser, no install, shareable personal artifact"
+    "audience": "Desktop and mobile players who want a two-minute daily ritual with a leaderboard",
+    "core_mechanic": "A short physics track is seeded from the UTC day; every player races the identical geometry against a deterministic rival, and the only visible comparison is your time against your own previous best on that seed",
+    "monetization": "Free, optional account for leaderboards",
+    "retrieved_at": "2026-11-26T07:12:13Z",
+    "source_domain": "polytrack.games",
+    "source_url": "https://polytrack.games/updates",
+    "title": "Ghost Shift: one seeded track per UTC day, one rival, rank only against your own last run",
+    "why_hot": "PolyTrack is the largest rising gaming search term at 1,220,000 monthly searches (2026-09), up 639 percent in three months, after adding a daily challenge on 2026-11-04 that resets at 00:00 UTC with the same track and car for everyone"
   },
   {
-    "audience": "FPS players, desktop with mouse",
-    "core_mechanic": "First-person combat framed entirely through a body-mounted camera view, so the interface itself is the constraint",
-    "monetization": "Paid PC game",
-    "retrieved_at": "2026-11-25T07:13:41Z",
-    "source_domain": "discord.com",
-    "source_url": "https://discord.com/trending-games/category/indie/2026-11-19",
-    "title": "Bodycam browser slice: a first-person view that is a camera feed you can lose",
-    "why_hot": "Discord trending indie chart for the week of 2026-11-19, body-camera FPS up 267 percent plays and 587 percent streams"
+    "audience": "Game jam players, itch.io browser audience, keyboard desktop",
+    "core_mechanic": "One modifier key reassigns the meaning of every other input; the player's skill is tracking which mapping is live rather than executing the mapping",
+    "monetization": "Free jam entry",
+    "retrieved_at": "2026-11-26T07:12:13Z",
+    "source_domain": "venogame.com",
+    "source_url": "https://venogame.com/en/game-off-2026-shift-game-jam-guide",
+    "title": "Shift Key: the entire control scheme is one key that changes what every other key means",
+    "why_hot": "GitHub Game Off 2026 runs through 2026-12-01 with the theme SHIFT and explicitly names 'a game where the Shift key is the only control' and 'controls that rotate every few seconds' as valid readings, so a large pool of browser entries is about to ship on this axis"
   }
 ]
