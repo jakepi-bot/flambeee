@@ -417,6 +417,21 @@ def leg_day_anchor():
         % (int(got), start, exit_cell, manh, bar))
 
 
+def leg_end_screen_regex():
+    """Both end screens print the same coverage sentence, so the WIN regex
+    must key on the title only. Regression for the Session 73 peer review
+    finding: 'You brushed' alone matched a LOSE body and let a LOSE pass as
+    a WIN. Synthetic bodies keep this leg pure (no browser needed)."""
+    win_body = "EXIT REACHED\nYou brushed 29% of your line.\nWalk again"
+    lose_body = "OUT OF MOVES\nYou brushed 29% of your line.\nWalk again"
+    win_ok = bool(WIN_RE.search(win_body)) and not WIN_RE.search(lose_body)
+    lose_ok = bool(LOSE_RE.search(lose_body)) and not LOSE_RE.search(win_body)
+    return record(
+        "end-screen-regex", win_ok and lose_ok,
+        "WIN_RE matches EXIT REACHED only and not a LOSE body; LOSE_RE "
+        "matches OUT OF MOVES only and not a WIN body")
+
+
 def leg_determinism():
     good = 0
     for i in range(200):
@@ -547,7 +562,7 @@ VIEWPORTS = ((1280, 800, False), (375, 667, True))
 FIELD_SELECTORS = ("canvas", "#field", ".field", "svg", "[data-field]")
 TOUCH_ASSERT_RE = re.compile(r"touch-action\s*:\s*none")
 RUN_RE = re.compile(r"(?i)moves?\s*(left|\d)|walk|EXIT|You brushed")
-WIN_RE = re.compile(r"EXIT REACHED|You brushed")
+WIN_RE = re.compile(r"EXIT REACHED")
 LOSE_RE = re.compile(r"OUT OF MOVES")
 START_RE = re.compile(r"(?i)^\s*start\s*$|\bstart\b")
 KEY_FOR = {"up": "ArrowUp", "down": "ArrowDown",
@@ -801,11 +816,22 @@ def run_one_viewport(browser, url, origin, width, height, mobile):
                 return ("fail", "%s: key press failed: %s" % (tag, exc))
         page.wait_for_timeout(600)
         body = _body_text(page)
+        # LOSE is checked first: both end screens share the coverage
+        # sentence, so only the title distinguishes them (peer review
+        # finding, Session 73).
+        if LOSE_RE.search(body) and not WIN_RE.search(body):
+            return ("fail", "%s: walked the mirror BFS path (%d moves) but "
+                    "game says OUT OF MOVES; forge mismatch?" % (tag,
+                                                                 res["moves"]))
         if WIN_RE.search(body):
             m = re.search(r"You brushed\s*(\d+)\s*%", body)
             shown = int(m.group(1)) if m else None
             expect = coverage_pct(res["player_cells"], set(res["path"]))
             errs = cerr + perr
+            if shown != expect:
+                return ("fail", "%s: WIN but coverage pct mismatch, shown %s "
+                        "mirror %d (D %d, %d moves)"
+                        % (tag, shown, expect, today_d, res["moves"]))
             detail = ("%s DRAW->FORGE->RUN->WIN ok (D %d, %d moves, pct "
                       "shown %s mirror %d); scrollY 0 through drag%s"
                       % (tag, today_d, res["moves"], shown, expect,
@@ -813,10 +839,6 @@ def run_one_viewport(browser, url, origin, width, height, mobile):
             if errs:
                 return ("fail", "%s: WIN but page errors: %s" % (tag, errs))
             return ("pass", detail)
-        if LOSE_RE.search(body):
-            return ("fail", "%s: walked the mirror BFS path (%d moves) but "
-                    "game says OUT OF MOVES; forge mismatch?" % (tag,
-                                                                 res["moves"]))
         return ("fail", "%s: no WIN after walking the mirror BFS path "
                 "(%d moves); body %.160r" % (tag, res["moves"], body))
     except Exception as exc:  # noqa: BLE001
@@ -906,6 +928,7 @@ def main():
     game = root / GAME_REL
 
     leg_day_anchor()
+    leg_end_screen_regex()
     leg_determinism()
     leg_monotone()
     leg_room()
