@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TRACE | Flambeee</title>
+<style>
+  /* TRACE (Session 73, Stories 166 + 167 + 170). Single file, no build, no
+   * dependency, no network after load. Draw one continuous stroke, forge it
+   * into walls, walk to the exit one cell per press.
+   * States TITLE / DRAW / FORGE / RUN / WIN / LOSE on one screen. Movement is
+   * discrete, one cell per press, no momentum, no vehicle, no letterforms.
+   * Tuning lives in CONFIG below, nowhere else (contract section 1.3). */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { max-width: 100%; overflow-x: hidden; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0b0d14;
+    color: #e8e4d8;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px;
+  }
+  .back-link { align-self: flex-start; color: #e8e4d8; text-decoration: none; font-size: 14px; opacity: 0.7; }
+  .back-link:hover { opacity: 1; }
+  h1 { margin: 12px 0 2px; font-size: 1.5rem; letter-spacing: 3px; color: #ffd97a; }
+  .tagline { font-size: 0.85rem; opacity: 0.75; margin-bottom: 10px; text-align: center; max-width: 560px; }
+  .hud { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 10px; font-size: 0.85rem; }
+  .hud .item { background: #141826; padding: 5px 10px; border-radius: 8px; border: 1px solid #2a3350; white-space: nowrap; }
+  #screen { width: 100%; max-width: 420px; display: flex; flex-direction: column; align-items: center; }
+  #fieldWrap { width: 100%; max-width: 324px; }
+  #field {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background: #05070d;
+    border: 1px solid #2a3350;
+    border-radius: 8px;
+    touch-action: none;
+  }
+  #msg { min-height: 22px; font-size: 0.9rem; color: #ff9a9a; text-align: center; margin: 8px 0 4px; }
+  #panel { width: 100%; background: #141826; border: 1px solid #2a3350; border-radius: 10px; padding: 16px; text-align: center; }
+  #panel h2 { font-size: 1.2rem; letter-spacing: 2px; margin-bottom: 6px; color: #ffd97a; }
+  #panel p { font-size: 0.9rem; line-height: 1.6; margin-top: 8px; }
+  #panel .oneliner { font-size: 0.95rem; color: #e8e4d8; }
+  #panel .seedline { font-size: 0.85rem; color: #9aa7d8; }
+  button.action {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    background: #e94560;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 22px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 14px;
+    font-family: inherit;
+    touch-action: manipulation;
+  }
+  button.action:hover { background: #ff5a75; }
+  button.action:focus-visible { outline: 2px solid #ff5a75; outline-offset: 2px; }
+  button.action.secondary { background: #232840; border: 1px solid #2a3350; }
+  button.action.secondary:hover { background: #2c3450; }
+  #pad {
+    display: grid;
+    grid-template-columns: repeat(3, 58px);
+    grid-template-rows: repeat(3, 58px);
+    grid-template-areas: ". up ." "left . right" ". down .";
+    gap: 6px;
+    justify-content: center;
+    margin-top: 14px;
+    touch-action: manipulation;
+  }
+  #btnUp { grid-area: up; }
+  #btnLeft { grid-area: left; }
+  #btnDown { grid-area: down; }
+  #btnRight { grid-area: right; }
+  .pbtn {
+    background: #1a1e2b;
+    color: #e8e4d8;
+    border: 1px solid #2a3350;
+    border-radius: 8px;
+    font-size: 1.3rem;
+    font-family: inherit;
+    cursor: pointer;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .pbtn:hover { background: #232840; }
+  .pbtn:focus-visible { outline: 2px solid #ffd97a; outline-offset: 2px; }
+  .keys { margin-top: 14px; font-size: 0.8rem; opacity: 0.7; text-align: center; max-width: 560px; }
+</style>
+</head>
+<body>
+<a class="back-link" href="../index.html">Back to Flambeee</a>
+<h1>TRACE</h1>
+<p class="tagline">Draw the walls. Walk them.</p>
+
+<div class="hud">
+  <span class="item">Moves left: <span id="movesLeft">80</span></span>
+  <span class="item">Brushed: <span id="cover">0%</span></span>
+  <span class="item">Best today: <span id="best">0%</span></span>
+  <span class="item">Plays on this browser: <span id="plays">0</span></span>
+</div>
+
+<div id="screen">
+  <div id="fieldWrap"><canvas id="field" width="324" height="324" aria-label="Trace field"></canvas></div>
+  <div id="msg" aria-live="polite"></div>
+  <div id="panel">
+    <div id="titleBlock">
+      <h2>TRACE</h2>
+      <p class="oneliner">Draw one line, then walk it.</p>
+      <p>Draw one line with your finger or mouse inside the square, then lift. Your line forges into walls. Walk to the exit one cell at a time.</p>
+      <p class="seedline">Day <span id="dayLabel">-</span></p>
+      <button class="action" id="startBtn" type="button">Start (Enter)</button>
+    </div>
+    <div id="drawBlock" hidden>
+      <h2>DRAW</h2>
+      <p class="oneliner">Draw one line, then lift.</p>
+      <p id="inkMeter">Ink: 0 of 1200 px.</p>
+      <button class="action secondary" id="clearBtn" type="button">Clear (Esc)</button>
+    </div>
+    <div id="runBlock" hidden>
+      <h2>WALK</h2>
+      <p class="oneliner">Reach the exit. Walls block silently.</p>
+    </div>
+    <div id="endBlock" hidden>
+      <h2 id="endTitle"></h2>
+      <p id="endLine"></p>
+      <button class="action" id="againBtn" type="button">Walk again (Enter)</button>
+      <button class="action secondary" id="newLineBtn" type="button">New line</button>
+    </div>
+  </div>
+  <div id="pad" role="group" aria-label="Touch pad">
+    <button class="pbtn" id="btnUp" type="button" aria-label="Move up">&#8593;</button>
+    <button class="pbtn" id="btnLeft" type="button" aria-label="Move left">&#8592;</button>
+    <button class="pbtn" id="btnDown" type="button" aria-label="Move down">&#8595;</button>
+    <button class="pbtn" id="btnRight" type="button" aria-label="Move right">&#8594;</button>
+  </div>
+</div>
+
+<p class="keys">Arrow keys or WASD paint in DRAW and move in RUN. Enter forges, starts, and walks again. Esc clears.</p>
+
+<script>
+'use strict';
+
+/* ---------- Tuning constants (contract section 1.3, all in one place) ---------- */
+var CONFIG = {
+  GRID: 9,
+  FIELD_INTERNAL_PX: 324,
+  FIELD_MIN_RENDER_PX: 240,
+  CELL_PX: 36,
+  RESAMPLE_STEP_PX: 2,
+  MIN_STROKE_PX: 108,
+  MIN_CELLS: 3,
+  INK_BUDGET_PX: 1200,
+  MOVE_LIMIT: 80,
+  MANHATTAN_MIN: 8,
+  COUNT_KEY: 'flambeee-trace-plays',
+  BEST_KEY: 'flambeee-trace-best',
+  COUNT_CAP: 9007199254740991,
+  FIXED_TRIPLE: { start: { r: 1, c: 1 }, exit: { r: 7, c: 7 }, skel: [{ r: 4, c: 3 }, { r: 4, c: 4 }, { r: 4, c: 5 }] }
+};
+
+/* ---------- Deterministic PRNG (same code shape as EMPTY HANDS) ---------- */
+function mulberry32(a) {
+  a = a >>> 0;
+  return function () {
+    a = (a + 0x6D2B79F5) >>> 0;
+    var t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function dayIndexNow() { return Math.floor(Date.now() / 86400000); }
+
+function cellKey(r, c) { return r + ',' + c; }
+
+function manhattan(a, b) { return Math.abs(a.r - b.r) + Math.abs(a.c - b.c); }
+
+function skelHits(start, exit, skR, skC) {
+  for (var i = 0; i < 3; i++) {
+    var r = skR, c = skC + i;
+    if ((r === start.r && c === start.c) || (r === exit.r && c === exit.c)) return true;
+  }
+  return false;
+}
+
+/* ---------- Story 167: UTC-day seed fixes start, exit, skeleton ---------- */
+function deriveTriple(D) {
+  var rng = mulberry32(D);
+  var start = { r: 1 + Math.floor(rng() * 7), c: 1 + Math.floor(rng() * 7) };
+  var exit = { r: 1 + Math.floor(rng() * 7), c: 1 + Math.floor(rng() * 7) };
+  var draws = 1;
+  while (manhattan(start, exit) < CONFIG.MANHATTAN_MIN && draws < 50) {
+    exit = { r: 1 + Math.floor(rng() * 7), c: 1 + Math.floor(rng() * 7) };
+    draws++;
+  }
+  if (manhattan(start, exit) < CONFIG.MANHATTAN_MIN) {
+    var fb = { r: 8 - start.r, c: 8 - start.c };
+    exit = (fb.r === start.r && fb.c === start.c) ? { r: 1, c: 7 } : fb;
+  }
+  var skR = 1 + Math.floor(rng() * 7);
+  var skC = 1 + Math.floor(rng() * 5);
+  var guard = 0;
+  while (skelHits(start, exit, skR, skC) && guard < 16) {
+    skR = (skR % 7) + 1;
+    guard++;
+  }
+  return {
+    D: D,
+    start: start,
+    exit: exit,
+    skel: [{ r: skR, c: skC }, { r: skR, c: skC + 1 }, { r: skR, c: skC + 2 }]
+  };
+}
+
+/* ---------- Story 170: local play counter (pattern-doc section 2 shape) ---------- */
+var playsMem = 0;
+
+function sanitizePlays(v) {
+  if (typeof v === 'number') {
+    if (!isFinite(v) || Math.floor(v) !== v || v < 0 || v > CONFIG.COUNT_CAP) return 0;
+    return v;
+  }
+  if (typeof v === 'string' && v !== '') {
+    var n = Number(v);
+    if (!isFinite(n) || Math.floor(n) !== n || n < 0 || n > CONFIG.COUNT_CAP) return 0;
+    return n;
+  }
+  return 0;
+}
+
+function loadPlays() {
+  try {
+    var raw = localStorage.getItem(CONFIG.COUNT_KEY);
+    if (raw === null || typeof raw === 'undefined') return 0;
+    var parsed;
+    try { parsed = JSON.parse(raw); } catch (e) { return 0; }
+    if (parsed === null || typeof parsed === 'undefined') return 0;
+    return sanitizePlays(parsed);
+  } catch (e) { return 0; }
+}
+
+function renderPlays() {
+  document.getElementById('plays').textContent = String(playsMem);
+}
+
+function bumpPlays() {
+  playsMem = Math.min(playsMem + 1, CONFIG.COUNT_CAP);
+  try { localStorage.setItem(CONFIG.COUNT_KEY, JSON.stringify(playsMem)); } catch (e) {}
+  renderPlays();
+}
+
+/* ---------- Story 167: local best today (single BEST_KEY, JSON {day, pct}) ---------- */
+var bestMem = 0;
+
+function loadBest(todayD) {
+  try {
+    var raw = localStorage.getItem(CONFIG.BEST_KEY);
+    if (raw === null || typeof raw === 'undefined') return 0;
+    var parsed;
+    try { parsed = JSON.parse(raw); } catch (e) { return 0; }
+    if (parsed === null || typeof parsed !== 'object') return 0;
+    if (parsed.day !== todayD) return 0;
+    if (typeof parsed.pct !== 'number' || !isFinite(parsed.pct) ||
+        Math.floor(parsed.pct) !== parsed.pct || parsed.pct < 0 || parsed.pct > 100) return 0;
+    return parsed.pct;
+  } catch (e) { return 0; }
+}
+
+function saveBestIfBeats(pct, todayD) {
+  if (pct > bestMem) {
+    bestMem = pct;
+    try { localStorage.setItem(CONFIG.BEST_KEY, JSON.stringify({ day: todayD, pct: pct })); } catch (e) {}
+  }
+}
+
+/* ---------- Run state ---------- */
+var state = 'TITLE';   /* TITLE | DRAW | FORGE | RUN | WIN | LOSE */
+var todayD = 0;
+var triple = null;     /* day frame: {D, start, exit, skel[]} */
+/* Forged level for the current run: */
+var runWalls = {};     /* key -> 1, BORDER + SKELETON + PLAYER, minus carve/stitch */
+var runPlayer = {};    /* key -> {r,c}, PLAYER_WALLS only (never skeleton, never border) */
+var runStart = { r: 1, c: 1 };
+var runExit = { r: 7, c: 7 };
+var pos = { r: 1, c: 1 };
+var moves = 0;
+var visited = {};
+var brushed = 0;
+var pct = 0;
+/* DRAW stroke: pointer path plus keyboard path share one forge. */
+var rawPts = [];       /* [{x,y}] internal px, pointer path */
+var inkLenRaw = 0;     /* raw polyline arc length, px */
+var kbSet = {};        /* key -> 1, keyboard-painted cells */
+var kbList = [];       /* [{r,c}] unique keyboard-painted cells */
+var kbInk = 0;         /* 36 px per newly painted cell */
+var inkFull = false;
+var cursor = { r: 4, c: 3 };
+var activePointerId = null;
+
+/* ---------- DOM ---------- */
+var canvas = document.getElementById('field');
+var ctx = canvas.getContext('2d');
+var elMsg = document.getElementById('msg');
+var elMovesLeft = document.getElementById('movesLeft');
+var elCover = document.getElementById('cover');
+var elBest = document.getElementById('best');
+var elDay = document.getElementById('dayLabel');
+var elInk = document.getElementById('inkMeter');
+var elTitle = document.getElementById('titleBlock');
+var elDraw = document.getElementById('drawBlock');
+var elRun = document.getElementById('runBlock');
+var elEnd = document.getElementById('endBlock');
+var elEndTitle = document.getElementById('endTitle');
+var elEndLine = document.getElementById('endLine');
+var elPad = document.getElementById('pad');
+
+function fitCanvas() {
+  var dpr = Math.min(2, window.devicePixelRatio || 1);
+  canvas.width = Math.round(CONFIG.FIELD_INTERNAL_PX * dpr);
+  canvas.height = Math.round(CONFIG.FIELD_INTERNAL_PX * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+function setMsg(text) { elMsg.textContent = text || ''; }
+
+/* ---------- Story 166: forge rule (pure functions of the point list) ---------- */
+function resamplePoints(pts, step) {
+  var out = [];
+  if (pts.length === 0) return out;
+  out.push({ x: pts[0].x, y: pts[0].y });
+  if (pts.length === 1) return out;
+  var acc = 0;
+  for (var i = 1; i < pts.length; i++) {
+    var a = pts[i - 1], b = pts[i];
+    var dx = b.x - a.x, dy = b.y - a.y;
+    var seg = Math.sqrt(dx * dx + dy * dy);
+    if (seg === 0) continue;
+    var d = step - acc;
+    while (d < seg) {
+      var t = d / seg;
+      out.push({ x: a.x + dx * t, y: a.y + dy * t });
+      d += step;
+    }
+    acc = seg - (d - step);
+  }
+  out.push({ x: pts[pts.length - 1].x, y: pts[pts.length - 1].y });
+  return out;
+}
+
+function polyLen(pts) {
+  var L = 0;
+  for (var i = 1; i < pts.length; i++) {
+    var dx = pts[i].x - pts[i - 1].x, dy = pts[i].y - pts[i - 1].y;
+    L += Math.sqrt(dx * dx + dy * dy);
+  }
+  return L;
+}
+
+function quantCell(x, y) {
+  var c = Math.floor(x / CONFIG.CELL_PX);
+  var r = Math.floor(y / CONFIG.CELL_PX);
+  if (r < 0) r = 0; if (r > CONFIG.GRID - 1) r = CONFIG.GRID - 1;
+  if (c < 0) c = 0; if (c > CONFIG.GRID - 1) c = CONFIG.GRID - 1;
+  return { r: r, c: c };
+}
+
+function bfsReach(walls, s, e) {
+  if (s.r === e.r && s.c === e.c) return true;
+  var seen = {};
+  seen[cellKey(s.r, s.c)] = 1;
+  var q = [{ r: s.r, c: s.c }];
+  var dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+  while (q.length > 0) {
+    var cur = q.shift();
+    for (var i = 0; i < 4; i++) {
+      var nr = cur.r + dirs[i][0], nc = cur.c + dirs[i][1];
+      if (nr < 0 || nc < 0 || nr >= CONFIG.GRID || nc >= CONFIG.GRID) continue;
+      var k = cellKey(nr, nc);
+      if (seen[k] || walls[k]) continue;
+      if (nr === e.r && nc === e.c) return true;
+      seen[k] = 1;
+      q.push({ r: nr, c: nc });
+    }
+  }
+  return false;
+}
+
+/* PLAYER_WALLS excludes skeleton and border cells, so the gate guarantees
+ * the brushed denominator is never zero and neither family ever enters it. */
+function forgeLevel(cells, frame) {
+  var skelSet = {};
+  var i;
+  for (i = 0; i < frame.skel.length; i++) skelSet[cellKey(frame.skel[i].r, frame.skel[i].c)] = 1;
+  var player = {};
+  for (i = 0; i < cells.length; i++) {
+    var r = cells[i].r, c = cells[i].c;
+    if (r === 0 || c === 0 || r === CONFIG.GRID - 1 || c === CONFIG.GRID - 1) continue;
+    var k = cellKey(r, c);
+    if (skelSet[k]) continue;
+    if (!player[k]) player[k] = { r: r, c: c };
+  }
+  var walls = {};
+  var rr;
+  for (rr = 0; rr < CONFIG.GRID; rr++) {
+    walls[cellKey(rr, 0)] = 1;
+    walls[cellKey(rr, CONFIG.GRID - 1)] = 1;
+    walls[cellKey(0, rr)] = 1;
+    walls[cellKey(CONFIG.GRID - 1, rr)] = 1;
+  }
+  for (i = 0; i < frame.skel.length; i++) walls[cellKey(frame.skel[i].r, frame.skel[i].c)] = 1;
+  for (var k2 in player) walls[k2] = 1;
+  delete walls[cellKey(frame.start.r, frame.start.c)];
+  delete walls[cellKey(frame.exit.r, frame.exit.c)];
+  if (!bfsReach(walls, frame.start, frame.exit)) {
+    var r0 = frame.start.r, c0 = frame.start.c;
+    var r1 = frame.exit.r, c1 = frame.exit.c;
+    var cs = c1 >= c0 ? 1 : -1, cc;
+    for (cc = c0; cc !== c1 + cs; cc += cs) delete walls[cellKey(r0, cc)];
+    var rs = r1 >= r0 ? 1 : -1, rrx;
+    for (rrx = r0; rrx !== r1 + rs; rrx += rs) delete walls[cellKey(rrx, c1)];
+    bfsReach(walls, frame.start, frame.exit);
+  }
+  return { player: player, walls: walls };
+}
+
+function updateBrushed() {
+  var n = Object.keys(runPlayer).length;
+  var b = 0;
+  var dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+  for (var k in runPlayer) {
+    var cell = runPlayer[k];
+    for (var i = 0; i < 4; i++) {
+      if (visited[cellKey(cell.r + dirs[i][0], cell.c + dirs[i][1])]) { b++; break; }
+    }
+  }
+  brushed = b;
+  pct = n > 0 ? Math.round(100 * b / n) : 0;
+}
+
+/* ---------- Level lifecycle ---------- */
+function refreshDay() {
+  todayD = dayIndexNow();
+  triple = deriveTriple(todayD);
+  bestMem = loadBest(todayD);
+}
+
+/* Single run-entry path (Story 170): the one and only bumpPlays() call.
+ * Only a Start from TITLE reaches it. Walk again, New line, refusals, Clear,
+ * FORGE, RUN moves, WIN, LOSE, reloads, and tab restores never count. */
+function enterDraw() {
+  if (state !== 'TITLE') return;
+  bumpPlays();
+  refreshDay();
+  rawPts = [];
+  inkLenRaw = 0;
+  kbSet = {};
+  kbList = [];
+  kbInk = 0;
+  inkFull = false;
+  cursor = { r: triple.skel[0].r, c: triple.skel[0].c };
+  state = 'DRAW';
+  setMsg('');
+  render();
+}
+
+function attemptForge() {
+  if (state !== 'DRAW') return;
+  var res = resamplePoints(rawPts, CONFIG.RESAMPLE_STEP_PX);
+  var len = polyLen(res) + kbInk;
+  var cells = [];
+  var i;
+  for (i = 0; i < res.length; i++) cells.push(quantCell(res[i].x, res[i].y));
+  for (i = 0; i < kbList.length; i++) cells.push(kbList[i]);
+  var f = forgeLevel(cells, triple);
+  var n = Object.keys(f.player).length;
+  if (len < CONFIG.MIN_STROKE_PX || n < CONFIG.MIN_CELLS) {
+    setMsg('That line is too short to walk. Draw a longer line.');
+    render();
+    return;
+  }
+  state = 'FORGE';
+  runPlayer = f.player;
+  runWalls = f.walls;
+  runStart = { r: triple.start.r, c: triple.start.c };
+  runExit = { r: triple.exit.r, c: triple.exit.c };
+  pos = { r: runStart.r, c: runStart.c };
+  moves = 0;
+  visited = {};
+  visited[cellKey(pos.r, pos.c)] = 1;
+  state = 'RUN';
+  setMsg('');
+  updateBrushed();
+  render();
+}
+
+function walkAgain() {
+  if (state !== 'WIN' && state !== 'LOSE') return;
+  pos = { r: runStart.r, c: runStart.c };
+  moves = 0;
+  visited = {};
+  visited[cellKey(pos.r, pos.c)] = 1;
+  state = 'RUN';
+  setMsg('');
+  updateBrushed();
+  render();
+}
+
+function newLine() {
+  if (state !== 'WIN' && state !== 'LOSE') return;
+  rawPts = [];
+  inkLenRaw = 0;
+  kbSet = {};
+  kbList = [];
+  kbInk = 0;
+  inkFull = false;
+  cursor = { r: triple.skel[0].r, c: triple.skel[0].c };
+  state = 'DRAW';
+  setMsg('');
+  render();
+}
+
+function clearStroke() {
+  if (state !== 'DRAW') return;
+  rawPts = [];
+  inkLenRaw = 0;
+  kbSet = {};
+  kbList = [];
+  kbInk = 0;
+  inkFull = false;
+  cursor = { r: triple.skel[0].r, c: triple.skel[0].c };
+  setMsg('');
+  render();
+}
+
+function endRun(won) {
+  updateBrushed();
+  saveBestIfBeats(pct, todayD);
+  state = won ? 'WIN' : 'LOSE';
+  setMsg('');
+  render();
+}
+
+/* ---------- Player actions ---------- */
+/* Wall bumps are silent: position unchanged, moves unchanged, no message. */
+function move(dr, dc) {
+  if (state !== 'RUN') return;
+  var nr = pos.r + dr, nc = pos.c + dc;
+  if (nr < 0 || nc < 0 || nr >= CONFIG.GRID || nc >= CONFIG.GRID) return;
+  if (runWalls[cellKey(nr, nc)]) return;
+  pos.r = nr;
+  pos.c = nc;
+  moves += 1;
+  visited[cellKey(nr, nc)] = 1;
+  if (nr === runExit.r && nc === runExit.c) {
+    endRun(true);
+    return;
+  }
+  if (moves >= CONFIG.MOVE_LIMIT) {
+    endRun(false);
+    return;
+  }
+  updateBrushed();
+  render();
+}
+
+function skelHas(r, c) {
+  for (var i = 0; i < triple.skel.length; i++) {
+    if (triple.skel[i].r === r && triple.skel[i].c === c) return true;
+  }
+  return false;
+}
+
+function paintStep(dr, dc) {
+  if (state !== 'DRAW') return;
+  var nr = cursor.r + dr, nc = cursor.c + dc;
+  if (nr < 1) nr = 1; if (nr > CONFIG.GRID - 2) nr = CONFIG.GRID - 2;
+  if (nc < 1) nc = 1; if (nc > CONFIG.GRID - 2) nc = CONFIG.GRID - 2;
+  cursor = { r: nr, c: nc };
+  var k = cellKey(nr, nc);
+  if (skelHas(nr, nc) || kbSet[k]) { render(); return; }
+  if (inkLenRaw + kbInk + CONFIG.CELL_PX > CONFIG.INK_BUDGET_PX) {
+    setMsg('Ink full. Lift to walk.');
+    render();
+    return;
+  }
+  kbSet[k] = 1;
+  kbList.push({ r: nr, c: nc });
+  kbInk += CONFIG.CELL_PX;
+  render();
+}
+
+/* ---------- Rendering ---------- */
+function drawCellBase(r, c, fill) {
+  ctx.fillStyle = fill;
+  ctx.fillRect(c * CONFIG.CELL_PX + 1, r * CONFIG.CELL_PX + 1, CONFIG.CELL_PX - 2, CONFIG.CELL_PX - 2);
+}
+
+function drawGlyph(r, c, ch, color, bold) {
+  ctx.fillStyle = color;
+  ctx.font = (bold ? 'bold ' : '') + '20px monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(ch, c * CONFIG.CELL_PX + CONFIG.CELL_PX / 2, r * CONFIG.CELL_PX + CONFIG.CELL_PX / 2 + 1);
+}
+
+function renderField() {
+  ctx.clearRect(0, 0, CONFIG.FIELD_INTERNAL_PX, CONFIG.FIELD_INTERNAL_PX);
+  ctx.fillStyle = '#05070d';
+  ctx.fillRect(0, 0, CONFIG.FIELD_INTERNAL_PX, CONFIG.FIELD_INTERNAL_PX);
+  var r, c, k;
+  var frame = triple;
+  var walls = null, player = null, showRun = false;
+  if (state === 'RUN' || state === 'WIN' || state === 'LOSE') {
+    walls = runWalls;
+    player = runPlayer;
+    showRun = true;
+  } else {
+    walls = {};
+    for (r = 0; r < CONFIG.GRID; r++) {
+      walls[cellKey(r, 0)] = 1;
+      walls[cellKey(r, CONFIG.GRID - 1)] = 1;
+      walls[cellKey(0, r)] = 1;
+      walls[cellKey(CONFIG.GRID - 1, r)] = 1;
+    }
+    for (r = 0; r < frame.skel.length; r++) walls[cellKey(frame.skel[r].r, frame.skel[r].c)] = 1;
+    player = {};
+  }
+  var skelSet = {};
+  for (r = 0; r < frame.skel.length; r++) skelSet[cellKey(frame.skel[r].r, frame.skel[r].c)] = 1;
+  var sKey = showRun ? cellKey(runStart.r, runStart.c) : cellKey(frame.start.r, frame.start.c);
+  var eKey = showRun ? cellKey(runExit.r, runExit.c) : cellKey(frame.exit.r, frame.exit.c);
+  for (r = 0; r < CONFIG.GRID; r++) {
+    for (c = 0; c < CONFIG.GRID; c++) {
+      k = cellKey(r, c);
+      if (walls[k]) {
+        if (skelSet[k]) {
+          drawCellBase(r, c, '#33507e');
+          drawGlyph(r, c, '~', '#d7e3ff', false);
+        } else if (showRun && player[k]) {
+          drawCellBase(r, c, '#6e5f2c');
+        } else {
+          drawCellBase(r, c, '#1a1e2b');
+        }
+      } else {
+        drawGlyph(r, c, '·', '#3a4066', false);
+      }
+    }
+  }
+  /* DRAW keyboard-painted cells read as future walls. */
+  if (state === 'DRAW') {
+    for (var ki = 0; ki < kbList.length; ki++) {
+      drawCellBase(kbList[ki].r, kbList[ki].c, '#6e5f2c');
+    }
+    /* Live pointer ink. */
+    if (rawPts.length > 1) {
+      ctx.strokeStyle = '#ffd97a';
+      ctx.lineWidth = 4;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(rawPts[0].x, rawPts[0].y);
+      for (var pi = 1; pi < rawPts.length; pi++) ctx.lineTo(rawPts[pi].x, rawPts[pi].y);
+      ctx.stroke();
+    } else if (rawPts.length === 1) {
+      ctx.fillStyle = '#ffd97a';
+      ctx.beginPath();
+      ctx.arc(rawPts[0].x, rawPts[0].y, 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    /* Paint cursor. */
+    ctx.strokeStyle = '#ffd97a';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(cursor.c * CONFIG.CELL_PX + 2, cursor.r * CONFIG.CELL_PX + 2, CONFIG.CELL_PX - 4, CONFIG.CELL_PX - 4);
+  }
+  if (showRun) {
+    /* Walked path dots on floor cells. */
+    ctx.fillStyle = '#8a7638';
+    for (var vk in visited) {
+      var parts = vk.split(',');
+      var vr = parseInt(parts[0], 10), vc = parseInt(parts[1], 10);
+      if (vr === pos.r && vc === pos.c) continue;
+      if (walls[vk]) continue;
+      ctx.fillRect(vc * CONFIG.CELL_PX + 15, vr * CONFIG.CELL_PX + 15, 6, 6);
+    }
+    if (sKey !== cellKey(pos.r, pos.c)) drawGlyph(runStart.r, runStart.c, 'S', '#7be0a0', false);
+    drawGlyph(runExit.r, runExit.c, 'E', '#7be0a0', true);
+    drawGlyph(pos.r, pos.c, '@', '#ffd97a', true);
+  } else {
+    if (sKey !== eKey) {
+      var sr = parseInt(sKey.split(',')[0], 10), sc = parseInt(sKey.split(',')[1], 10);
+      var er = parseInt(eKey.split(',')[0], 10), ec = parseInt(eKey.split(',')[1], 10);
+      drawGlyph(sr, sc, 'S', '#7be0a0', false);
+      drawGlyph(er, ec, 'E', '#7be0a0', true);
+    } else {
+      var orr = parseInt(sKey.split(',')[0], 10), occ = parseInt(sKey.split(',')[1], 10);
+      drawGlyph(orr, occ, 'E', '#7be0a0', true);
+    }
+  }
+}
+
+function render() {
+  elMovesLeft.textContent = String(CONFIG.MOVE_LIMIT - moves);
+  elCover.textContent = String(pct) + '%';
+  elBest.textContent = String(bestMem) + '%';
+  elDay.textContent = String(triple ? triple.D : todayD);
+  var used = Math.floor(inkLenRaw + kbInk);
+  elInk.textContent = 'Ink: ' + used + ' of ' + CONFIG.INK_BUDGET_PX + ' px.';
+  renderField();
+  elTitle.hidden = (state !== 'TITLE');
+  elDraw.hidden = (state !== 'DRAW');
+  elRun.hidden = (state !== 'RUN');
+  elEnd.hidden = (state !== 'WIN' && state !== 'LOSE');
+  if (state === 'WIN' || state === 'LOSE') {
+    elEndTitle.textContent = state === 'WIN' ? 'EXIT REACHED' : 'OUT OF MOVES';
+    elEndLine.textContent = 'You brushed ' + pct + '% of your line.';
+  }
+  elPad.style.display = (state === 'TITLE' || state === 'RUN') ? 'grid' : 'none';
+}
+
+/* ---------- Input: pointer ---------- */
+function toInternal(e) {
+  var rect = canvas.getBoundingClientRect();
+  var scale = rect.width / CONFIG.FIELD_INTERNAL_PX;
+  var x = (e.clientX - rect.left) / scale;
+  var y = (e.clientY - rect.top) / scale;
+  if (x < 0) x = 0; if (x > CONFIG.FIELD_INTERNAL_PX) x = CONFIG.FIELD_INTERNAL_PX;
+  if (y < 0) y = 0; if (y > CONFIG.FIELD_INTERNAL_PX) y = CONFIG.FIELD_INTERNAL_PX;
+  return { x: x, y: y };
+}
+
+function dist(a, b) {
+  var dx = b.x - a.x, dy = b.y - a.y;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+canvas.addEventListener('pointerdown', function (e) {
+  if (state !== 'DRAW') return;
+  if (activePointerId !== null) return;
+  e.preventDefault();
+  activePointerId = e.pointerId;
+  try { canvas.setPointerCapture(activePointerId); } catch (err) {}
+  var p = toInternal(e);
+  if (rawPts.length === 0) {
+    rawPts.push(p);
+  } else {
+    var seg = dist(rawPts[rawPts.length - 1], p);
+    if (seg === 0) return;
+    if (inkLenRaw + kbInk + seg > CONFIG.INK_BUDGET_PX) {
+      if (!inkFull) { inkFull = true; setMsg('Ink full. Lift to walk.'); }
+      return;
+    }
+    rawPts.push(p);
+    inkLenRaw += seg;
+  }
+  render();
+});
+
+canvas.addEventListener('pointermove', function (e) {
+  if (e.pointerId !== activePointerId || state !== 'DRAW') return;
+  e.preventDefault();
+  var p = toInternal(e);
+  var last = rawPts[rawPts.length - 1];
+  if (!last) { rawPts.push(p); render(); return; }
+  var seg = dist(last, p);
+  if (seg === 0) return;
+  if (inkLenRaw + kbInk + seg > CONFIG.INK_BUDGET_PX) {
+    if (!inkFull) {
+      inkFull = true;
+      setMsg('Ink full. Lift to walk.');
+      render();
+    }
+    return;
+  }
+  rawPts.push(p);
+  inkLenRaw += seg;
+  render();
+});
+
+function endStroke(e) {
+  if (e.pointerId !== activePointerId) return;
+  activePointerId = null;
+  if (state !== 'DRAW') return;
+  if (rawPts.length === 0 && kbList.length === 0) return;
+  attemptForge();
+}
+
+canvas.addEventListener('pointerup', endStroke);
+canvas.addEventListener('pointercancel', endStroke);
+
+/* ---------- Input: buttons and pad ---------- */
+document.getElementById('startBtn').addEventListener('click', function () { enterDraw(); });
+document.getElementById('clearBtn').addEventListener('click', function () { clearStroke(); });
+document.getElementById('againBtn').addEventListener('click', function () { walkAgain(); });
+document.getElementById('newLineBtn').addEventListener('click', function () { newLine(); });
+
+/* TITLE affordance (Story 159 pattern): a pad tap on TITLE renders one fixed
+ * line in #msg. Never starts a run, never changes state, never counts. */
+var TITLE_TAP_MSG = 'Press Start to play. Use the pad once your run begins.';
+function titleTapOr(fallback) {
+  if (state === 'TITLE') { setMsg(TITLE_TAP_MSG); return; }
+  fallback();
+}
+
+document.getElementById('btnUp').addEventListener('click', function () {
+  titleTapOr(function () { if (state === 'RUN') move(-1, 0); });
+});
+document.getElementById('btnDown').addEventListener('click', function () {
+  titleTapOr(function () { if (state === 'RUN') move(1, 0); });
+});
+document.getElementById('btnLeft').addEventListener('click', function () {
+  titleTapOr(function () { if (state === 'RUN') move(0, -1); });
+});
+document.getElementById('btnRight').addEventListener('click', function () {
+  titleTapOr(function () { if (state === 'RUN') move(0, 1); });
+});
+
+/* ---------- Input: keyboard ---------- */
+document.addEventListener('keydown', function (e) {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  var k = e.key;
+  var onButton = !!(e.target && e.target.tagName === 'BUTTON');
+
+  if (k === 'Enter') {
+    /* A focused control activates natively; never fire the action twice. */
+    if (onButton) return;
+    e.preventDefault();
+    if (e.repeat && state === 'DRAW') return;
+    if (state === 'TITLE') enterDraw();
+    else if (state === 'DRAW') attemptForge();
+    else if (state === 'WIN' || state === 'LOSE') walkAgain();
+    /* RUN: Enter has no run-start binding (single-transition guard). */
+    return;
+  }
+
+  if (k === ' ') {
+    if (onButton && state !== 'RUN') return;
+    e.preventDefault();
+    if (e.repeat) return;
+    if (state === 'TITLE') enterDraw();
+    else if (state === 'DRAW') attemptForge();
+    else if (state === 'WIN' || state === 'LOSE') walkAgain();
+    return;
+  }
+
+  if (k === 'Escape') {
+    if (state === 'DRAW') clearStroke();
+    return;
+  }
+
+  var d = null;
+  if (k === 'ArrowUp' || k === 'w' || k === 'W') d = [-1, 0];
+  else if (k === 'ArrowDown' || k === 's' || k === 'S') d = [1, 0];
+  else if (k === 'ArrowLeft' || k === 'a' || k === 'A') d = [0, -1];
+  else if (k === 'ArrowRight' || k === 'd' || k === 'D') d = [0, 1];
+  else return;
+  /* Suppress scroll for every move key in every state. */
+  e.preventDefault();
+  if (state === 'DRAW') paintStep(d[0], d[1]);
+  else if (state === 'RUN') move(d[0], d[1]);
+});
+
+/* Gameplay-neutral test surface: reads run state only, writes nothing. */
+window.__trace = {
+  state: function () { return state; },
+  pos: function () { return { r: pos.r, c: pos.c }; },
+  moves: function () { return moves; },
+  pct: function () { return pct; },
+  brushed: function () { return brushed; },
+  inkCells: function () { return Object.keys(runPlayer).length; },
+  walls: function () {
+    var out = [];
+    for (var k in runWalls) out.push(k);
+    out.sort();
+    return out;
+  },
+  triple: function () {
+    return {
+      D: triple.D,
+      start: { r: triple.start.r, c: triple.start.c },
+      exit: { r: triple.exit.r, c: triple.exit.c },
+      skel: triple.skel.map(function (s) { return { r: s.r, c: s.c }; })
+    };
+  },
+  plays: function () { return playsMem; },
+  best: function () { return bestMem; },
+  config: function () {
+    return {
+      GRID: CONFIG.GRID,
+      FIELD_INTERNAL_PX: CONFIG.FIELD_INTERNAL_PX,
+      CELL_PX: CONFIG.CELL_PX,
+      RESAMPLE_STEP_PX: CONFIG.RESAMPLE_STEP_PX,
+      MIN_STROKE_PX: CONFIG.MIN_STROKE_PX,
+      MIN_CELLS: CONFIG.MIN_CELLS,
+      INK_BUDGET_PX: CONFIG.INK_BUDGET_PX,
+      MOVE_LIMIT: CONFIG.MOVE_LIMIT,
+      MANHATTAN_MIN: CONFIG.MANHATTAN_MIN,
+      COUNT_KEY: CONFIG.COUNT_KEY,
+      BEST_KEY: CONFIG.BEST_KEY,
+      COUNT_CAP: CONFIG.COUNT_CAP
+    };
+  }
+};
+
+/* First load: derive the day frame, read both counters, render once
+ * (0 on a first visit), land on TITLE. Boot never counts. */
+fitCanvas();
+window.addEventListener('resize', function () { fitCanvas(); render(); });
+refreshDay();
+playsMem = loadPlays();
+renderPlays();
+state = 'TITLE';
+render();
+</script>
+</body>
+</html>
