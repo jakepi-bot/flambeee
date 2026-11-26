@@ -380,3 +380,64 @@ before merge):
 | 3 | Run-start hook name | `enterRun()`, single `bumpPlays()` inside it, reached only from a Start on TITLE (button click or Enter), never from a page-load path |
 | 4 | CACHE_VERSION +1 bump in `website/sw.js` | 32 to 33, same PR as the game change, plus one precache line `./games/lightfare.html` (23 to 24 entries) |
 | 5 | No-network grep | `git diff main -- website/games/lightfare.html` reads clean: no network call and no external URL anywhere in the new file |
+
+## 11. TRACE instance (Story 170, Session 73)
+
+Counting unit: one play equals one Start from TITLE that enters DRAW of a
+new run. Exactly one entry point, `enterDraw()`
+(`website/games/trace.html`), carrying the one and only `bumpPlays()` call,
+guarded by `if (state !== 'TITLE') return;`.
+
+Never count: boot, reload, tab restore, short-stroke refusal, Clear, FORGE,
+RUN moves, Walk again (same field, `walkAgain()`), New line (DRAW from an end
+screen, `newLine()`), WIN, LOSE, back to TITLE. Redraws within a run never
+count: the run was counted at its Start.
+
+Display rule: one persistent HUD item inside `.hud`, outside `#panel` so
+title/draw/run/end swaps cannot erase it:
+`<span class="item">Plays on this browser: <span id="plays">0</span></span>`.
+Exact copy `Plays on this browser: N`, always rendered including 0 on a first
+visit. Boot loads via `loadPlays()` then renders once; `renderPlays()` runs
+only on boot and after `bumpPlays()`. The best line sits in the same HUD as
+`Best today: <span id="best">0%</span>`. No plays line on the WIN or LOSE
+panels and no cross-device wording.
+
+Key, cap, helper names: single key `flambeee-trace-plays` (sits beside
+`flambeee-trace-best`, a JSON `{day, pct}` number pair, untouched by the
+counter), cap 9007199254740991, helpers `playsMem`, `sanitizePlays`,
+`loadPlays`, `renderPlays`, `bumpPlays`. Sanitizer, boot-load-then-render,
+try/catch write, and silent blocked-storage behavior match the snippet in
+section 2 (constants live on `CONFIG` as `COUNT_KEY` / `BEST_KEY` /
+`COUNT_CAP` in this file).
+
+Formulas with units:
+
+> plays_new [plays, integer] = min(plays_old [plays, integer] + 1 [play per
+> Start from TITLE], 9007199254740991 [COUNT_CAP]). No other term exists.
+
+Tuning table (section 11, TRACE instance):
+
+| Name | Default | Min | Max | File location |
+|---|---|---|---|---|
+| Pattern section | 11 (TRACE instance) | n/a | n/a | docs/play-counter-pattern.md (appended after section 10) |
+| COUNT_KEY | flambeee-trace-plays | n/a | n/a | website/games/trace.html (`CONFIG.COUNT_KEY`) |
+| BEST_KEY | flambeee-trace-best (JSON {day, pct}) | n/a | n/a | website/games/trace.html (`CONFIG.BEST_KEY`) |
+| COUNT_CAP | 9007199254740991 | 9007199254740991 | 9007199254740991 | website/games/trace.html (`CONFIG.COUNT_CAP`) |
+| Run-start hook | `enterDraw()`, single `bumpPlays()` inside it | n/a | n/a | website/games/trace.html |
+| CACHE_VERSION +1 | 35 to 36, same PR as the game file | n/a | n/a | website/sw.js (Story 168) |
+
+Conflict rules: where this section and the shipped game file disagree, the
+game file wins (established pattern-doc rule); fix the doc, never the game.
+Section numbering clash: the next free section number wins; content
+normative, number administrative.
+
+Per-game checklist (the section 5 rows, TRACE values; every row filled before
+merge):
+
+| # | Item | TRACE value |
+|---|---|---|
+| 1 | Key suffix (middle slug) | `flambeee-trace-plays`, beside `flambeee-trace-best` |
+| 2 | Display element id and placement | `#plays` inside the persistent `.hud` item `Plays on this browser: N`, beside the `#best` item |
+| 3 | Run-start hook name | `enterDraw()`, single `bumpPlays()` inside it, reached only from a Start on TITLE (button click or Enter/Space), never from a page-load path |
+| 4 | CACHE_VERSION +1 bump in `website/sw.js` | 35 to 36, same PR as the game change, plus one precache line `./games/trace.html` (24 to 25 entries) |
+| 5 | No-network grep | `git diff main -- website/games/trace.html` reads clean: no network call and no external URL anywhere in the new file |
