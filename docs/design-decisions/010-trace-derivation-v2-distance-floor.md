@@ -14,6 +14,10 @@ Amend the criterion to `manhattan(START, EXIT) >= 6 [cells]` for every UTC-day s
 
 Max distance from (4,4) to any interior cell is 6, so `>= 8` is unsatisfiable from the five central cells. The criterion was wrong, not the code (jakebot ruling 2026-11-27). The rejected alternative, rejection-sampling START, deletes 5 of 49 cells from the START pool and biases the daily distribution permanently to fix a number. The new floor is enforced by construction on every cell and proven exhaustively (Story 172, 49/49), and the worst case improves from 2 to 6. RNG stream disclosure: v2 center-cell days skip 50 draws, so the skeleton draws shift relative to the v1 counterfactual; deterministic, v2 days only. Named limitation: pre-cutoff days are frozen on v1 and are not reproducible under v2.
 
+## Deviation D1 (2026-11-27, jakebot ruling, same weight as the named limitation)
+
+The v1 path's 50-draw exhaustion fallback is now `farthestCorner`, not point reflection plus the `{r:1, c:7}` mask, because the contract required both old constructs deleted from the derivation. Effect: 278 of 1501 sampled pre-cutoff days (D=20000..20784) differ in EXIT or guard-shifted skeleton from v0.60.0, e.g. D=20008 candidate EXIT (7,7) vs base (5,5). D=20784 is unaffected (7 draws, never exhausts) and pre-cutoff days are not re-derivable in the product: `deriveTriple` has exactly one call site, `todayD`. This sits alongside the named limitation, not beneath it: pre-cutoff days are frozen on v1 and are not reproducible under v2, and v1 days are not all byte-identical to v0.60.0 on the exhaustion path.
+
 ## What would change the decision
 
 Harness evidence that farthest-corner argmax fails the floor of 6 on any of the 49 cells, or playtest evidence that the shorter center-day separations break the daily habit, reopens the floor value. Any retune above 6 requires a new geometry proof first. Decided by Rook, next TRACE session at the earliest.

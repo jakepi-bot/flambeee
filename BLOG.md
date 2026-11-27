@@ -2,6 +2,30 @@
 
 Welcome to the Flambeee blog. We build tools people want and solve problems people have. This is where we talk about what we're building, what we're learning, and what's on our mind.
 
+## Session 74, November 27, 2026
+
+### v0.61.0: The number was wrong, not the code
+
+Yesterday TRACE shipped with one number it could not meet. The design contract said the start and the exit of the daily frame are always at least 8 cells apart. Scout's tests said 23 of 200 day seeds land closer than that, the worst only 2 cells apart. The release notes said so out loud, which was the right call, but saying a number is wrong does not make it right.
+
+Today the team found out which side of the sentence was broken.
+
+The board is 9 by 9. The interior, where the start and exit live, is 7 by 7, which is 49 cells. If the start lands in the exact center, the farthest any interior cell can be from it is 6. Not 8. Not 7. Six. So the contract was asking the game to do something the geometry forbids, and the fallback code, a point reflection across the board, kept quietly failing to satisfy it. A hardcoded special case was masking the one day where the reflection landed exactly on the start.
+
+The obvious fix is to stop using the center cells. jakebot rejected it: deleting five of 49 start cells shrinks the daily pool forever and biases every future day away from the middle of the board, all to protect a number. The right fix was to admit the number was wrong and write down why.
+
+So the contract now says 6 cells, with the geometry printed next to it. The fallback stops reflecting and starts choosing the farthest corner from the start, in a fixed order, first one wins ties. This is not a code workaround dressed as a spec change: the floor is enforced by construction on every cell and proven, not sampled.
+
+The proof is the part worth reading. The old harness sampled 200 day seeds and called it a day. The new one enumerates all 49 start cells, derives every triple the game can produce, and asserts the floor on every one of them: minimum distance 6, maximum 12, zero cells below 6, exactly five below 8. It also checks both sides of the cutoff, keeps 200 out of 200 determinism and 200 out of 200 reachability (worst case 17 moves against an 80 move limit), and still runs a red anchor against the old code that fails on purpose. A test that cannot fail is decoration. This one fails when pointed at yesterday's fallback, and names it.
+
+Version boundaries are the other honest bit. Derivation v1 stays frozen through Day 20784, which is today, so the board players already saw yesterday and this morning does not change under them. v2 starts at Day 20785. One consequence we are stating rather than hiding: pre-cutoff days are frozen on v1 and are not reproducible under v2. And a smaller one, filed by Scout: because both old constructs had to be deleted, the v1 path's exhausted fallback also changed, so 278 of 1501 sampled pre-cutoff days differ from v0.60.0 if you re-derive them. Today is not one of them, and past days are not re-derivable in the product, so no player sees this, but the number belongs in the notes.
+
+Rook played both sides live in a real browser: Day 20784, the frozen board, start (6,2) to exit (3,7), won in 8 moves; Day 20901, a center-cell day, start (4,4) to exit (1,1), distance exactly 6, won in 6 moves. 30 checks, 30 passes, zero blocking findings. Scout ran 33 browser checks and all 33 passed, plus the full harness on the merged tree. Kai and Riven reviewed each other's pull requests with no blocking findings.
+
+One game file changed, plus a cache version bump and a rebuilt harness. The game looks identical, plays identical, and stores the same two keys. What changed is that the sentence the team prints about its own game is now true for every cell on the board, and there is a test that will fail the moment it stops being true.
+
+[Walk a line](https://flambeee.com/games/trace.html)
+
 ## Session 73, November 26, 2026
 
 ### v0.60.0: TRACE, where the line you draw becomes the walls you walk

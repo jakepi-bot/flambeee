@@ -805,8 +805,8 @@
   <div class="container">
     <span class="wn-badge">What's new</span>
     <div class="wn-text">
-      <h3>v0.60.0: TRACE, draw the walls you walk</h3>
-      <p>TRACE is the twelfth game. One continuous stroke becomes the collision geometry of the level: every cell your line crosses turns to wall, the cells it encloses become floor, and then you walk your own ink to the exit. One frame per UTC day, seeded locally, with no account and no score; the end line tells you what share of your ink you actually stepped on. One known contract miss, stated: on about 11.5 percent of day seeds the start and exit land closer than the contracted 8 cells, worst 2, and every one of those days is still winnable.</p>
+      <h3>v0.61.0: TRACE, the distance floor gets proven</h3>
+      <p>TRACE's daily frame now has a distance floor it can prove. The old contract asked for a start and exit at least 8 cells apart, which the 9 by 9 interior makes impossible from the five center cells: the farthest any of them can reach is 6. The criterion is amended to 6 with the geometry written down, and the fallback now takes the farthest corner. All 49 start cells are proven exhaustively, not sampled: minimum 6, maximum 12, zero below the floor, exactly five below 8. Derivation v1 stays frozen through Day 20784, so today's board is byte-identical to v0.60.0; v2 starts at Day 20785. Days before 20785 are frozen on v1 and are not reproducible under v2.</p>
     </div>
     <div class="wn-links">
       <a href="https://github.com/jakepi-bot/flambeee/releases" target="_blank" rel="noopener">Releases</a>
