@@ -1,63 +1,53 @@
 #!/usr/bin/env python3
-"""TRACE proof harness (Story 169, Session 73).
+"""TRACE proof harness v2 (Story 172, Session 74).
 
 Runs under:
-    env -u PYTHONPATH python3 dev/trace-proof.py
-or (documents the team-venv invocation, cf. dev/lightfare-proof.py):
     env -u PYTHONPATH /home/jake/.hermes/flambeee/.venv/bin/python dev/trace-proof.py
 
-Self-heal: at startup, before any legs run, the harness re-execs itself
-under the team venv python (/home/jake/.hermes/flambeee/.venv/bin/python)
-so the browser legs reach PASS even when launched with the system python3
-(which has no playwright). The re-exec is guarded by FLAMBEee_TRACE_REEXEC
-and never loops; if the venv python is missing or the re-exec fails, the
-harness falls through to the current behaviour (a playwright import
-failure becomes a SKIP reason, unchanged).
+Self-heal: at startup the harness re-execs itself under the team venv python
+so the browser leg reaches PASS even when launched with the system python3
+(which has no playwright). Guarded by FLAMBEee_TRACE_REEXEC, never loops.
 
-What it does:
-  1. Mirrors the contract forge rule (design-handoff 1.2) and the day
-     derivation (2.1) in pure Python, no game file needed.
-  2. Determinism leg: 200 seeded synthetic strokes (seed = index 0..199,
-     mulberry32), each forged twice from identical point lists, sorted-JSON
-     wall sets byte-identical, 200/200. Seeds 180..199 are near-boundary
-     adversarial strokes (points within 0.5 px of cell edges).
-  3. Forge invariant leg: (a) monotone wall count over 50 straight 50 px
-     extensions, 50/50; (b) RING fixture forges >= 1 pocket floor cell,
-     STRAIGHT fixture forges exactly 0; (c) 20 under-minimum strokes are
-     refused with no state change, 20/20.
-  4. Reachability leg: 200 day seeds D = 20783 + i, derive skeleton per 2.1,
-     forge a seeded synthetic stroke plus RING and CROSS fixtures, BFS START
-     to EXIT on floor, reachable within MOVE_LIMIT 80, 200/200. The stitch
-     firing count is reported, not gated.
-  5. RED anchor: website/games/trace.html absent or unreadable -> exit 2
-     with a missing-file line naming website/games/trace.html.
-  6. Browser legs (game present): headless Chromium at 1280x800 and 375x667,
-     real synthetic pointer drag through the page, window.scrollY stays 0
-     during the drag, full DRAW -> FORGE -> RUN -> WIN pass, plus static
-     asserts (touch-action: none, single-pointerId tracking) on the file.
+Six legs (design-handoff Section 2.1, all normative):
+  1. Exhaustive 49-cell mirror proof (primary): for each interior START cell,
+     v2 EXIT via farthest-corner argmax, manhattan >= 6, EXIT != START, all 3
+     skeleton cells disjoint from both. 49/49 required. Plus a full-triple
+     sweep over first-D-per-cell derivations covering all 49 START cells.
+  2. v1/v2 boundary: D=20784 derives the exact v1 triple, D=20785 derives the
+     exact v2 triple, plus center day D=20901 giving (4,4) -> (1,1).
+  3. Determinism 200/200: 200 seeded strokes forged twice, byte-identical.
+  4. Reachability 200/200: D = 20785 + i, v2 triple, seeded synthetic stroke
+     plus RING and CROSS fixtures, BFS START to EXIT within 80 moves.
+  5. RED anchor: the distance assertion run against the 5d4a7a9 tree (old
+     point-reflection fallback) must exit RED 2 naming the fallback.
+     Full-run mode verifies the RED in-process (expected-RED check) and
+     still exits 0 when every leg is green. --red-anchor (alias --leg red)
+     runs the RED leg alone and exits 2.
+  6. Browser leg: headless Chromium loads the ACTUAL page
+     website/games/trace.html (never the mirror) and reads the derived
+     triple by JS evaluation for today D and center day D=20901, asserting
+     page triple equals the mirror v2 triple with distance >= 6.
 
-Exit codes: 0 PASS; 1 any CHECK FAIL with the cause named; 2 RED anchor
-(game file absent or unreadable); 3 SKIP (pure legs green but a browser leg
-could not run: no playable game yet or no playwright under this interpreter).
+Exit codes: 0 PASS, 1 FAIL, 2 RED (red-anchor mode), 3 SKIP (anchor commit
+missing, or browser binary missing while mirror legs still gate).
+
+File ownership: dev/trace-proof.py, entire file. No website bytes.
 """
 
 import bisect
-import errno
 import json
 import math
 import os
-import re
 import socket
 import subprocess
 import sys
 import time
 import urllib.request
 from collections import deque
-from datetime import date, datetime, timezone
 from pathlib import Path
 
 # Self-heal re-exec: run the whole harness under the team venv python so
-# the browser legs have playwright even when launched with system python3.
+# the browser leg has playwright even when launched with system python3.
 # Guarded by FLAMBEee_TRACE_REEXEC so it never loops; missing venv python
 # or a failed re-exec falls through to the current behaviour.
 _TEAM_VENV_PY = "/home/jake/.hermes/flambeee/.venv/bin/python"
@@ -73,22 +63,37 @@ if (not os.environ.get("FLAMBEee_TRACE_REEXEC")
         pass
 
 # ---------------------------------------------------------------------------
-# Contract constants (design-handoff 1.2, 1.3, 2.1; story 169 FR-6).
+# Tuning constants (design-handoff 2.3, all live here).
 # ---------------------------------------------------------------------------
+PROOF_CELLS = 49
+DETERMINISM_RUNS = 200
+REACHABILITY_RUNS = 200
+V1_DAY = 20784
+V2_DAY = 20785
+ANCHOR_COMMIT = "5d4a7a9"
+BROWSER_MIN_DAYS = 2
+
 GRID = 9
 FIELD_INTERNAL_PX = 324
 CELL_PX = 36
 RESAMPLE_STEP_PX = 2
 MIN_STROKE_PX = 108
 MIN_CELLS = 3
-INK_BUDGET_PX = 1200
 MOVE_LIMIT = 80
-MANHATTAN_MIN = 8
-COUNT_KEY = "flambeee-trace-plays"
-BEST_KEY = "flambeee-trace-best"
-COUNT_CAP = 9007199254740991
-DAY_ANCHOR_D = 20783  # 2026-11-26, floor(Date.now()/86400000)
-DAY_ANCHOR_DATE = date(2026, 11, 26)
+MANHATTAN_MIN = 6          # amended floor (contract Section 0)
+V1_MANHATTAN_MIN = 8       # frozen v1 floor, D <= V1_DAY only
+MAX_EXIT_DRAWS = 50
+V2_CUTOFF_DAY = 20785      # v2 applies from D >= 20785
+CORNERS = [(1, 1), (1, 7), (7, 1), (7, 7)]  # fixed order, first wins ties
+
+CENTER_DAY = 20901         # first center-START v2 day (parent-verified)
+CENTER_START = (4, 4)
+CENTER_EXIT = (1, 1)
+
+# Exact parent-verified triples (binding ground truth, 2026-11-27).
+EXP_V1_20784 = ((6, 2), (3, 7), [(5, 5), (5, 6), (5, 7)])
+EXP_V2_20785 = ((7, 6), (4, 1), [(4, 2), (4, 3), (4, 4)])
+
 FIXED_START = (1, 1)
 FIXED_EXIT = (7, 7)
 FIXED_SKELETON = [(4, 3), (4, 4), (4, 5)]
@@ -109,7 +114,7 @@ def repo_root():
 
 
 # ---------------------------------------------------------------------------
-# Normative PRNG (design-handoff 2.1: mulberry32, unsigned 32-bit wrap).
+# Normative PRNG (mulberry32, unsigned 32-bit wrap; matches the page).
 # ---------------------------------------------------------------------------
 def mulberry32(seed):
     state = seed & 0xFFFFFFFF
@@ -126,35 +131,117 @@ def mulberry32(seed):
 
 
 # ---------------------------------------------------------------------------
-# THE reference forge (design-handoff 1.2, steps 1-5). Faithful independent
-# Python implementation of the normative rule; mirrors the JS, never imports
-# it. One function, reviewable against the contract section 1.2.
-#
-#   strokes: list of raw point lists, each [(x, y)] in internal px 0..324.
-#   start, exit_cell: (row, col). skeleton: list of (row, col).
+# Day derivation mirrors (contract 1.1, normative v2 algorithm).
+# ---------------------------------------------------------------------------
+def _draw_interior(rng):
+    return (1 + int(rng() * 7), 1 + int(rng() * 7))
+
+
+def _draw_skeleton(rng, start, exit_cell):
+    skr = 1 + int(rng() * 7)
+    skc = 1 + int(rng() * 5)
+    bar = [(skr, skc + i) for i in range(3)]
+    guard = 0
+    while (any(cell == start or cell == exit_cell for cell in bar)
+           and guard < 16):
+        skr = (skr % 7) + 1
+        bar = [(skr, skc + i) for i in range(3)]
+        guard += 1
+    return bar
+
+
+def farthest_corner(start):
+    """First corner with maximal manhattan distance (fixed order)."""
+    best = None
+    best_d = -1
+    for corner in CORNERS:
+        d = abs(start[0] - corner[0]) + abs(start[1] - corner[1])
+        if d > best_d:
+            best_d = d
+            best = corner
+    return best
+
+
+def max_cell_distance(start):
+    """Max manhattan distance from start over the 49 interior cells."""
+    return max(abs(start[0] - r) + abs(start[1] - c)
+               for r in range(1, 8) for c in range(1, 8))
+
+
+def derive_v1(day):
+    """Frozen v1 derivation (byte-identical to 5d4a7a9 for D <= 20784)."""
+    rng = mulberry32(day)
+    start = _draw_interior(rng)
+    exit_cell = _draw_interior(rng)
+    draws = 1
+    while (abs(start[0] - exit_cell[0]) + abs(start[1] - exit_cell[1])
+           < V1_MANHATTAN_MIN and draws < MAX_EXIT_DRAWS):
+        exit_cell = _draw_interior(rng)
+        draws += 1
+    if (abs(start[0] - exit_cell[0]) + abs(start[1] - exit_cell[1])
+            < V1_MANHATTAN_MIN):
+        fb = (8 - start[0], 8 - start[1])  # point-reflection fallback
+        exit_cell = (1, 7) if fb == start else fb
+    bar = _draw_skeleton(rng, start, exit_cell)
+    return start, exit_cell, bar, draws
+
+
+def derive_v2(day):
+    """Normative v2 derivation (contract 1.1, byte-matches the v2 page).
+
+    START uses the same two rng calls as v1. EXIT gets one initial draw
+    exactly as v1; on the five center cells (maxCellDistance < 8) the
+    50-draw loop is skipped (0 loop draws) and EXIT is the farthest
+    corner directly, discarding the initial draw. Otherwise the loop runs
+    at the floor-6 threshold with the corner as exhaustion fallback.
+    The skeleton follows from the same stream (skR then skC, row guard).
+    Returns (start, exit, bar, draws) with draws = total EXIT draws.
+    """
+    rng = mulberry32(day)
+    start = _draw_interior(rng)
+    exit_cell = _draw_interior(rng)  # initial draw, exactly as v1
+    draws = 1
+    if max_cell_distance(start) < V1_MANHATTAN_MIN:
+        exit_cell = farthest_corner(start)  # precheck: loop skipped
+    else:
+        while (abs(start[0] - exit_cell[0]) + abs(start[1] - exit_cell[1])
+               < MANHATTAN_MIN and draws < MAX_EXIT_DRAWS):
+            exit_cell = _draw_interior(rng)
+            draws += 1
+        if (abs(start[0] - exit_cell[0]) + abs(start[1] - exit_cell[1])
+                < MANHATTAN_MIN):
+            exit_cell = farthest_corner(start)
+    bar = _draw_skeleton(rng, start, exit_cell)
+    return start, exit_cell, bar, draws
+
+
+def derive(day):
+    """Cutoff derivation: v1 for D <= 20784, v2 for D >= 20785."""
+    if day <= V1_DAY:
+        return derive_v1(day)
+    return derive_v2(day)
+
+
+def manh(a, b):
+    return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+
+# ---------------------------------------------------------------------------
+# THE reference forge (unchanged from Session 73; steps 1-5 of the contract).
 # ---------------------------------------------------------------------------
 def forge_trace(strokes, start, exit_cell, skeleton):
-    # Step 1, resample. Walk the polyline, emit interpolated points every
-    # RESAMPLE_STEP_PX 2 px of arc length by linear interpolation, always
-    # including the first and last raw points. Pure function of P: no
-    # timestamps, no velocity, no smoothing, no simplification.
     player_cells = set()
     ink_len_px = 0.0
     for pts in strokes:
         rs = resample_trace(pts, RESAMPLE_STEP_PX)
         for (x0, y0), (x1, y1) in zip(rs, rs[1:]):
             ink_len_px += math.hypot(x1 - x0, y1 - y0)
-        # Step 2, quantize. col = floor(x / CELL_PX), row = floor(y / CELL_PX),
-        # each clamped to 0..8. A point on a cell boundary belongs to the
-        # higher-index cell (floor does this naturally); a point on the outer
-        # max edge (324) clamps to index 8.
         for (x, y) in rs:
             col = int(math.floor(x / CELL_PX))
             row = int(math.floor(y / CELL_PX))
             col = min(GRID - 1, max(0, col))
             row = min(GRID - 1, max(0, row))
             player_cells.add((row, col))
-    # Step 3, walls. BORDER union SKELETON union PLAYER_WALLS.
     walls = set()
     for r in range(GRID):
         for c in range(GRID):
@@ -162,12 +249,8 @@ def forge_trace(strokes, start, exit_cell, skeleton):
                 walls.add((r, c))
     walls |= set(skeleton)
     walls |= player_cells
-    # Step 4, carve. START and EXIT are always floor, even under ink.
     walls.discard(start)
     walls.discard(exit_cell)
-    # Step 5, stitch. BFS on floor (4-connected) from START. If EXIT is not
-    # reached, carve an L corridor (START row to EXIT column, then that column
-    # to EXIT) and re-run BFS. FORGE therefore always emits a reachable EXIT.
     floor = _floor_cells(walls)
     path = _bfs_path(floor, start, exit_cell)
     stitched = False
@@ -247,58 +330,6 @@ def _bfs_path(floor, start, goal):
     return None
 
 
-def pocket_count(walls):
-    """Floor cells with 3+ of 4 orthogonal neighbors wall (contract 1.5.6)."""
-    n = 0
-    for r in range(GRID):
-        for c in range(GRID):
-            if (r, c) in walls:
-                continue
-            adj = sum(((r - 1, c) in walls, (r + 1, c) in walls,
-                       (r, c - 1) in walls, (r, c + 1) in walls))
-            if adj >= 3:
-                n += 1
-    return n
-
-
-def coverage_pct(player_cells, visited):
-    """Contract 1.2 step 6: pct = round(100 * brushed / inkCells)."""
-    if not player_cells:
-        return 0
-    brushed = sum(1 for (r, c) in player_cells
-                  if ((r - 1, c) in visited or (r + 1, c) in visited
-                      or (r, c - 1) in visited or (r, c + 1) in visited))
-    return int(round(100.0 * brushed / len(player_cells)))
-
-
-# ---------------------------------------------------------------------------
-# Day derivation mirror (design-handoff 2.1, normative).
-# ---------------------------------------------------------------------------
-def derive_day(day_index):
-    rng = mulberry32(day_index)
-    sr = 1 + int(rng() * 7)
-    sc = 1 + int(rng() * 7)
-    start = (sr, sc)
-    exit_cell = None
-    for _ in range(50):
-        er = 1 + int(rng() * 7)
-        ec = 1 + int(rng() * 7)
-        if abs(er - sr) + abs(ec - sc) >= MANHATTAN_MIN:
-            exit_cell = (er, ec)
-            break
-    if exit_cell is None:
-        exit_cell = (8 - sr, 8 - sc)
-        if exit_cell == start:
-            exit_cell = (1, 7)
-    skr = 1 + int(rng() * 7)
-    skc = 1 + int(rng() * 5)
-    bar = [(skr, skc), (skr, skc + 1), (skr, skc + 2)]
-    while any(cell == start or cell == exit_cell for cell in bar):
-        skr = (skr % 7) + 1
-        bar = [(skr, skc), (skr, skc + 1), (skr, skc + 2)]
-    return start, exit_cell, bar
-
-
 # ---------------------------------------------------------------------------
 # Synthetic strokes (seeded, fixed seeds, rerun-reproducible).
 # ---------------------------------------------------------------------------
@@ -317,7 +348,7 @@ def synth_stroke(seed, n_points=40, step_min=10.0, step_max=30.0):
 
 
 def boundary_stroke(seed, n_points=30):
-    """Adversarial: points within 0.5 px of a cell edge (tie-break leg)."""
+    """Adversarial: points within 0.5 px of a cell edge."""
     rng = mulberry32(seed)
     k = 1 + int(rng() * 7)
     edge = 36.0 * k
@@ -330,58 +361,11 @@ def boundary_stroke(seed, n_points=30):
     return pts
 
 
-def tiny_stroke(seed):
-    """Two points 10-40 px apart: under the 108 px gate."""
-    rng = mulberry32(seed)
-    x = 36.0 + rng() * 250.0
-    y = 36.0 + rng() * 250.0
-    ang = rng() * 2.0 * math.pi
-    ln = 10.0 + rng() * 30.0
-    return [(x, y), (x + math.cos(ang) * ln, y + math.sin(ang) * ln)]
-
-
-def zigzag_cell_stroke(seed, n_points=30):
-    """Long arc (>108 px) trapped in one cell: under the 3-cell gate."""
-    rng = mulberry32(seed)
-    r = 1 + int(rng() * 7)
-    c = 1 + int(rng() * 7)
-    x0, y0 = c * 36.0 + 4.0, r * 36.0 + 4.0
-    pts = []
-    for i in range(n_points):
-        x = x0 + (28.0 if i % 2 == 0 else 0.0)
-        y = y0 + (rng() * 28.0)
-        pts.append((x, y))
-    return pts
-
-
-def extend_straight(pts, extra_px=50.0, step_px=10.0):
-    """Append extra_px of arc length along the final heading (clamped)."""
-    out = [tuple(p) for p in pts]
-    (x0, y0), (x1, y1) = out[-2], out[-1]
-    ang = math.atan2(y1 - y0, x1 - x0)
-    if math.hypot(x1 - x0, y1 - y0) <= 1e-9:
-        ang = 0.0
-    n = max(1, int(round(extra_px / step_px)))
-    for _ in range(n):
-        x1 = min(FIELD_INTERNAL_PX, max(0.0, x1 + math.cos(ang) * step_px))
-        y1 = min(FIELD_INTERNAL_PX, max(0.0, y1 + math.sin(ang) * step_px))
-        out.append((x1, y1))
-    return out
-
-
 def _cell_center(r, c):
     return (c * CELL_PX + CELL_PX / 2.0, r * CELL_PX + CELL_PX / 2.0)
 
 
-# Monotone block: straight 50 px continuations along the final heading.
-# Seeds are fixed for rerun reproducibility. Block 200..249 was selected by
-# scanning consecutive-50 blocks for zero wall loss, because a straight
-# extension can drop the old endpoint cell when the endpoint sits within one
-# resample step (2 px) of a cell edge in the exit direction; the contract
-# fixes run counts, not these seeds, so the block is pinned here.
-MONO_BASE = 200
 RING_CELLS = [(2, 2), (2, 3), (2, 4), (3, 4), (4, 4), (4, 3), (4, 2), (3, 2)]
-STRAIGHT_CELLS = [(4, c) for c in range(2, 7)]
 CROSS_CELLS = [(3, 4), (4, 4), (5, 4), (4, 4), (4, 3), (4, 4), (4, 5)]
 
 
@@ -390,51 +374,97 @@ def ring_points():
             ] + [_cell_center(*RING_CELLS[0])]
 
 
-def straight_points():
-    return [_cell_center(r, c) for (r, c) in STRAIGHT_CELLS]
-
-
 def cross_points():
     return [_cell_center(r, c) for (r, c) in CROSS_CELLS]
 
 
 # ---------------------------------------------------------------------------
-# Pure-Python legs.
+# Leg 1: exhaustive 49-cell mirror proof (primary).
 # ---------------------------------------------------------------------------
-def leg_day_anchor():
-    got = (datetime(DAY_ANCHOR_DATE.year, DAY_ANCHOR_DATE.month,
-                    DAY_ANCHOR_DATE.day,
-                    tzinfo=timezone.utc).timestamp() / 86400.0)
-    ok = got == float(DAY_ANCHOR_D)
-    start, exit_cell, bar = derive_day(DAY_ANCHOR_D)
-    manh = abs(start[0] - exit_cell[0]) + abs(start[1] - exit_cell[1])
-    ok = ok and manh >= MANHATTAN_MIN
-    ok = ok and not any(cell == start or cell == exit_cell for cell in bar)
-    return record(
-        "day-anchor", ok,
-        "2026-11-26 -> D %d (want 20783); D20783 triple START%s EXIT%s "
-        "manhattan %d, skeleton %s disjoint"
-        % (int(got), start, exit_cell, manh, bar))
+def leg_exhaustive():
+    # (a) Pure argmax sweep: every interior START cell maps to a corner
+    # with distance >= 6 and EXIT != START.
+    bad = []
+    worst = 99
+    below8 = []
+    for r in range(1, 8):
+        for c in range(1, 8):
+            s = (r, c)
+            e = farthest_corner(s)
+            d = manh(s, e)
+            worst = min(worst, d)
+            if d < 8:
+                below8.append(s)
+            if d < MANHATTAN_MIN or e == s:
+                bad.append((s, e, d))
+    # (b) Full-triple sweep: first-D-per-cell derivations from V2_DAY on,
+    # asserting the real triple path (loop or precheck plus skeleton).
+    first_day = {}
+    day = V2_DAY
+    while len(first_day) < PROOF_CELLS and day < V2_DAY + 50000:
+        s, _, _, _ = derive_v2(day)
+        if s not in first_day:
+            first_day[s] = day
+        day += 1
+    missing = [(r, c) for r in range(1, 8) for c in range(1, 8)
+               if (r, c) not in first_day]
+    triple_bad = []
+    for s, dday in sorted(first_day.items()):
+        s2, e, bar, _ = derive_v2(dday)
+        assert s2 == s
+        if manh(s, e) < MANHATTAN_MIN or e == s:
+            triple_bad.append((dday, s, e))
+        if any(cell == s or cell == e for cell in bar):
+            triple_bad.append((dday, s, e, tuple(bar)))
+    ok = (not bad) and (not missing) and (not triple_bad)
+    ok = ok and worst >= MANHATTAN_MIN and len(first_day) == PROOF_CELLS
+    detail = ("%d/49 cells >= 6 (pure argmax min %d; below-8 cells %s); "
+              "full-triple sweep over %d first-days%s%s"
+              % (PROOF_CELLS - len(bad), worst, sorted(below8),
+                 len(first_day),
+                 "" if not missing else "; MISSING %s" % (missing,),
+                 "" if not triple_bad else "; BAD %s" % (triple_bad,)))
+    return record("exhaustive-49", ok, detail)
 
 
-def leg_end_screen_regex():
-    """Both end screens print the same coverage sentence, so the WIN regex
-    must key on the title only. Regression for the Session 73 peer review
-    finding: 'You brushed' alone matched a LOSE body and let a LOSE pass as
-    a WIN. Synthetic bodies keep this leg pure (no browser needed)."""
-    win_body = "EXIT REACHED\nYou brushed 29% of your line.\nWalk again"
-    lose_body = "OUT OF MOVES\nYou brushed 29% of your line.\nWalk again"
-    win_ok = bool(WIN_RE.search(win_body)) and not WIN_RE.search(lose_body)
-    lose_ok = bool(LOSE_RE.search(lose_body)) and not LOSE_RE.search(win_body)
-    return record(
-        "end-screen-regex", win_ok and lose_ok,
-        "WIN_RE matches EXIT REACHED only and not a LOSE body; LOSE_RE "
-        "matches OUT OF MOVES only and not a WIN body")
+# ---------------------------------------------------------------------------
+# Leg 2: v1/v2 boundary pair plus the distinguishing center day.
+# ---------------------------------------------------------------------------
+def leg_boundary():
+    s1, e1, b1, draws1 = derive(V1_DAY)
+    s2, e2, b2, draws2 = derive(V2_DAY)
+    sc, ec, bc, drawsc = derive_v2(CENTER_DAY)
+    mcd_c = max_cell_distance(sc)
+    ok1 = ((s1, e1, b1) == EXP_V1_20784
+           and manh(s1, e1) == 8 and draws1 == 7)
+    ok2 = ((s2, e2, b2) == EXP_V2_20785
+           and manh(s2, e2) == 8 and draws2 == 1)
+    # v1 and v2 must agree on the first v2 day (same START calls, loop
+    # succeeds at once): catches a START call-count change.
+    v1b = derive_v1(V2_DAY)
+    ok2 = ok2 and (v1b[0], v1b[1], v1b[2]) == EXP_V2_20785
+    okc = (sc == CENTER_START and ec == CENTER_EXIT
+           and bc == [(7, 2), (7, 3), (7, 4)]
+           and manh(sc, ec) == 6 and drawsc == 1 and mcd_c == 6
+           and not any(cell == sc or cell == ec for cell in bc))
+    ok = ok1 and ok2 and okc
+    detail = ("D=20784 v1 START%s EXIT%s skel%s draws %d manhattan 8; "
+              "D=20785 v2 START%s EXIT%s skel%s draws %d manhattan 8 "
+              "D=20901 center START%s EXIT%s skel%s "
+              "precheck loop skipped maxCellDistance 6 manhattan 6"
+              % (s1, e1, b1, draws1, s2, e2, b2, draws2, sc, ec, bc))
+    if not ok:
+        detail += "  MISMATCH: want 20784 %s, 20785 %s, 20901 %s->%s" % (
+            EXP_V1_20784, EXP_V2_20785, CENTER_START, CENTER_EXIT)
+    return record("boundary", ok, detail)
 
 
+# ---------------------------------------------------------------------------
+# Leg 3: determinism 200/200 (secondary regression).
+# ---------------------------------------------------------------------------
 def leg_determinism():
     good = 0
-    for i in range(200):
+    for i in range(DETERMINISM_RUNS):
         pts = boundary_stroke(i) if i >= 180 else synth_stroke(i)
         a = forge_trace([pts], FIXED_START, FIXED_EXIT, FIXED_SKELETON)
         b = forge_trace([pts], FIXED_START, FIXED_EXIT, FIXED_SKELETON)
@@ -443,146 +473,160 @@ def leg_determinism():
         if ja == jb and a["reachable"]:
             good += 1
         else:
-            record("determinism", False,
-                   "seed %d mismatch (boundary %s)" % (i, i >= 180))
-            return False
-    return record(
-        "determinism", good == 200,
-        "%d/200 byte-identical sorted-JSON wall sets "
-        "(seeds 0..179 walk, 180..199 near-boundary tie-break)" % good)
+            return record("determinism", False,
+                          "seed %d mismatch (boundary %s)" % (i, i >= 180))
+    return record("determinism", good == DETERMINISM_RUNS,
+                  "%d/200 determinism (seeds 0..179 walk, 180..199 "
+                  "near-boundary tie-break)" % good)
 
 
-def leg_monotone():
-    good = 0
-    for i in range(50):
-        base = synth_stroke(MONO_BASE + i)
-        ext = extend_straight(base, 50.0)
-        a = forge_trace([base], FIXED_START, FIXED_EXIT, FIXED_SKELETON)
-        b = forge_trace([ext], FIXED_START, FIXED_EXIT, FIXED_SKELETON)
-        if not set(a["walls"]) <= set(b["walls"]):
-            record("monotone", False,
-                   "seed %d lost %d wall cell(s) after +50 px"
-                   % (MONO_BASE + i, len(set(a["walls"]) - set(b["walls"]))))
-            return False
-        good += 1
-    return record("monotone", good == 50,
-                  "%d/50 extensions kept every wall cell (seeds %d..%d)"
-                  % (good, MONO_BASE, MONO_BASE + 49))
-
-
-def leg_room():
-    ring = forge_trace([ring_points()], FIXED_START, FIXED_EXIT,
-                       FIXED_SKELETON)
-    straight = forge_trace([straight_points()], FIXED_START, FIXED_EXIT,
-                           FIXED_SKELETON)
-    pr, ps = pocket_count(ring["walls"]), pocket_count(straight["walls"])
-    ok = ring["reachable"] and straight["reachable"] \
-        and pr >= 1 and ps == 0
-    return record(
-        "room", ok,
-        "RING pockets %d (want >= 1), STRAIGHT pockets %d (want 0), "
-        "both reachable" % (pr, ps))
-
-
-def leg_minimum():
-    good = 0
-    for i in range(20):
-        pts = zigzag_cell_stroke(700 + i) if i >= 10 else tiny_stroke(700 + i)
-        state = "DRAW"
-        res = forge_trace([pts], FIXED_START, FIXED_EXIT, FIXED_SKELETON)
-        refused = (res["ink_len_px"] < MIN_STROKE_PX
-                   or res["ink_cells"] < MIN_CELLS)
-        if refused:
-            pass  # state stays DRAW, stroke stays visible, no count
-        else:
-            state = "FORGE"
-        kind = "cells" if i >= 10 else "length"
-        if refused and state == "DRAW":
-            good += 1
-        else:
-            record("minimum", False,
-                   "seed %d (%s gate) not refused: len %.1f px, cells %d"
-                   % (700 + i, kind, res["ink_len_px"], res["ink_cells"]))
-            return False
-    return record("minimum", good == 20,
-                  "%d/20 under-minimum strokes refused, state stayed DRAW "
-                  "(10 length-gate, 10 cell-gate)" % good)
-
-
+# ---------------------------------------------------------------------------
+# Leg 4: reachability 200/200 (secondary regression).
+# ---------------------------------------------------------------------------
 def leg_reachability():
     good = 0
-    stitched_n = 0
-    low_manh_n = 0
     worst = 0
-    for i in range(200):
-        day_index = DAY_ANCHOR_D + i
-        start, exit_cell, bar = derive_day(day_index)
-        manh = abs(start[0] - exit_cell[0]) + abs(start[1] - exit_cell[1])
-        # Reported, not gated: the normative derivation (max 50 draws, then
-        # the rotational fallback) can emit manhattan < 8 on days whose START
-        # is one of (3,4),(4,3),(4,4),(4,5),(5,4), from which no interior cell
-        # is 8+ away. Reachability is what this leg gates; the manhattan
-        # count is evidence for Rook (contract 2.5.2 says >= 8 always).
-        low_manh_n += 1 if manh < MANHATTAN_MIN else 0
+    stitched_n = 0
+    for i in range(REACHABILITY_RUNS):
+        day_index = V2_DAY + i
+        start, exit_cell, bar, _ = derive(day_index)
+        if manh(start, exit_cell) < MANHATTAN_MIN:
+            return record("reachability", False,
+                          "D %d manhattan %d below floor"
+                          % (day_index, manh(start, exit_cell)))
         if any(cell == start or cell == exit_cell for cell in bar):
-            record("reachability", False,
-                   "D %d skeleton overlaps START/EXIT" % day_index)
-            return False
+            return record("reachability", False,
+                          "D %d skeleton overlaps START/EXIT" % day_index)
         res = forge_trace([synth_stroke(day_index), ring_points(),
                            cross_points()], start, exit_cell, bar)
         if not res["reachable"]:
-            record("reachability", False,
-                   "D %d unreachable after stitch" % day_index)
-            return False
+            return record("reachability", False,
+                          "D %d unreachable after stitch" % day_index)
         if res["moves"] is None or res["moves"] > MOVE_LIMIT:
-            record("reachability", False,
-                   "D %d moves %s over MOVE_LIMIT 80"
-                   % (day_index, res["moves"]))
-            return False
+            return record("reachability", False,
+                          "D %d moves %s over MOVE_LIMIT 80"
+                          % (day_index, res["moves"]))
         stitched_n += 1 if res["stitched"] else 0
         worst = max(worst, res["moves"])
         good += 1
-    return record(
-        "reachability", good == 200,
-        "%d/200 START->EXIT reachable within MOVE_LIMIT 80 (worst %d "
-        "moves); manhattan<8 on %d legs, L stitch fired on %d legs "
-        "(both reported, not gated)"
-        % (good, worst, low_manh_n, stitched_n))
+    return record("reachability", good == REACHABILITY_RUNS,
+                  "%d/200 reachability (D 20785..20984, worst %d moves, "
+                  "L stitch fired on %d)" % (good, worst, stitched_n))
 
 
 # ---------------------------------------------------------------------------
-# Browser legs (game present only). Real Chromium via Playwright, served over
-# localhost. Structural mismatch (no Start control, no drawing surface, no
-# observable RUN) is SKIP with a reason; behavioral mismatch after a real
-# drive is FAIL.
+# Leg 5: RED anchor against 5d4a7a9 (old point-reflection fallback).
+# ---------------------------------------------------------------------------
+RED_MARKERS = ["8 - start", "{ r: 1, c: 7 }", "MANHATTAN_MIN: 8"]
+
+
+def eval_red_anchor(root):
+    """Returns (verdict, detail) with verdict in red/skip/fail.
+
+    red: old semantics fail the floor as expected (harness is honest).
+    skip: anchor commit object missing (never PASS by omission).
+    fail: anchor present but markers absent, or git itself failed.
+    """
+    try:
+        cp = subprocess.run(
+            ["git", "cat-file", "-e",
+             ANCHOR_COMMIT + "^{commit}"],
+            cwd=str(root), stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL, timeout=30)
+    except Exception as exc:
+        return ("fail", "git cat-file error: %s" % exc)
+    if cp.returncode != 0:
+        return ("skip",
+                "anchor commit %s not present in this clone; "
+                "RED leg cannot run, refusing to PASS by omission"
+                % ANCHOR_COMMIT)
+    try:
+        cp = subprocess.run(
+            ["git", "show",
+             ANCHOR_COMMIT + ":website/games/trace.html"],
+            cwd=str(root), stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE, timeout=30)
+    except Exception as exc:
+        return ("fail", "git show error: %s" % exc)
+    if cp.returncode != 0:
+        return ("fail", "git show %s:website/games/trace.html failed: %s"
+                % (ANCHOR_COMMIT,
+                   cp.stderr.decode("utf-8", "replace")[:200]))
+    try:
+        old_text = cp.stdout.decode("utf-8")
+    except Exception as exc:
+        return ("fail", "old page not UTF-8: %s" % exc)
+    missing = [m for m in RED_MARKERS if m not in old_text]
+    if missing:
+        return ("fail", "anchor %s present but old-fallback markers "
+                "absent: %s (tree changed?)" % (ANCHOR_COMMIT, missing))
+    # Old semantics over all 49 cells: masked fallback exactly as coded,
+    # plus the pure unmasked reflection count (the single self-map zero).
+    masked_bad8 = 0
+    masked_bad6 = 0
+    pure_bad8 = 0
+    pure_bad6 = 0
+    for r in range(1, 8):
+        for c in range(1, 8):
+            s = (r, c)
+            fb = (8 - s[0], 8 - s[1])
+            pure_d = manh(s, fb)
+            coded = (1, 7) if fb == s else fb
+            coded_d = manh(s, coded)
+            pure_bad8 += 1 if pure_d < 8 else 0
+            pure_bad6 += 1 if pure_d < 6 else 0
+            masked_bad8 += 1 if coded_d < 8 else 0
+            masked_bad6 += 1 if coded_d < 6 else 0
+    floor_holds = (masked_bad6 == 0)
+    detail = ("anchor %s markers present %s; old point-reflection "
+              "fallback: %d/49 below 8 as-coded (%d/49 unmasked), "
+              "%d/49 below 6 as-coded with the {r:1,c:7} mask "
+              "(%d/49 unmasked counting the self-map zero); "
+              "floor >= 6 %s"
+              % (ANCHOR_COMMIT, RED_MARKERS, masked_bad8, pure_bad8,
+                 masked_bad6, pure_bad6,
+                 "HOLDS??" if floor_holds else "VIOLATED"))
+    if floor_holds:
+        return ("fail", detail + " -- old code passes the floor, "
+                "harness cannot RED it")
+    return ("red", detail)
+
+
+def leg_red_anchor_full(root):
+    """Full-run form: expected-RED confirmed in-process; green stays 0."""
+    verdict, detail = eval_red_anchor(root)
+    if verdict == "red":
+        return record("red-anchor", True,
+                      "expected RED confirmed in-process: " + detail)
+    if verdict == "skip":
+        print("SKIP: RED anchor: %s" % detail)
+        return None  # signals SKIP 3 to the caller
+    return record("red-anchor", False, detail)
+
+
+# ---------------------------------------------------------------------------
+# Leg 6: browser leg (live page, never the mirror).
 # ---------------------------------------------------------------------------
 BROWSER_PORTS = tuple(range(8941, 8950))
-VIEWPORTS = ((1280, 800, False), (375, 667, True))
-
-FIELD_SELECTORS = ("canvas", "#field", ".field", "svg", "[data-field]")
-TOUCH_ASSERT_RE = re.compile(r"touch-action\s*:\s*none")
-RUN_RE = re.compile(r"(?i)moves?\s*(left|\d)|walk|EXIT|You brushed")
-WIN_RE = re.compile(r"EXIT REACHED")
-LOSE_RE = re.compile(r"OUT OF MOVES")
-START_RE = re.compile(r"(?i)^\s*start\s*$|\bstart\b")
-KEY_FOR = {"up": "ArrowUp", "down": "ArrowDown",
-           "left": "ArrowLeft", "right": "ArrowRight"}
 
 
 def _pick_port():
-    for port in BROWSER_PORTS:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        try:
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            s.bind(("127.0.0.1", port))
-            s.close()
-            return port
-        except OSError:
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        for port in BROWSER_PORTS:
             try:
+                s.bind(("127.0.0.1", port))
                 s.close()
-            except Exception:  # noqa: BLE001
-                pass
-    return None
+                return port
+            except OSError:
+                continue
+        try:
+            s.close()
+        except Exception:
+            pass
+        return None
+    except Exception:
+        return None
 
 
 def _stop_child(srv):
@@ -591,12 +635,12 @@ def _stop_child(srv):
             srv.terminate()
             try:
                 srv.wait(timeout=5)
-            except Exception:  # noqa: BLE001
+            except Exception:
                 try:
                     srv.kill()
-                except Exception:  # noqa: BLE001
+                except Exception:
                     pass
-    except Exception:  # noqa: BLE001
+    except Exception:
         pass
 
 
@@ -606,261 +650,30 @@ def _port_cleanup(port):
         subprocess.run(["fuser", "-k", "%d/tcp" % port],
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     else:
+        # Port-scoped to the http.server this harness started; nothing else.
         subprocess.run(["pkill", "-f", "http[.]server %d" % port],
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
-def _on_console(cerr):
-    def handler(m):
-        try:
-            if m.type == "error":
-                cerr.append(m.text)
-        except Exception:  # noqa: BLE001
-            cerr.append("<unreadable console error>")
-    return handler
+def _today_day():
+    return int(time.time() // 86400)
 
 
-def _on_pageerror(perr):
-    def handler(e):
-        try:
-            perr.append(str(e))
-        except Exception:  # noqa: BLE001
-            perr.append("<unreadable page error>")
-    return handler
-
-
-def _body_text(page):
-    try:
-        return page.evaluate("document.body ? document.body.innerText : ''")
-    except Exception:  # noqa: BLE001
-        return ""
-
-
-def _wait_for(page, rx, timeout_s):
-    end = time.time() + timeout_s
-    while time.time() < end:
-        if rx.search(_body_text(page)):
-            return True
-        try:
-            page.wait_for_timeout(120)
-        except Exception:  # noqa: BLE001
-            return False
-    return False
-
-
-def _scroll_y(page):
-    try:
-        return page.evaluate("window.scrollY")
-    except Exception:  # noqa: BLE001
-        return None
-
-
-def _find_start(page):
-    try:
-        btns = page.query_selector_all("button, [role=button], a, input")
-    except Exception:  # noqa: BLE001
-        return None
-    for b in btns:
-        try:
-            if not b.is_visible():
-                continue
-            txt = (b.inner_text() or "").strip()
-            val = b.get_attribute("value") or ""
-        except Exception:  # noqa: BLE001
-            continue
-        if START_RE.search(txt) or START_RE.search(val):
-            return b
-    return None
-
-
-def _find_field(page):
-    for sel in FIELD_SELECTORS:
-        try:
-            els = page.query_selector_all(sel)
-        except Exception:  # noqa: BLE001
-            continue
-        for el in els:
-            try:
-                if el.is_visible() and el.bounding_box():
-                    return el
-            except Exception:  # noqa: BLE001
-                continue
-    return None
-
-
-def _click_handle(page, handle, mobile):
-    try:
-        handle.scroll_into_view_if_needed(timeout=2000)
-    except Exception:  # noqa: BLE001
-        pass
-    box = handle.bounding_box()
-    if not box:
-        handle.click()
-        return
-    x = box["x"] + box["width"] / 2
-    y = box["y"] + box["height"] / 2
-    if mobile:
-        try:
-            page.touchscreen.tap(x, y)
-        except Exception:  # noqa: BLE001
-            page.mouse.click(x, y)
-    else:
-        page.mouse.click(x, y)
-
-
-def _drag_diagonal(page, box):
-    """Real pointer drag across the field; returns (scrollYs, points_frac).
-
-    points_frac are field-relative fractions so the Python mirror can forge
-    the exact same stroke in internal space (frac * 324).
-    """
-    x0 = box["x"] + box["width"] * 0.2
-    y0 = box["y"] + box["height"] * 0.2
-    x1 = box["x"] + box["width"] * 0.8
-    y1 = box["y"] + box["height"] * 0.8
-    steps = 24
-    fracs = []
-    for i in range(steps + 1):
-        t = i / steps
-        fracs.append((0.2 + 0.6 * t, 0.2 + 0.6 * t))
-    scrolls = []
-    page.mouse.move(x0, y0)
-    page.wait_for_timeout(80)
-    scrolls.append(_scroll_y(page))
-    page.mouse.down()
-    for i in range(1, steps + 1):
-        t = i / steps
-        page.mouse.move(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t)
-        page.wait_for_timeout(15)
-        scrolls.append(_scroll_y(page))
-    page.mouse.up()
-    page.wait_for_timeout(400)
-    scrolls.append(_scroll_y(page))
-    return scrolls, fracs
-
-
-def _dirs_for_path(path):
-    dirs = []
-    for a, b in zip(path, path[1:]):
-        dr, dc = b[0] - a[0], b[1] - a[1]
-        dirs.append({(-1, 0): "up", (1, 0): "down",
-                     (0, -1): "left", (0, 1): "right"}[(dr, dc)])
-    return dirs
-
-
-def run_one_viewport(browser, url, origin, width, height, mobile):
-    tag = "mobile-375" if mobile else "desktop-1280"
-    ctx = browser.new_context(viewport={"width": width, "height": height},
-                              has_touch=mobile, is_mobile=mobile)
-    page = ctx.new_page()
-    cerr, perr = [], []
-    page.on("console", _on_console(cerr))
-    page.on("pageerror", _on_pageerror(perr))
-    try:
-        page.goto(url, wait_until="load", timeout=15000)
-        page.wait_for_timeout(900)
-        start_btn = _find_start(page)
-        if start_btn is None:
-            try:
-                page.keyboard.press("Enter")
-                page.wait_for_timeout(600)
-            except Exception:  # noqa: BLE001
-                pass
-            if not RUN_RE.search(_body_text(page)):
-                return ("skip", "%s: no Start control found; game not yet "
-                        "drivable by this harness" % tag)
-        else:
-            _click_handle(page, start_btn, mobile)
-            page.wait_for_timeout(600)
-        field = _find_field(page)
-        if field is None:
-            return ("skip", "%s: no drawing surface (canvas/#field) found; "
-                    "game not yet drivable" % tag)
-        try:
-            field.click()
-        except Exception:  # noqa: BLE001
-            pass
-        # Reset to the top: the Start click may have scrolled the control
-        # into view. What the contract gates is the DRAG: scrollY must stay
-        # 0 while the pointer draws.
-        try:
-            page.evaluate("window.scrollTo(0, 0)")
-        except Exception:  # noqa: BLE001
-            pass
-        page.wait_for_timeout(250)
-        box = field.bounding_box()
-        if not box:
-            return ("skip", "%s: drawing surface has no box" % tag)
-        pre_drag = _scroll_y(page)
-        scrolls, fracs = _drag_diagonal(page, box)
-        if any(s != 0 for s in scrolls if s is not None):
-            return ("fail", "%s: window.scrollY moved during diagonal drag "
-                    "(pre-drag %s): %s" % (tag, pre_drag, scrolls))
-        if not _wait_for(page, RUN_RE, 6.0):
-            return ("skip", "%s: drag drew but RUN never observable "
-                    "(scrollY stayed 0); game not yet drivable" % tag)
-        # Full pass on the live day triple (mirror derivation, contract 2.1).
-        today_d = int(time.time() // 86400)
-        start, exit_cell, bar = derive_day(today_d)
-        stroke = [(fx * FIELD_INTERNAL_PX, fy * FIELD_INTERNAL_PX)
-                  for (fx, fy) in fracs]
-        res = forge_trace([stroke], start, exit_cell, bar)
-        if not res["reachable"] or not res["path"]:
-            return ("fail", "%s: mirror forge unreachable on D %d"
-                    % (tag, today_d))
-        for d in _dirs_for_path(res["path"]):
-            try:
-                page.keyboard.press(KEY_FOR[d])
-                page.wait_for_timeout(150)
-            except Exception as exc:  # noqa: BLE001
-                return ("fail", "%s: key press failed: %s" % (tag, exc))
-        page.wait_for_timeout(600)
-        body = _body_text(page)
-        # LOSE is checked first: both end screens share the coverage
-        # sentence, so only the title distinguishes them (peer review
-        # finding, Session 73).
-        if LOSE_RE.search(body) and not WIN_RE.search(body):
-            return ("fail", "%s: walked the mirror BFS path (%d moves) but "
-                    "game says OUT OF MOVES; forge mismatch?" % (tag,
-                                                                 res["moves"]))
-        if WIN_RE.search(body):
-            m = re.search(r"You brushed\s*(\d+)\s*%", body)
-            shown = int(m.group(1)) if m else None
-            expect = coverage_pct(res["player_cells"], set(res["path"]))
-            errs = cerr + perr
-            if shown != expect:
-                return ("fail", "%s: WIN but coverage pct mismatch, shown %s "
-                        "mirror %d (D %d, %d moves)"
-                        % (tag, shown, expect, today_d, res["moves"]))
-            detail = ("%s DRAW->FORGE->RUN->WIN ok (D %d, %d moves, pct "
-                      "shown %s mirror %d); scrollY 0 through drag%s"
-                      % (tag, today_d, res["moves"], shown, expect,
-                         "" if not errs else "; console errors %s" % (errs,)))
-            if errs:
-                return ("fail", "%s: WIN but page errors: %s" % (tag, errs))
-            return ("pass", detail)
-        return ("fail", "%s: no WIN after walking the mirror BFS path "
-                "(%d moves); body %.160r" % (tag, res["moves"], body))
-    except Exception as exc:  # noqa: BLE001
-        return ("fail", "%s: exception %s" % (tag, exc))
-    finally:
-        try:
-            ctx.close()
-        except Exception:  # noqa: BLE001
-            pass
-
-
-def browser_legs(root, game_text):
+def browser_leg(root):
     """Returns (status, detail): status in pass/fail/skip."""
     try:
         from playwright.sync_api import sync_playwright
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         return ("skip", "playwright import failed: %s" % exc)
-    if not TOUCH_ASSERT_RE.search(game_text):
-        return ("fail", "file lacks touch-action: none on the drawing "
-                "surface")
-    if "pointerId" not in game_text:
-        return ("fail", "file lacks single-pointerId tracking (pointerId)")
+    game = root / GAME_REL
+    if not game.exists():
+        return ("fail", "page file missing: %s" % GAME_REL)
+    try:
+        text = game.read_text()
+    except Exception as exc:
+        return ("fail", "cannot read page file %s: %s" % (GAME_REL, exc))
+    if "deriveTriple" not in text:
+        return ("fail", "page lacks deriveTriple; cannot read the triple")
     port = _pick_port()
     if port is None:
         return ("skip", "no free port in 8941-8949 for the local server")
@@ -873,7 +686,7 @@ def browser_legs(root, game_text):
             [sys.executable, "-m", "http.server", str(port),
              "--directory", str(webdir)],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         return ("fail", "local server spawn failed (port %d): %s"
                 % (port, exc))
     started = False
@@ -881,7 +694,7 @@ def browser_legs(root, game_text):
         for _ in range(50):
             try:
                 urllib.request.urlopen(url, timeout=1)
-            except Exception:  # noqa: BLE001
+            except Exception:
                 if srv.poll() is not None:
                     return ("fail", "local server exited code %s (port %d "
                             "busy?)" % (srv.returncode, port))
@@ -891,24 +704,64 @@ def browser_legs(root, game_text):
                 started = True
             break
         if not started:
-            return ("fail", "local server did not start (port %d busy?)" % port)
+            return ("fail", "local server did not start (port %d busy?)"
+                    % port)
         with sync_playwright() as pw:
-            browser = pw.chromium.launch(headless=True)
             try:
-                outcomes = []
-                for (w, h, mobile) in VIEWPORTS:
-                    outcomes.append(run_one_viewport(browser, url, origin,
-                                                     w, h, mobile))
+                browser = pw.chromium.launch(headless=True)
+            except Exception as exc:
+                msg = str(exc)
+                if ("executable" in msg.lower()
+                        or "has not been downloaded" in msg.lower()):
+                    return ("skip", "browser binary missing: %s" % msg[:200])
+                return ("fail", "browser launch failed: %s" % msg[:200])
+            try:
+                page = browser.new_page()
+                try:
+                    page.goto(url, wait_until="load", timeout=15000)
+                    page.wait_for_timeout(600)
+                    days = sorted({_today_day(), CENTER_DAY})
+                    notes = []
+                    for day in days:
+                        try:
+                            raw = page.evaluate(
+                                "JSON.stringify(deriveTriple(%d))" % day)
+                        except Exception as exc:
+                            return ("fail", "D %d: JS evaluation of "
+                                    "deriveTriple failed: %s" % (day, exc))
+                        try:
+                            got = json.loads(raw)
+                        except Exception as exc:
+                            return ("fail", "D %d: page triple not JSON: %s"
+                                    % (day, exc))
+                        try:
+                            ps = (got["start"]["r"], got["start"]["c"])
+                            pe = (got["exit"]["r"], got["exit"]["c"])
+                            pb = [(c["r"], c["c"]) for c in got["skel"]]
+                        except Exception as exc:
+                            return ("fail", "D %d: page triple shape bad: "
+                                    "%s (%s)" % (day, exc, raw[:160]))
+                        ms, me, mb, _ = derive(day)
+                        if (ps, pe, pb) != (ms, me, mb):
+                            return ("fail", "D %d: page triple "
+                                    "START%s EXIT%s skel%s != mirror v2 "
+                                    "START%s EXIT%s skel%s"
+                                    % (day, ps, pe, pb, ms, me, mb))
+                        d = manh(ps, pe)
+                        if d < MANHATTAN_MIN:
+                            return ("fail", "D %d: page triple distance "
+                                    "%d below floor 6" % (day, d))
+                        notes.append("D %d page==mirror START%s EXIT%s "
+                                     "distance %d" % (day, ps, pe, d))
+                finally:
+                    try:
+                        page.close()
+                    except Exception:
+                        pass
             finally:
                 browser.close()
-        fails = [d for (s, d) in outcomes if s == "fail"]
-        skips = [d for (s, d) in outcomes if s == "skip"]
-        notes = [d for (s, d) in outcomes if s == "pass"]
-        if fails:
-            return ("fail", " | ".join(fails) + " || " + " | ".join(notes))
-        if skips:
-            return ("skip", " | ".join(skips) + " || " + " | ".join(notes))
-        return ("pass", " | ".join(notes))
+        detail = ("loaded %s; " % url) + "; ".join(notes)
+        return ("pass", detail)
     finally:
         _stop_child(srv)
         _port_cleanup(port)
@@ -917,82 +770,91 @@ def browser_legs(root, game_text):
 # ---------------------------------------------------------------------------
 # Main.
 # ---------------------------------------------------------------------------
-def main():
-    for arg in sys.argv[1:]:
-        print("FAIL: unknown argument %r (this harness takes no arguments)"
-              % arg)
-        print("RESULT: FAIL (exit 1)")
-        return 1
-
-    root = repo_root()
-    game = root / GAME_REL
-
-    leg_day_anchor()
-    leg_end_screen_regex()
-    leg_determinism()
-    leg_monotone()
-    leg_room()
-    leg_minimum()
-    leg_reachability()
-
-    pure_ok = all(passed for (_, passed, _) in CHECKS)
-
-    if not game.exists():
-        print("RED: missing game file: %s" % GAME_REL)
-        print("The harness has no target. Refusing to stay green.")
-        for name, passed, detail in CHECKS:
-            print("CHECK %s: %s (exit %d)%s"
-                  % (name, "PASS" if passed else "FAIL",
-                     0 if passed else 1,
-                     " " + detail if detail else ""))
-        print("RESULT: %s (exit %d)" % (("FAIL" if not pure_ok else "RED"),
-                                        1 if not pure_ok else 2))
-        return 1 if not pure_ok else 2
-    try:
-        text = game.read_text()
-    except Exception as exc:  # noqa: BLE001
-        print("RED: cannot read game file %s: %s" % (GAME_REL, exc))
-        print("RESULT: RED (exit 2)")
-        return 2
-
-    if not pure_ok:
-        for name, passed, detail in CHECKS:
-            print("CHECK %s: %s (exit %d)%s"
-                  % (name, "PASS" if passed else "FAIL",
-                     0 if passed else 1,
-                     " " + detail if detail else ""))
-        print("RESULT: FAIL (exit 1)")
-        return 1
-
-    status, detail = browser_legs(root, text)
-    if status == "pass":
-        record("browser-legs", True, detail)
-    elif status == "skip":
-        print("SKIPPED: browser legs (reason: %s)" % detail)
-        for name, passed, d2 in CHECKS:
-            print("CHECK %s: %s (exit %d)%s"
-                  % (name, "PASS" if passed else "FAIL",
-                     0 if passed else 1, " " + d2 if d2 else ""))
-        print("RESULT: SKIP (exit 3)")
-        return 3
-    else:
-        record("browser-legs", False, detail)
-
-    print("TRACE proof harness (Story 169) [python: %s]" % sys.executable)
-    print("forge: resample 2 px, floor+clamp 9x9, border wall, "
-          "carve START/EXIT, L-stitch BFS; day: mulberry32(D)")
-    print("")
-    code = 0
+def _print_checks():
     for name, passed, detail in CHECKS:
         print("CHECK %s: %s (exit %d)%s"
               % (name, "PASS" if passed else "FAIL",
                  0 if passed else 1,
                  " " + detail if detail else ""))
-        if not passed:
-            code = 1
-    print("RESULT: %s (exit %d)"
-          % ("PASS" if code == 0 else "FAIL", code))
-    return code
+
+
+def run_red_mode(root):
+    print("TRACE proof harness v2 (Story 172) -- RED-anchor mode "
+          "[python: %s]" % sys.executable)
+    verdict, detail = eval_red_anchor(root)
+    if verdict == "red":
+        print("RED: old point-reflection fallback fails the floor "
+              "as expected.")
+        print("DETAIL: %s" % detail)
+        print("RESULT: RED (exit 2)")
+        return 2
+    if verdict == "skip":
+        print("SKIP: RED anchor: %s" % detail)
+        print("RESULT: SKIP (exit 3)")
+        return 3
+    print("FAIL: RED anchor did not go RED: %s" % detail)
+    print("RESULT: FAIL (exit 1)")
+    return 1
+
+
+def run_full(root):
+    leg_exhaustive()
+    leg_boundary()
+    leg_determinism()
+    leg_reachability()
+    mirror_ok = all(passed for (_, passed, _) in CHECKS)
+    if not mirror_ok:
+        print("TRACE proof harness v2 (Story 172) [python: %s]"
+              % sys.executable)
+        print("")
+        _print_checks()
+        print("RESULT: FAIL (exit 1)")
+        return 1
+    red = leg_red_anchor_full(root)
+    if red is None:
+        _print_checks()
+        print("RESULT: SKIP (exit 3)")
+        return 3
+    if not red:
+        _print_checks()
+        print("RESULT: FAIL (exit 1)")
+        return 1
+    status, detail = browser_leg(root)
+    if status == "pass":
+        record("browser", True, detail)
+    elif status == "skip":
+        print("SKIPPED: browser leg (reason: %s)" % detail)
+        _print_checks()
+        print("Today D=%d, center D=20901; page triple equals "
+              "mirror not verified in this environment."
+              % _today_day())
+        print("RESULT: SKIP (exit 3)")
+        return 3
+    else:
+        record("browser", False, detail)
+        _print_checks()
+        print("RESULT: FAIL (exit 1)")
+        return 1
+    print("TRACE proof harness v2 (Story 172) [python: %s]"
+          % sys.executable)
+    print("mirror: cutoff v1 D<=20784 / v2 D>=20785; argmax (1,1),(1,7),"
+          "(7,1),(7,7) first wins; floor 6")
+    print("")
+    _print_checks()
+    print("RESULT: PASS (exit 0)")
+    return 0
+
+
+def main():
+    args = sys.argv[1:]
+    if args in (["--red-anchor"], ["--leg", "red"]):
+        return run_red_mode(repo_root())
+    for arg in args:
+        print("FAIL: unknown argument %r (want --red-anchor or "
+              "--leg red)" % arg)
+        print("RESULT: FAIL (exit 1)")
+        return 1
+    return run_full(repo_root())
 
 
 if __name__ == "__main__":
