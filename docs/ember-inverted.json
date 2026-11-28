@@ -1,26 +1,26 @@
 [
   {
-    "concept_summary": "A reverse-loop game in the world of Sixty-Five Thousand: a contest that pays for scope discipline, not scope: you begin holding everything the source hands out and win by giving it all back. Where the source loop is 'Not a mechanic: a market event that rewards small original browser games with a hard deadline, which is the same shape as a one-session build', here every move dismantles progress instead of building it, so the map empties and the score falls. Hoarding triggers the lose state; the end screen celebrates an empty board.",
-    "first_experiment": "Paper prototype: ten tokens stand in for everything the player owns and each turn must discard at least one; test with five players whether emptying the board feels like winning after three rounds.",
-    "inversion_axis": "mechanic",
-    "inverted_title": "discipline in Reverse",
-    "source_idea_title": "Sixty-Five Thousand: a contest that pays for scope discipline, not scope",
-    "why_it_is_opposite": "While the source rewards accumulation (Not a mechanic: a market event that rewards small original browser games with a hard deadline, which is the same shape as a one-session build), this concept rewards the opposite: progress means having less, so a winning run here would score zero in the source."
-  },
-  {
-    "concept_summary": "The same core loop as Ghost Shift: one seeded track per UTC day, one rival, rank only against your own last run, rebuilt end to end for newcomers instead of its current crowd. Controls, difficulty, session shape, and rewards assume newcomers: a guided, jargon-free on-ramp for total beginners. Nothing in this build serves the old crowd; one client cannot satisfy both.",
-    "first_experiment": "Take one level from the source fantasy, apply the inverted tuning only, and playtest with five target players for ten minutes; a quit-rate on the opposite side of half from the source baseline confirms the audience split is real.",
-    "inversion_axis": "audience",
-    "inverted_title": "against for Newcomers",
-    "source_idea_title": "Ghost Shift: one seeded track per UTC day, one rival, rank only against your own last run",
-    "why_it_is_opposite": "While the source is tuned for its current crowd (Desktop and mobile players who want a two-minute daily ritual with a leaderboard: systems tuned for veterans of the genre), this concept flips every tuning decision toward newcomers (a guided, jargon-free on-ramp for total beginners), so the two builds want mutually exclusive players."
-  },
-  {
-    "concept_summary": "The fantasy of Shift Key: the entire control scheme is one key that changes what every other key means stretched over a single persistent season lasting months: one meaningful decision per evening, no grinding, no catching up. Progress compounds across real calendar time and a missed week bends the story instead of ending it. The finale is scheduled, shared, and unrepeatable.",
+    "concept_summary": "The fantasy of Echo Heist: solo time-loop co-op stretched over a single persistent season lasting months: one meaningful decision per evening, no grinding, no catching up. Progress compounds across real calendar time and a missed week bends the story instead of ending it. The finale is scheduled, shared, and unrepeatable.",
     "first_experiment": "Concierge test: run the core decision by hand over seven daily messages with three players; if day-seven return beats the source's second-session return, the long form has legs.",
     "inversion_axis": "session length",
-    "inverted_title": "The 100-Hour control",
-    "source_idea_title": "Shift Key: the entire control scheme is one key that changes what every other key means",
+    "inverted_title": "The 100-Hour Heist",
+    "source_idea_title": "Echo Heist: solo time-loop co-op",
     "why_it_is_opposite": "While the source fits short sessions, this concept flips the clock: one season here outlasts hundreds of source sessions, so the source habit of quick payoff actively hurts."
+  },
+  {
+    "concept_summary": "The same core loop as Indie new IP breakouts: instant readability plus systemic depth, rebuilt end to end for newcomers instead of its current crowd. Controls, difficulty, session shape, and rewards assume newcomers: a guided, jargon-free on-ramp for total beginners. Nothing in this build serves the old crowd; one client cannot satisfy both.",
+    "first_experiment": "Take one level from the source fantasy, apply the inverted tuning only, and playtest with five target players for ten minutes; a quit-rate on the opposite side of half from the source baseline confirms the audience split is real.",
+    "inversion_axis": "audience",
+    "inverted_title": "readability for Newcomers",
+    "source_idea_title": "Indie new IP breakouts: instant readability plus systemic depth",
+    "why_it_is_opposite": "While the source is tuned for its current crowd (Studio strategy input.: systems tuned for veterans of the genre), this concept flips every tuning decision toward newcomers (a guided, jargon-free on-ramp for total beginners), so the two builds want mutually exclusive players."
+  },
+  {
+    "concept_summary": "A reverse-loop game in the world of MECCHA CHAMELEON: paint yourself to hide: you begin holding everything the source hands out and win by giving it all back. Where the source loop is 'Free-paint camouflage on your own body to match the surface behind you while hunters search.', here every move undoes the 'Free-paint camouflage on your own body to match the surface behind you while hunters search.' loop step by step instead of advancing it, so the map empties and the score falls. Hoarding triggers the lose state; the end screen celebrates an empty board.",
+    "first_experiment": "Paper prototype: ten tokens stand in for everything the player owns and each turn must discard at least one; test with five players whether emptying the board feels like winning after three rounds.",
+    "inversion_axis": "mechanic",
+    "inverted_title": "CHAMELEON in Reverse",
+    "source_idea_title": "MECCHA CHAMELEON: paint yourself to hide",
+    "why_it_is_opposite": "While the source rewards accumulation (Free-paint camouflage on your own body to match the surface behind you while hunters search.), this concept rewards the opposite: progress means having less, so a winning run here would score zero in the source."
   }
 ]
