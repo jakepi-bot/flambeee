@@ -8,6 +8,7 @@
 # control runs in FLAMBEEE_DRY_RUN=1; refusal cases never reach the post step).
 set -u
 
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TARGET="${1:-/home/jake/.hermes/flambeee/scripts/flambeee-post-noon.py}"
 PASS=0
 FAIL=0
@@ -23,6 +24,33 @@ QUAR_BEFORE="$(sha256sum "$QUARANTINE" | cut -d' ' -f1)"
 POSTED_BEFORE="$(sha256sum "$POSTED" | cut -d' ' -f1)"
 
 V033="Day Pad counts your characters now, live N/280 on your daily line. v0.33.0 https://flambeee.com"
+NOLINK="Day Pad counts your characters now, live N/280 on your daily line. v0.33.0"
+VERIFY_SH="${FLAMBEEE_VERIFY:-$HERE/verify-poster-mirror.sh}"
+
+# Stub probes for the public-leg gate (Story 174). The poster runs the
+# probe as [python, PROBE_PATH], so stubs are Python scripts, not bash.
+cat > "$SCRATCH/stub-probe-pass.py" <<'EOF'
+#!/usr/bin/env python3
+import sys
+print("PASS apex public leg (stub)")
+print("PASS www public leg (stub)")
+print("RESULT: PASS (exit 0)")
+sys.exit(0)
+EOF
+cat > "$SCRATCH/stub-probe-fail.py" <<EOF
+#!/usr/bin/env python3
+import sys
+from pathlib import Path
+Path("$SCRATCH/probe-marker").write_text("probe-ran\n")
+print("FAIL apex public leg (stub: apex down)")
+print("RESULT: FAIL (exit 1)")
+sys.exit(1)
+EOF
+chmod +x "$SCRATCH/stub-probe-pass.py" "$SCRATCH/stub-probe-fail.py"
+# Positive-control poster helper: runs as [venv-python, helper, ...], so
+# it must be Python that prints an at:// URI and exits 0.
+printf '#!/usr/bin/env python3\nimport sys\nprint("posted at://did:plc:fake/app.bsky.feed.post/123")\nsys.exit(0)\n' > "$SCRATCH/fake-bsky-ok.py"
+chmod +x "$SCRATCH/fake-bsky-ok.py"
 
 run_poster() {
   # Runs the target poster against scratch pending; echoes output, returns poster exit.
@@ -101,7 +129,7 @@ printf 'BSKY_HANDLE=x\nBSKY_PASSWORD=y\n' > "$FAKEHOME/.config/flambeee/.env"
 printf '#!/usr/bin/env bash\necho "simulated helper failure"; exit 1\n' > "$SCRATCH/fake-bsky.sh"
 chmod +x "$SCRATCH/fake-bsky.sh"
 printf '%s' "$V033" > "$SCRATCH/pending.txt"
-EXTRA_ENV="HOME=$FAKEHOME FLAMBEEE_VENV=/home/jake/.hermes/flambeee/.venv/bin/python FLAMBEEE_BSKY=$SCRATCH/fake-bsky.sh" \
+EXTRA_ENV="HOME=$FAKEHOME FLAMBEEE_VENV=/home/jake/.hermes/flambeee/.venv/bin/python FLAMBEEE_BSKY=$SCRATCH/fake-bsky.sh FLAMBEEE_PUBLIC_PROBE=$SCRATCH/stub-probe-pass.py" \
   check "api-rejection" 1 "api-rejection" 'run_poster'
 
 echo "--- 083: current buffer ALLOW (dry-run, no real post) ---"
@@ -113,6 +141,35 @@ echo "--- 082 scenario 5: nothing pending exits 0 silently ---"
 PENDING_OVERRIDE="$SCRATCH/does-not-exist" EXTRA_ENV="" \
   check "nothing-pending" 0 "" 'run_poster'
 unset PENDING_OVERRIDE
+
+echo "--- 174: probe-fail blocks (stub probe exits 1, marker file) ---"
+rm -f "$SCRATCH/probe-marker"
+printf '%s' "$V033" > "$SCRATCH/pending.txt"
+PENDING_BEFORE="$(sha256sum "$SCRATCH/pending.txt" | cut -d' ' -f1)"
+EXTRA_ENV="HOME=$FAKEHOME FLAMBEEE_VENV=/home/jake/.hermes/flambeee/.venv/bin/python FLAMBEEE_BSKY=$SCRATCH/fake-bsky.sh FLAMBEEE_PUBLIC_PROBE=$SCRATCH/stub-probe-fail.py" \
+  check "probe-fail-blocks" 1 "public-leg" 'run_poster'
+PENDING_AFTER="$(sha256sum "$SCRATCH/pending.txt" | cut -d' ' -f1)"
+if [ "$PENDING_BEFORE" = "$PENDING_AFTER" ]; then echo "PASS: probe-fail pending kept byte-identical"; PASS=$((PASS+1)); else echo "FAIL: probe-fail pending changed"; FAIL=$((FAIL+1)); fi
+if [ -f "$SCRATCH/probe-marker" ]; then echo "PASS: probe-fail marker exists"; PASS=$((PASS+1)); else echo "FAIL: probe-fail marker missing"; FAIL=$((FAIL+1)); fi
+
+echo "--- 174: probe-pass allows (stub probe exits 0, fake helper posts) ---"
+FAKEHOME2="$SCRATCH/fakehome2"
+mkdir -p "$FAKEHOME2/.config/flambeee" "$FAKEHOME2/.hermes/flambeee/flambeee-team/state"
+printf 'BSKY_HANDLE=x\nBSKY_PASSWORD=y\n' > "$FAKEHOME2/.config/flambeee/.env"
+printf '%s' "$V033" > "$SCRATCH/pending.txt"
+EXTRA_ENV="HOME=$FAKEHOME2 FLAMBEEE_VENV=/home/jake/.hermes/flambeee/.venv/bin/python FLAMBEEE_BSKY=$SCRATCH/fake-bsky-ok.py FLAMBEEE_PUBLIC_PROBE=$SCRATCH/stub-probe-pass.py" \
+  check "probe-pass-allows" 0 "" 'run_poster'
+if [ ! -f "$SCRATCH/pending.txt" ]; then echo "PASS: probe-pass pending cleared"; PASS=$((PASS+1)); else echo "FAIL: probe-pass pending not cleared"; FAIL=$((FAIL+1)); fi
+
+echo "--- 174: no-link text never invokes the probe ---"
+rm -f "$SCRATCH/probe-marker"
+printf '%s' "$NOLINK" > "$SCRATCH/pending.txt"
+EXTRA_ENV="HOME=$FAKEHOME2 FLAMBEEE_VENV=/home/jake/.hermes/flambeee/.venv/bin/python FLAMBEEE_BSKY=$SCRATCH/fake-bsky-ok.py FLAMBEEE_PUBLIC_PROBE=$SCRATCH/stub-probe-fail.py" \
+  check "no-link-skips-probe" 0 "" 'run_poster'
+if [ ! -f "$SCRATCH/probe-marker" ]; then echo "PASS: no-link probe never invoked"; PASS=$((PASS+1)); else echo "FAIL: no-link probe was invoked"; FAIL=$((FAIL+1)); fi
+
+echo "--- 174: mirror check (verify-poster-mirror.sh) ---"
+if bash "$VERIFY_SH"; then echo "PASS: mirror check (exit=0)"; PASS=$((PASS+1)); else echo "FAIL: mirror check"; FAIL=$((FAIL+1)); fi
 
 echo "--- live-path integrity ---"
 QUAR_AFTER="$(sha256sum "$QUARANTINE" | cut -d' ' -f1)"

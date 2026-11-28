@@ -211,6 +211,41 @@ def main() -> int:
             f"credentials file absent at {ENV_PATH} (Oct 18-20 mode); post NOT sent",
         )
 
+    # Public-leg gate (Story 174): staged text naming flambeee.com must
+    # not post into a dead public leg. Probe exit 0 posts; any nonzero
+    # routes through fail_loud with pending kept. Never log-and-continue.
+    # FLAMBEEE_PUBLIC_PROBE overrides the probe path for tests.
+    if "flambeee.com" in text.casefold():
+        PROBE_PATH = Path(
+            os.environ.get("FLAMBEEE_PUBLIC_PROBE", REPO / "scripts" / "public-leg-probe.py")
+        )
+        GATE_TIMEOUT_S = 120
+        probe_env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
+        try:
+            probe = subprocess.run(
+                [sys.executable, str(PROBE_PATH)],
+                capture_output=True, text=True, timeout=GATE_TIMEOUT_S,
+                env=probe_env,
+            )
+            probe_out = (probe.stdout or "") + (probe.stderr or "")
+            probe_code = probe.returncode
+        except subprocess.TimeoutExpired as exc:
+            probe_out = "probe timed out after %ds: %s" % (GATE_TIMEOUT_S, exc)
+            probe_code = 124
+        except FileNotFoundError as exc:
+            probe_out = "probe file missing: %s" % exc
+            probe_code = 127
+        except Exception as exc:
+            probe_out = "probe spawn failed: %s" % exc
+            probe_code = 1
+        if probe_code != 0:
+            tail = probe_out.strip()[-300:] or "no probe output"
+            return fail_loud(
+                "public-leg",
+                f"{tail}; post NOT sent, pending kept",
+                code=probe_code,
+            )
+
     print("=== STAGED POST ===")
     print(text)
     print("===================")
