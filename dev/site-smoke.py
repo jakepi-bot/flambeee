@@ -321,10 +321,41 @@ def stop_server(proc):
 
 ANCHOR_JS = """() => ({
   h1: (document.querySelector('h1') || {textContent: ''}).textContent.trim(),
-  surface: !!document.querySelector('canvas, #board'),
   title: document.title.trim(),
   control: !!document.querySelector('input, button')
 })"""
+
+GAME_ANCHORS = {
+    "games/2048.html": ("#grid", "none"),
+    "games/afterglow.html": ("#board", "none"),
+    "games/cinder.html": ("#promptInput", "none"),
+    "games/echo-rounds.html": ("canvas", "none"),
+    "games/empty-hands.html": ("#screen", "buttons"),
+    "games/lightfare.html": ("#board", "none"),
+    "games/minesweeper.html": ("#board", "none"),
+    "games/saltline.html": ("#screen", "buttons"),
+    "games/simon.html": (".game-board", "pads"),
+    "games/trace.html": ("canvas", "none"),
+    "games/typewreck.html": ("canvas", "none"),
+    "games/wordfire.html": ("#board", "none"),
+}
+
+GAME_ANCHOR_JS = """(a) => {
+  var el = document.querySelector(a.sel);
+  if (!el) return 'missing ' + a.sel;
+  var cs = getComputedStyle(el);
+  if (cs.display === 'none') return a.sel + ' display none';
+  if (cs.visibility === 'hidden') return a.sel + ' visibility hidden';
+  if (!(el.offsetWidth > 0 && el.offsetHeight > 0)) return a.sel + ' zero size';
+  if (a.comp === 'buttons') {
+    var n = el.querySelectorAll('button').length;
+    if (n < 1) return a.sel + ' has no button inside';
+  } else if (a.comp === 'pads') {
+    var p = el.querySelectorAll('.pad').length;
+    if (p !== 4) return a.sel + ' has ' + p + ' .pad children, want 4';
+  }
+  return '';
+}"""
 
 OVERFLOW_JS = ("document.documentElement.scrollWidth <= window.innerWidth "
                "? '' : ('overflow scrollWidth=' + "
@@ -430,13 +461,23 @@ def check_desktop_anchor(page, url, rel, failing):
         failing.append(("FAIL", url, "DESKTOP", "anchor: empty h1"))
         return False
     if rel in GAME_PAGES:
-        if r["surface"] and r["title"]:
-            return True
         missing = []
-        if not r["surface"]:
-            missing.append("no canvas or #board")
         if not r["title"]:
             missing.append("empty title")
+        row = GAME_ANCHORS.get(rel)
+        if row is None:
+            missing.append("no anchor row in table for %s" % rel)
+        else:
+            try:
+                detail = page.evaluate(GAME_ANCHOR_JS,
+                                       {"sel": row[0], "comp": row[1]})
+            except Exception as e:
+                missing.append("anchor eval error: %s" % str(e)[:120])
+                detail = None
+            if detail:
+                missing.append(detail)
+        if not missing:
+            return True
         failing.append(("FAIL", url, "DESKTOP", "anchor: %s" % " and ".join(missing)))
         return False
     if rel == APPS_INDEX:
