@@ -246,11 +246,10 @@ negative, fractional, NaN, Infinity, null, undefined, absent key, corrupt
 JSON, wrong shape (object/array/boolean), empty string, and over-cap values.
 Cap constant: 9007199254740991.
 
-Empty-state rule: the modal shows `Play your first round to see your stats
-here` iff every displayed stat including plays is 0 or absent. Any
-displayed stat including plays non-zero renders the data block, including
-the Plays row, so plays alone (with no save/stats record) flips the modal
-out of the empty state.
+Empty-state rule: the modal shows `Play your first round to see your stats here`
+iff every displayed stat including plays is 0 or absent. Any displayed stat
+including plays non-zero renders the data block, including the Plays row, so
+plays alone (with no save/stats record) flips the modal out of the empty state.
 
 Modal-not-rotation note: Typewreck is a `GAMES` modal surface only.
 `GAME_ORDER` stays 6 entries (`cinder`, `wordfire`, `minesweeper`, `simon`,
