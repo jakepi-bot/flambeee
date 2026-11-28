@@ -135,6 +135,22 @@
     "sourced_idea": "Stop Walking: one button, four air jumps, ten catches",
     "title_used": "Show HN on November 10, 2026. A one-button 3D rage game with a clear fail state "
   },
+  "https://playnewt.com/weekly": {
+    "domain": "playnewt.com",
+    "first_seen": "2026-11-28",
+    "reuse_cooldown_sessions": 4,
+    "session": "Session 75",
+    "sourced_idea": "Echo Heist: solo time-loop co-op",
+    "title_used": "A co-op puzzle where the partner is your own recorded past run. It is the freshe"
+  },
+  "https://pokeindie.com/blog/fastest-rising-indie-games-2026-so-far": {
+    "domain": "pokeindie.com",
+    "first_seen": "2026-11-28",
+    "reuse_cooldown_sessions": 4,
+    "session": "Session 75",
+    "sourced_idea": "MECCHA CHAMELEON: paint yourself to hide",
+    "title_used": "The clearest 2026 example of a one-sentence mechanic that is also a clip factory"
+  },
   "https://poki.com/blog/state-of-web-gaming-report-2026": {
     "domain": "poki.com",
     "first_seen": "2026-11-05",
@@ -198,6 +214,14 @@
     "session": "Session 71",
     "sourced_idea": "SKYHOP: play starts at page load and every run ends with your best line replayed",
     "title_used": "Dated play counts behind a zero-friction start (play begins at load) and an auto"
+  },
+  "https://www.gamesindustry.biz/indies-and-original-ip-blew-up-in-2026": {
+    "domain": "gamesindustry.biz",
+    "first_seen": "2026-11-28",
+    "reuse_cooldown_sessions": 4,
+    "session": "Session 75",
+    "sourced_idea": "Indie new IP breakouts: instant readability plus systemic depth",
+    "title_used": "The market data behind the originality directive: new IP and small teams took a "
   },
   "https://www.scien.cx/2026/05/20/the-combo-system-that-makes-neon-starfighter-addictive-a-devlog": {
     "domain": "scien.cx",

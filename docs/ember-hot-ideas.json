@@ -1,32 +1,32 @@
 [
   {
-    "audience": "Solo web developers and vibe coders",
-    "core_mechanic": "Not a mechanic: a market event that rewards small original browser games with a hard deadline, which is the same shape as a one-session build",
-    "monetization": "Prize competition, monetized via Nitro ads",
-    "retrieved_at": "2026-11-26T07:12:13Z",
-    "source_domain": "blog.overwolf.com",
-    "source_url": "https://blog.overwolf.com/overwolfs-nitro-and-base44-launch-65k-contest-for-web-games-built-with-ai",
-    "title": "Sixty-Five Thousand: a contest that pays for scope discipline, not scope",
-    "why_hot": "Nitro and Base44 opened a 65,000 USD browser game contest on 2026-11-05 with submissions through 2026-12-03 and a 25,000 USD grand prize, judged on gameplay, creativity and technical execution"
+    "audience": "Puzzle players who like Portal-style planning plus speedrun-style repetition; 5 to 15 minute sessions.",
+    "core_mechanic": "Record a timed run, then replay it as a ghost that holds pressure plates and opens gates while the live player moves through the same vault.",
+    "monetization": "Free, no ads, no account, cosmetic optional later.",
+    "retrieved_at": "2026-11-28T07:11:42Z",
+    "source_domain": "playnewt.com",
+    "source_url": "https://playnewt.com/weekly",
+    "title": "Echo Heist: solo time-loop co-op",
+    "why_hot": "A co-op puzzle where the partner is your own recorded past run. It is the freshest mechanic on this week's new-browser-games list and needs no netcode, so a single-file build can carry it."
   },
   {
-    "audience": "Desktop and mobile players who want a two-minute daily ritual with a leaderboard",
-    "core_mechanic": "A short physics track is seeded from the UTC day; every player races the identical geometry against a deterministic rival, and the only visible comparison is your time against your own previous best on that seed",
-    "monetization": "Free, optional account for leaderboards",
-    "retrieved_at": "2026-11-26T07:12:13Z",
-    "source_domain": "polytrack.games",
-    "source_url": "https://polytrack.games/updates",
-    "title": "Ghost Shift: one seeded track per UTC day, one rival, rank only against your own last run",
-    "why_hot": "PolyTrack is the largest rising gaming search term at 1,220,000 monthly searches (2026-09), up 639 percent in three months, after adding a daily challenge on 2026-11-04 that resets at 00:00 UTC with the same track and car for everyone"
+    "audience": "Studio strategy input.",
+    "core_mechanic": "Not a game. A market signal: legible-in-one-sentence pitch, then depth that produces replayable stories.",
+    "monetization": "Not applicable.",
+    "retrieved_at": "2026-11-28T07:11:42Z",
+    "source_domain": "gamesindustry.biz",
+    "source_url": "https://www.gamesindustry.biz/indies-and-original-ip-blew-up-in-2026",
+    "title": "Indie new IP breakouts: instant readability plus systemic depth",
+    "why_hot": "The market data behind the originality directive: new IP and small teams took a much larger share of 2026 breakouts, and the common thread is instant readability followed by enough systemic depth to generate a second story."
   },
   {
-    "audience": "Game jam players, itch.io browser audience, keyboard desktop",
-    "core_mechanic": "One modifier key reassigns the meaning of every other input; the player's skill is tracking which mapping is live rather than executing the mapping",
-    "monetization": "Free jam entry",
-    "retrieved_at": "2026-11-26T07:12:13Z",
-    "source_domain": "venogame.com",
-    "source_url": "https://venogame.com/en/game-off-2026-shift-game-jam-guide",
-    "title": "Shift Key: the entire control scheme is one key that changes what every other key means",
-    "why_hot": "GitHub Game Off 2026 runs through 2026-12-01 with the theme SHIFT and explicitly names 'a game where the Shift key is the only control' and 'controls that rotate every few seconds' as valid readings, so a large pool of browser entries is about to ship on this axis"
+    "audience": "Multiplayer party players; 5 minute rounds.",
+    "core_mechanic": "Free-paint camouflage on your own body to match the surface behind you while hunters search.",
+    "monetization": "6 dollars paid.",
+    "retrieved_at": "2026-11-28T07:11:42Z",
+    "source_domain": "pokeindie.com",
+    "source_url": "https://pokeindie.com/blog/fastest-rising-indie-games-2026-so-far",
+    "title": "MECCHA CHAMELEON: paint yourself to hide",
+    "why_hot": "The clearest 2026 example of a one-sentence mechanic that is also a clip factory. Camouflage-as-input is a mechanic nobody had shipped at scale before this year."
   }
 ]
