@@ -8,6 +8,7 @@
 # control runs in FLAMBEEE_DRY_RUN=1; refusal cases never reach the post step).
 set -u
 
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TARGET="${1:-/home/jake/.hermes/flambeee/scripts/flambeee-post-noon.py}"
 PASS=0
 FAIL=0
@@ -24,7 +25,7 @@ POSTED_BEFORE="$(sha256sum "$POSTED" | cut -d' ' -f1)"
 
 V033="Day Pad counts your characters now, live N/280 on your daily line. v0.33.0 https://flambeee.com"
 NOLINK="Day Pad counts your characters now, live N/280 on your daily line. v0.33.0"
-VERIFY_SH="${FLAMBEEE_VERIFY:-/home/jake/.hermes/flambeee/flambeee/scripts/verify-poster-mirror.sh}"
+VERIFY_SH="${FLAMBEEE_VERIFY:-$HERE/verify-poster-mirror.sh}"
 
 # Stub probes for the public-leg gate (Story 174). The poster runs the
 # probe as [python, PROBE_PATH], so stubs are Python scripts, not bash.
