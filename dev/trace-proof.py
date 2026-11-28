@@ -8,7 +8,7 @@ Self-heal: at startup the harness re-execs itself under the team venv python
 so the browser leg reaches PASS even when launched with the system python3
 (which has no playwright). Guarded by FLAMBEee_TRACE_REEXEC, never loops.
 
-Six legs (design-handoff Section 2.1, all normative):
+Seven legs (design-handoff Sections 2.1 and 3.1, all normative):
   1. Exhaustive 49-cell mirror proof (primary): for each interior START cell,
      v2 EXIT via farthest-corner argmax, manhattan >= 6, EXIT != START, all 3
      skeleton cells disjoint from both. 49/49 required. Plus a full-triple
@@ -27,6 +27,11 @@ Six legs (design-handoff Section 2.1, all normative):
      website/games/trace.html (never the mirror) and reads the derived
      triple by JS evaluation for today D and center day D=20901, asserting
      page triple equals the mirror v2 triple with distance >= 6.
+  7. V1-FIDELITY (Story 176): mirror derive_v1(20008) equals the pinned
+     triple START (3,3), EXIT (7,7), skeleton [(5,4),(5,5),(5,6)] with
+     draws 50 and distance 8 (real-day path), and the page
+     deriveTripleV1(20008) read by JS evaluation in the browser leg
+     equals the mirror triple.
 
 Exit codes: 0 PASS, 1 FAIL, 2 RED (red-anchor mode), 3 SKIP (anchor commit
 missing, or browser binary missing while mirror legs still gate).
@@ -93,6 +98,10 @@ CENTER_EXIT = (1, 1)
 # Exact parent-verified triples (binding ground truth, 2026-11-27).
 EXP_V1_20784 = ((6, 2), (3, 7), [(5, 5), (5, 6), (5, 7)])
 EXP_V2_20785 = ((7, 6), (4, 1), [(4, 2), (4, 3), (4, 4)])
+
+# Story 176: real pre-cutoff exhausting day (real-day path, not synthetic).
+V1_FIDELITY_DAY = 20008
+EXP_V1_20008 = ((3, 3), (7, 7), [(5, 4), (5, 5), (5, 6)])
 
 FIXED_START = (1, 1)
 FIXED_EXIT = (7, 7)
@@ -180,8 +189,7 @@ def derive_v1(day):
         draws += 1
     if (abs(start[0] - exit_cell[0]) + abs(start[1] - exit_cell[1])
             < V1_MANHATTAN_MIN):
-        fb = (8 - start[0], 8 - start[1])  # point-reflection fallback
-        exit_cell = (1, 7) if fb == start else fb
+        exit_cell = farthest_corner(start)  # v1 exhaustion fallback (page v1)
     bar = _draw_skeleton(rng, start, exit_cell)
     return start, exit_cell, bar, draws
 
@@ -457,6 +465,27 @@ def leg_boundary():
         detail += "  MISMATCH: want 20784 %s, 20785 %s, 20901 %s->%s" % (
             EXP_V1_20784, EXP_V2_20785, CENTER_START, CENTER_EXIT)
     return record("boundary", ok, detail)
+
+
+# ---------------------------------------------------------------------------
+# Story 176 leg: V1-FIDELITY on the real pre-cutoff exhausting day 20008.
+# Pure-Python mirror half: mirror derive_v1(20008) equals the pinned triple
+# with draws 50 and distance 8. The page half (deriveTripleV1 equality)
+# runs inside the browser leg and fails loudly there when unavailable.
+# Real-day path with D=20008 (the synthetic path is not used).
+# ---------------------------------------------------------------------------
+def leg_v1_fidelity():
+    s, e, b, draws = derive_v1(V1_FIDELITY_DAY)
+    ok = ((s, e, b) == EXP_V1_20008
+          and manh(s, e) == V1_MANHATTAN_MIN
+          and draws == MAX_EXIT_DRAWS)
+    detail = ("D=20008 v1 START%s EXIT%s skel%s draws %d manhattan %d "
+              "real-day path"
+              % (s, e, b, draws, manh(s, e)))
+    if not ok:
+        detail += ("  MISMATCH: want %s draws 50 distance 8"
+                   % (EXP_V1_20008,))
+    return record("v1-fidelity", ok, detail)
 
 
 # ---------------------------------------------------------------------------
@@ -753,6 +782,51 @@ def browser_leg(root):
                                     "%d below floor 6" % (day, d))
                         notes.append("D %d page==mirror START%s EXIT%s "
                                      "distance %d" % (day, ps, pe, d))
+                    # Story 176 V1-FIDELITY page half: the page
+                    # deriveTripleV1(20008) must equal mirror derive_v1,
+                    # and both must equal the pinned triple. Any failure
+                    # here fails loudly, never passes by omission.
+                    try:
+                        raw176 = page.evaluate(
+                            "JSON.stringify(deriveTripleV1(%d))"
+                            % V1_FIDELITY_DAY)
+                    except Exception as exc:
+                        return ("fail", "D 20008: JS evaluation of "
+                                "deriveTripleV1 failed: %s" % exc)
+                    try:
+                        got176 = json.loads(raw176)
+                    except Exception as exc:
+                        return ("fail", "D 20008: page v1 triple not "
+                                "JSON: %s" % exc)
+                    try:
+                        ps176 = (got176["start"]["r"],
+                                 got176["start"]["c"])
+                        pe176 = (got176["exit"]["r"],
+                                 got176["exit"]["c"])
+                        pb176 = [(c["r"], c["c"]) for c in got176["skel"]]
+                    except Exception as exc:
+                        return ("fail", "D 20008: page v1 triple "
+                                "shape bad: %s (%s)"
+                                % (exc, raw176[:160]))
+                    ms176, me176, mb176, mdraws176 = derive_v1(
+                        V1_FIDELITY_DAY)
+                    if (ps176, pe176, pb176) != (ms176, me176, mb176):
+                        return ("fail", "D 20008: page v1 triple "
+                                "START%s EXIT%s skel%s != mirror v1 "
+                                "START%s EXIT%s skel%s"
+                                % (ps176, pe176, pb176,
+                                   ms176, me176, mb176))
+                    if ((ms176, me176, mb176) != EXP_V1_20008
+                            or mdraws176 != MAX_EXIT_DRAWS
+                            or manh(ms176, me176) != V1_MANHATTAN_MIN):
+                        return ("fail", "D 20008: mirror v1 triple "
+                                "START%s EXIT%s skel%s draws %d != "
+                                "pinned %s"
+                                % (ms176, me176, mb176, mdraws176,
+                                   EXP_V1_20008))
+                    notes.append("D 20008 v1 page==mirror START%s "
+                                 "EXIT%s distance 8 draws 50"
+                                 % (ps176, pe176))
                 finally:
                     try:
                         page.close()
@@ -800,6 +874,7 @@ def run_red_mode(root):
 def run_full(root):
     leg_exhaustive()
     leg_boundary()
+    leg_v1_fidelity()
     leg_determinism()
     leg_reachability()
     mirror_ok = all(passed for (_, passed, _) in CHECKS)
